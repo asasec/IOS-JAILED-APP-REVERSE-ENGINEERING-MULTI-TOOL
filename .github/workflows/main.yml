@@ -1,0 +1,62 @@
+name: Build Multi-Tool
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    defaults:
+      run:
+        working-directory: ./MULTI-TOOL
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install ldid xz make
+
+      - name: Clone Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git $HOME/theos
+
+      - name: Setup Theos
+        run: |
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
+          echo "PATH=$HOME/theos/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Check environment
+        run: |
+          echo "========================================"
+          echo "Theos:"
+          $HOME/theos/bin/nic.pl --version || true
+          echo "========================================"
+          xcodebuild -version
+          clang --version
+          echo "========================================"
+
+      - name: Build package
+        run: |
+          make clean
+          make package FINALPACKAGE=1
+
+      - name: Find package
+        run: |
+          echo "========================================"
+          echo "Generated packages:"
+          echo "========================================"
+          find .theos/packages -type f -maxdepth 1 -print
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AsasecImGui
+          path: .theos/packages/*.deb
+          if-no-files-found: error
