@@ -6,7 +6,7 @@
 #import <dispatch/dispatch.h>
 
 #include "../imgui.h"
-#include "../backends/imgui_impl_metal.h"
+#include "../Backends/imgui_impl_metal.h"
 
 static MTKView *gImGuiView = nil;
 static id<MTLCommandQueue> gCommandQueue = nil;
