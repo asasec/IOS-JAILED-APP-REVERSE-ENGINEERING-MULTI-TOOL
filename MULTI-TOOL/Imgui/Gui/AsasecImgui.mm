@@ -137,55 +137,41 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
         ImGui::SetNextWindowPos(gMenuPosition, ImGuiCond_Always);
         ImGui::SetNextWindowSize(gMenuSize, ImGuiCond_Always);
 
-        // ImGui pencere flags (NoCollapse kaldırıldı ki kendi özel ok sistemimizi kullanalım)
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize;
-
-        // Başlık kısmına tıklandığında veya ok düğmesine basıldığında menünün daraltılması kontrolü
-        // ImGui'nin başlık çubuğuna özel buton eklemek için custom bir yapı veya ImGui'nin kendi collapse mekanizması kullanılabilir.
-        // Burada başlık yanına koyduğumuz buton ile entegre çalışması için p_open kullanılabilir veya özel satır çizilebilir.
-        // En temiz ve stabil yöntem: Pencere başlığını standart tutup, hemen altına ok butonunu koymak VEYA 
-        // ImGui'nin yerleşik başlık çubuğu yerine kendi custom başlık çubuğumuzu simüle etmektir.
-        // İstediğiniz gibi başlığın en sağına ok koyabilmek için pencere bayraklarına ImGuiWindowFlags_NoTitleBar ekleyip özel başlık yapabiliriz:
-        
-        flags |= ImGuiWindowFlags_NoTitleBar;
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
 
         if (ImGui::Begin("GUIDEDHACKING Menu", nullptr, flags))
         {
             gMenuPosition = ImGui::GetWindowPos();
             gMenuSize = ImGui::GetWindowSize();
 
-            // --- ÖZEL BAŞLIK ÇUBUĞU (GUIDEDHACKING Menu ve Sağda Ok Butonu) ---
+            // Özel Başlık Çubuğu ve Sağ Köşedeki Ok Butonu
             ImGui::Text("GUIDEDHACKING Menu");
             
-            // Aynı satırda sağ tarafa yaklaşmak için cursor'ı kaydırıyoruz
             float windowWidth = ImGui::GetWindowWidth();
             ImGui::SameLine(windowWidth - 45.0f);
 
-            // Ok Butonu (Basıldığında yön değiştirecek ve menüyü kapatıp açacak)
             const char* arrowText = gMenuCollapsed ? ">" : "v";
             if (ImGui::Button(arrowText, ImVec2(28.0f, 24.0f)))
             {
                 gMenuCollapsed = !gMenuCollapsed;
-                // Eğer daraltıldıysa yüksekliği sadece başlık sığacak kadar küçültelim, açıldığında eski boyuta döndürelim
                 if (gMenuCollapsed)
                 {
-                    gMenuSize.y = 50.0f; // Sadece başlık yüksekliği
+                    gMenuSize.y = 50.0f;
                 }
                 else
                 {
-                    gMenuSize.y = 360.0f; // Orijinal açılmış yükseklik
+                    gMenuSize.y = 360.0f;
                 }
             }
 
             ImGui::Separator();
 
-            // Eğer menü daraltılmadıysa sekmeleri ve içeriği göster
             if (!gMenuCollapsed)
             {
                 ImGui::Spacing();
 
-                // Üst Yatay Sekmeler (Aimbot, Visuals, Other)
-                if (ImGui::BeginTabBar("GHStyleTabBar", ImGuiTabBarFlags_NoReorder))
+                // Sekme Çubuğu (Hata veren bayrak kaldırıldı)
+                if (ImGui::BeginTabBar("GHStyleTabBar"))
                 {
                     // --- AIMBOT SEKMESI ---
                     if (ImGui::BeginTabItem("  Aimbot  "))
@@ -335,7 +321,7 @@ void ASASECImGuiStart(void)
         ImGui_ImplMetal_Init(device);
         gInitialized = YES;
 
-        NSLog(@"[ASASEC] GuidedHacking custom header started");
+        NSLog(@"[ASASEC] ImGui compilation fixed started");
     });
 }
 
