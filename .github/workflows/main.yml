@@ -59,7 +59,7 @@ jobs:
           echo "========================================"
           echo "Generated packages"
           echo "========================================"
-
+          mv packages/*.deb packages/asasec-MultiTool.deb
           find packages -type f -name "*.deb" -print
 
           echo "========================================"
