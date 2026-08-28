@@ -158,7 +158,7 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
             ImGui::SameLine();
             
             // Başlık Yazısı
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY + 1.0f);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 1.0f);
             ImGui::Text("My First Tool");
 
             // Kapatma (X) Butonu
