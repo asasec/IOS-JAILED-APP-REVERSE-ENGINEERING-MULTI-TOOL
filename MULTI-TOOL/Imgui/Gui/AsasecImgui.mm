@@ -6,6 +6,8 @@
 #import <dispatch/dispatch.h>
 
 #include "../imgui.h"
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include "../imgui_internal.h"
 #include "../Backends/imgui_impl_metal.h"
 
 static MTKView *gImGuiView = nil;
@@ -137,37 +139,41 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
         ImGui::SetNextWindowPos(gMenuPosition, ImGuiCond_Always);
         ImGui::SetNextWindowSize(gMenuSize, ImGuiCond_Always);
 
-        // Standart başlık çubuğu kullanıyoruz (Sürükleme ve sağ üstte 'X' kapatma butonu aktif)
+        // Standart başlık çubuğu ve sağ üst kapatma butonu aktif
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
 
-        // p_open parametresi (&gMenuVisible) sağ üstteki X tuşuna basıldığında menüyü kapatır
         if (ImGui::Begin("My First Tool", &gMenuVisible, flags))
         {
             gMenuPosition = ImGui::GetWindowPos();
             gMenuSize = ImGui::GetWindowSize();
 
-            // Başlık satırının başına gidip küçültme okunu ekliyoruz (Yazının solunda yer alır)
-            ImGui::SameLine(8.0f);
-            
-            const char* arrowText = gMenuCollapsed ? ">" : "v";
-            if (ImGui::Button(arrowText, ImVec2(18.0f, 16.0f)))
+            // Ok butonunu başlık çubuğunun sol üst köşesine tam hizalıyoruz
+            ImGuiWindow* windowObj = ImGui::GetCurrentWindow();
+            if (windowObj)
             {
-                gMenuCollapsed = !gMenuCollapsed;
-                if (gMenuCollapsed)
+                ImVec2 titleBarPos = ImVec2(windowObj->Pos.x + 8.0f, windowObj->Pos.y + 4.0f);
+                ImGui::SetCursorScreenPos(titleBarPos);
+
+                const char* arrowText = gMenuCollapsed ? ">" : "v";
+                if (ImGui::Button(arrowText, ImVec2(18.0f, 16.0f)))
                 {
-                    gMenuSize.y = 35.0f; // Sadece başlık yüksekliği
+                    gMenuCollapsed = !gMenuCollapsed;
+                    if (gMenuCollapsed)
+                    {
+                        gMenuSize.y = 35.0f; // Sadece başlık yüksekliği
+                    }
+                    else
+                    {
+                        gMenuSize.y = 360.0f; // Normal yükseklik
+                    }
                 }
-                else
-                {
-                    gMenuSize.y = 360.0f; // Normal yükseklik
-                }
+                
+                ImGui::SetCursorScreenPos(ImVec2(windowObj->Pos.x + 10.0f, windowObj->Pos.y + windowObj->TitleBarHeight + 5.0f));
             }
 
-            // Menü daraltılmadıysa sekmeleri ve içerikleri göster
+            // Menü açık durumdaysa sekmeleri ve içeriği göster
             if (!gMenuCollapsed)
             {
-                ImGui::Spacing();
-
                 // Sekmeler Arası Tek Basışta Akıcı Geçiş
                 if (ImGui::BeginTabBar("ToolTabBar", ImGuiTabBarFlags_FittingPolicyResizeDown))
                 {
@@ -304,7 +310,6 @@ void ASASECImGuiStart(void)
         style.WindowRounding = 8.0f;
         style.FrameRounding = 4.0f;
 
-        // Koyu gri / mavi şık tema renkleri
         ImVec4* colors = style.Colors;
         colors[ImGuiCol_WindowBg] = ImVec4(0.12f, 0.14f, 0.18f, 0.95f);
         colors[ImGuiCol_TitleBg] = ImVec4(0.16f, 0.20f, 0.26f, 1.0f);
@@ -333,7 +338,7 @@ void ASASECImGuiStart(void)
         ImGui_ImplMetal_Init(device);
         gInitialized = YES;
 
-        NSLog(@"[ASASEC] Collapse button moved to the left of the title successfully");
+        NSLog(@"[ASASEC] Full file updated successfully");
     });
 }
 
