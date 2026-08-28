@@ -16,7 +16,7 @@ static BOOL gMenuVisible = YES;
 static BOOL gMenuCollapsed = NO;
 
 static ImVec2 gMenuPosition = ImVec2(40.0f, 80.0f);
-static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
+static ImVec2 gMenuSize = ImVec2(500.0f, 380.0f);
 
 @interface ASASECImGuiView : MTKView
 @end
@@ -137,41 +137,40 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
         ImGui::SetNextWindowPos(gMenuPosition, ImGuiCond_Always);
         ImGui::SetNextWindowSize(gMenuSize, ImGuiCond_Always);
 
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
+        // Sürükleme sorununu çözen standart başlık çubuğu bayrakları
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
 
         if (ImGui::Begin("GUIDEDHACKING Menu", nullptr, flags))
         {
             gMenuPosition = ImGui::GetWindowPos();
             gMenuSize = ImGui::GetWindowSize();
 
-            // Özel Başlık Çubuğu ve Sağ Köşedeki Ok Butonu
-            ImGui::Text("GUIDEDHACKING Menu");
-            
-            float windowWidth = ImGui::GetWindowWidth();
-            ImGui::SameLine(windowWidth - 45.0f);
+            // Başlık çubuğunun sağ tarafına özel daraltma/genişletme oku yerleştirme
+            // ImGui pencere başlık alanına erişmek için imleci sağa kaydırıyoruz
+            ImGui::SameLine(gMenuSize.x - 40.0f);
 
+            // Ok Butonu (Tek basışta anında küçülür/büyür)
             const char* arrowText = gMenuCollapsed ? ">" : "v";
-            if (ImGui::Button(arrowText, ImVec2(28.0f, 24.0f)))
+            if (ImGui::Button(arrowText, ImVec2(24.0f, 20.0f)))
             {
                 gMenuCollapsed = !gMenuCollapsed;
                 if (gMenuCollapsed)
                 {
-                    gMenuSize.y = 50.0f;
+                    gMenuSize.y = 45.0f; // Sadece başlık yüksekliği
                 }
                 else
                 {
-                    gMenuSize.y = 360.0f;
+                    gMenuSize.y = 380.0f; // Açık orijinal yükseklik
                 }
             }
 
-            ImGui::Separator();
-
+            // Eğer menü açık değilse alt içerikleri çizme
             if (!gMenuCollapsed)
             {
                 ImGui::Spacing();
 
-                // Sekme Çubuğu (Hata veren bayrak kaldırıldı)
-                if (ImGui::BeginTabBar("GHStyleTabBar"))
+                // Sekmeler Arası Tek Basışta Geçiş İçin Optimize Edilmiş TabBar
+                if (ImGui::BeginTabBar("GHStyleTabBar", ImGuiTabBarFlags_FittingPolicyResizeDown))
                 {
                     // --- AIMBOT SEKMESI ---
                     if (ImGui::BeginTabItem("  Aimbot  "))
@@ -179,16 +178,22 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                         ImGui::Spacing();
 
                         float contentWidth = ImGui::GetContentRegionAvail().x;
-                        float leftPanelWidth = contentWidth * 0.45f;
+                        float leftPanelWidth = contentWidth * 0.48f;
 
-                        ImGui::BeginChild("AimbotLeftPanel", ImVec2(leftPanelWidth, 180.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextDisabled("Buraya checkbox'lar gelecek");
+                        // Sol Kaydırılabilir Panel
+                        ImGui::BeginChild("AimbotLeft", ImVec2(leftPanelWidth, 220.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                        ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.4f, 1.0f), "Hedefleme Ayarları");
+                        ImGui::Separator();
+                        ImGui::TextDisabled("Buraya özellikler eklenecek...");
                         ImGui::EndChild();
 
                         ImGui::SameLine();
 
-                        ImGui::BeginChild("AimbotRightPanel", ImVec2(0, 180.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextDisabled("Buraya alt özellikler gelecek");
+                        // Sağ Kaydırılabilir Panel
+                        ImGui::BeginChild("AimbotRight", ImVec2(0, 220.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                        ImGui::TextColored(ImVec4(0.4f, 0.7f, 1.0f, 1.0f), "Gelişmiş Seçenekler");
+                        ImGui::Separator();
+                        ImGui::TextDisabled("Buraya detaylar eklenecek...");
                         ImGui::EndChild();
 
                         ImGui::EndTabItem();
@@ -198,8 +203,10 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                     if (ImGui::BeginTabItem("  Visuals  "))
                     {
                         ImGui::Spacing();
-                        ImGui::BeginChild("VisualsScrollArea", ImVec2(0, 180.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextDisabled("Visuals içerikleri buraya eklenecek...");
+                        ImGui::BeginChild("VisualsArea", ImVec2(0, 220.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "Görsel ESP / Çizimler");
+                        ImGui::Separator();
+                        ImGui::TextDisabled("Görsel öğeler buraya eklenecek...");
                         ImGui::EndChild();
                         ImGui::EndTabItem();
                     }
@@ -208,8 +215,10 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                     if (ImGui::BeginTabItem("  Other  "))
                     {
                         ImGui::Spacing();
-                        ImGui::BeginChild("OtherScrollArea", ImVec2(0, 180.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextDisabled("Other içerikleri buraya eklenecek...");
+                        ImGui::BeginChild("OtherArea", ImVec2(0, 220.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                        ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Diğer Sistem Araçları");
+                        ImGui::Separator();
+                        ImGui::TextDisabled("Ekstra özellikler buraya eklenecek...");
                         ImGui::EndChild();
                         ImGui::EndTabItem();
                     }
@@ -299,8 +308,18 @@ void ASASECImGuiStart(void)
         style.FramePadding = ImVec2(6.0f, 5.0f);
         style.ItemSpacing = ImVec2(6.0f, 6.0f);
         style.ScrollbarSize = 12.0f;
-        style.WindowRounding = 8.0f;
-        style.FrameRounding = 4.0f;
+        style.WindowRounding = 10.0f;
+        style.FrameRounding = 5.0f;
+
+        // Üst düzey şık renk paleti ayarları
+        ImVec4* colors = style.Colors;
+        colors[ImGuiCol_WindowBg] = ImVec4(0.08f, 0.09f, 0.12f, 0.94f);
+        colors[ImGuiCol_Header] = ImVec4(0.18f, 0.35f, 0.58f, 1.0f);
+        colors[ImGuiCol_HeaderHovered] = ImVec4(0.24f, 0.45f, 0.75f, 1.0f);
+        colors[ImGuiCol_HeaderActive] = ImVec4(0.20f, 0.50f, 0.90f, 1.0f);
+        colors[ImGuiCol_Button] = ImVec4(0.15f, 0.18f, 0.25f, 1.0f);
+        colors[ImGuiCol_ButtonHovered] = ImVec4(0.25f, 0.30f, 0.42f, 1.0f);
+        colors[ImGuiCol_ButtonActive] = ImVec4(0.20f, 0.50f, 0.90f, 1.0f);
 
         gImGuiView = [[ASASECImGuiView alloc] initWithFrame:window.bounds device:device];
         gImGuiView.backgroundColor = UIColor.clearColor;
@@ -321,7 +340,7 @@ void ASASECImGuiStart(void)
         ImGui_ImplMetal_Init(device);
         gInitialized = YES;
 
-        NSLog(@"[ASASEC] ImGui compilation fixed started");
+        NSLog(@"[ASASEC] Ultimate GuidedHacking menu started");
     });
 }
 
@@ -346,6 +365,6 @@ void ASASECImGuiStop(void)
         gMenuVisible = YES;
         gMenuCollapsed = NO;
         gMenuPosition = ImVec2(40.0f, 80.0f);
-        gMenuSize = ImVec2(480.0f, 360.0f);
+        gMenuSize = ImVec2(500.0f, 380.0f);
     });
 }
