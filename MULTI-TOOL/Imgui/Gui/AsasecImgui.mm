@@ -44,9 +44,10 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
     if (!gInitialized || !gMenuVisible)
         return nil;
 
+    // Menü sınırları içindeyse dokunmayı tamamen ImGui view'ına ver (Sürükleme ve butonlar çalışır)
     if ([self pointInsideMenu:point])
     {
-        return [super hitTest:point withEvent:event];
+        return self;
     }
 
     return nil;
@@ -137,20 +138,40 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
         ImGui::SetNextWindowPos(gMenuPosition, ImGuiCond_Always);
         ImGui::SetNextWindowSize(gMenuSize, ImGuiCond_Always);
 
-        // Standart başlık çubuğu kullanılıyor; böylece başlık üzerinden mükemmel sürükleme sağlanır.
-        // Sağ üstteki standart kapatma tuşu (x) yerine özel collapse mantığı için NoCollapse kullanıyoruz.
+        // Standart başlık çubuğu bayrakları (Sürükleme ve pencere kapatma 'x' butonu aktif)
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
 
-        // Gönderdiğiniz görseldeki gibi temiz başlık: "My First Tool"
-        if (ImGui::Begin("My First Tool", nullptr, flags))
+        // p_open parametresi olarak &gMenuVisible vererek sağ üstteki standart 'X' butonunun menüyü kapatmasını sağlıyoruz.
+        if (ImGui::Begin("My First Tool", &gMenuVisible, flags))
         {
             gMenuPosition = ImGui::GetWindowPos();
             gMenuSize = ImGui::GetWindowSize();
 
-            // Görseldeki gibi başlık altında kategori/sekme sistemi ve altında içerik alanı
+            // Sol üst köşeye (başlık çubuğuna) minik açılır/kapanır yön oku ekleme
+            // ImGui pencere başlık çizim alanında sol tarafa imleci kaydırıyoruz
+            ImGui::SameLine(10.0f);
+            
+            // Ok Butonu (Küçültmeye / Genişletmeye yarar)
+            const char* arrowText = gMenuCollapsed ? ">" : "v";
+            if (ImGui::Button(arrowText, ImVec2(18.0f, 16.0f)))
+            {
+                gMenuCollapsed = !gMenuCollapsed;
+                if (gMenuCollapsed)
+                {
+                    gMenuSize.y = 35.0f; // Sadece başlık yüksekliği
+                }
+                else
+                {
+                    gMenuSize.y = 360.0f; // Normal yükseklik
+                }
+            }
+
+            // Menü açık durumdaysa sekmeleri ve içeriği göster
             if (!gMenuCollapsed)
             {
-                // Sekmeler Arası Tek Basışta Geçiş İçin Optimize Edilmiş TabBar
+                ImGui::Spacing();
+
+                // Sekmeler Arası Tek Basışta Akıcı Geçiş
                 if (ImGui::BeginTabBar("ToolTabBar", ImGuiTabBarFlags_FittingPolicyResizeDown))
                 {
                     // --- AIMBOT KATEGORİSİ ---
@@ -166,6 +187,10 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                         ImGui::Text("0003: Some text");
                         ImGui::Text("0004: Some text");
                         ImGui::Text("0005: Some text");
+                        ImGui::Text("0006: Some text");
+                        ImGui::Text("0007: Some text");
+                        ImGui::Text("0008: Some text");
+                        ImGui::Text("0009: Some text");
                         ImGui::EndChild();
                         ImGui::EndTabItem();
                     }
@@ -282,7 +307,7 @@ void ASASECImGuiStart(void)
         style.WindowRounding = 8.0f;
         style.FrameRounding = 4.0f;
 
-        // Görseldeki şık koyu tema ve kontrast tonları
+        // İstediğiniz koyu gri / mavi tema renkleri
         ImVec4* colors = style.Colors;
         colors[ImGuiCol_WindowBg] = ImVec4(0.12f, 0.14f, 0.18f, 0.95f);
         colors[ImGuiCol_TitleBg] = ImVec4(0.16f, 0.20f, 0.26f, 1.0f);
@@ -311,7 +336,7 @@ void ASASECImGuiStart(void)
         ImGui_ImplMetal_Init(device);
         gInitialized = YES;
 
-        NSLog(@"[ASASEC] Fixed dragging and styling started");
+        NSLog(@"[ASASEC] Dragging and controls fixed successfully");
     });
 }
 
