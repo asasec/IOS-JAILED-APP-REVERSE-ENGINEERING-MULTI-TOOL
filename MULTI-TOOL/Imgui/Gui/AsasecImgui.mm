@@ -224,7 +224,7 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                     {
                         ImGui::Spacing();
                         ImGui::BeginChild("VisualsScroll", ImVec2(0, 220.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextColored(ImVec45(0.2f, 1.0f, 0.5f, 1.0f), "Visuals Content"); // Düzeltildi
+                        ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.5f, 1.0f), "Visuals Content"); // Düzeltildi
                         ImGui::Separator();
                         ImGui::Text("ESP Configs & Objects");
                         ImGui::EndChild();
