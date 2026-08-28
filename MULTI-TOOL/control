@@ -1,0 +1,9 @@
+Package: com.asasec.multitool
+Name: Asasec Multi Tool
+Version: 1.2.2
+Architecture: iphoneos-arm
+Description: Asasec Multi Tool
+Maintainer: Asasec
+Author: Asasec
+Section: Tweaks
+Depends: mobilesubstrate
