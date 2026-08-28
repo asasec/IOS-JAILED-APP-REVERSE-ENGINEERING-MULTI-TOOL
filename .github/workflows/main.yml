@@ -20,7 +20,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew update
           brew install ldid xz make
 
       - name: Clone Theos
@@ -46,17 +45,17 @@ jobs:
         run: |
           make clean
           make package FINALPACKAGE=1
+
       - name: Find package
         run: |
           echo "========================================"
           echo "Generated packages:"
           echo "========================================"
-          mv packages/*.deb packages/asasec-MultiTool.deb
           find packages -type f -name "*.deb" -print
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-         name: AsasecMultiTool
-         path: packages/*.deb
-         if-no-files-found: error
+          name: AsasecMultiTool
+          path: MULTI-TOOL/packages/*.deb
+          if-no-files-found: error
