@@ -86,15 +86,28 @@ drawableSizeWillChange:(CGSize)size
 
     ImGui::Render();
 
-    ImGui_ImplMetal_RenderDrawData(
-        ImGui::GetDrawData(),
-        commandBuffer,
-        view.currentDrawable
-    );
+    id<MTLRenderCommandEncoder> encoder =
+    [commandBuffer renderCommandEncoderWithDescriptor:passDescriptor];
 
-    [commandBuffer presentDrawable:view.currentDrawable];
+[encoder setViewport:(MTLViewport){
+    0.0,
+    0.0,
+    (double)view.drawableSize.width,
+    (double)view.drawableSize.height,
+    0.0,
+    1.0
+}];
 
-    [commandBuffer commit];
+ImGui_ImplMetal_RenderDrawData(
+    ImGui::GetDrawData(),
+    commandBuffer,
+    encoder
+);
+
+[encoder endEncoding];
+
+[commandBuffer presentDrawable:view.currentDrawable];
+[commandBuffer commit];
 }
 
 @end
