@@ -127,77 +127,64 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
 
     ImGui::NewFrame();
 
-    if (gMenuVisible)
+        if (gMenuVisible)
     {
+        // Küçüldüğünde yüksekliği otomatik daraltıyoruz, açıkken normal boyutta tutuyoruz
+        float currentHeight = gMenuCollapsed ? 35.0f : gMenuSize.y;
+        
         ImGui::SetNextWindowPos(gMenuPosition, ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(gMenuSize, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(gMenuSize.x, currentHeight), ImGuiCond_Always);
 
-        // Orijinal başlık çubuğunu kapatıyoruz, kendi özel başlığımızı kendimiz yapacağız.
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
         if (ImGui::Begin("My First Tool", &gMenuVisible, flags))
         {
             gMenuPosition = ImGui::GetWindowPos();
-            gMenuSize = ImGui::GetWindowSize();
+            if (!gMenuCollapsed) {
+                gMenuSize.y = ImGui::GetWindowSize().y; // Sadece açıkken boyut hafızada kalsın
+            }
 
-            // --- ÖZEL BAŞLIK ÇUBUĞU ---
-            // Bu alana basılı tutarak pencereyi her yerinden sürükleyebilirsiniz.
-            ImGui::BeginGroup();
-            
+            // --- BAŞLIK ARKA PLANI İÇİN ÖZEL RNK (Mavi Tonu) ---
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.15f, 0.35f, 0.65f, 1.0f)); // Şık bir mavi
+            ImGui::BeginChild("HeaderBar", ImVec2(0, 30.0f), false, ImGuiWindowFlags_NoScrollbar);
+
             // Küçültme Ok Butonu
             const char* arrowText = gMenuCollapsed ? ">" : "v";
-            if (ImGui::Button(arrowText, ImVec2(24.0f, 22.0f)))
+            if (ImGui::Button(arrowText, ImVec2(22.0f, 20.0f)))
             {
                 gMenuCollapsed = !gMenuCollapsed;
-                if (gMenuCollapsed)
-                {
-                    gMenuSize.y = 42.0f; // Sadece başlık yüksekliği kadar kalır
-                }
-                else
-                {
-                    gMenuSize.y = 360.0f; // Normal boyuta döner
-                }
             }
 
             ImGui::SameLine();
             
-            // Ana Başlık Yazısı (Ok butonunun hemen yanında)
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.0f);
+            // Başlık Yazısı
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY + 1.0f);
             ImGui::Text("My First Tool");
 
-            // Sağ üst köşeye çarpı (kapatma) butonu koymak istersek:
-            ImGui::SameLine(gMenuSize.x - 35.0f);
-            if (ImGui::Button("X", ImVec2(24.0f, 22.0f)))
+            // Kapatma (X) Butonu
+            ImGui::SameLine(ImGui::GetWindowWidth() - 32.0f);
+            if (ImGui::Button("X", ImVec2(22.0f, 20.0f)))
             {
                 gMenuVisible = false;
             }
 
-            ImGui::EndGroup();
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
 
-            // Eğer başlık çubuğuna (boşluklara) basılırsa pencere sürüklensin
-            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0))
+            // Başlık çubuğuna basılı tutularak sürükleme alanı
+            if (ImGui::IsItemHovered() && ImGui::IsMouseDragging(0))
             {
-                // ImGui otomatik sürükleme yönetir ancak grup içi algılama için 
-                // pencerenin kendisini sürükletmek adına standart InvisibleButton veya Window gizli alan kullanılabilir.
-            }
-            
-            // Alternatif ve en net pencere sürükleme alanı kontrolü için:
-            if (ImGui::IsMouseHoveringRect(ImGui::GetWindowPos(), ImVec2(ImGui::GetWindowPos().x + gMenuSize.x, ImGui::GetWindowPos().y + 35.0f)))
-            {
-                if (ImGui::IsMouseDragging(0))
-                {
-                    ImVec2 delta = ImGui::GetIO().MouseDelta;
-                    gMenuPosition.x += delta.x;
-                    gMenuPosition.y += delta.y;
-                }
+                ImVec2 delta = ImGui::GetIO().MouseDelta;
+                gMenuPosition.x += delta.x;
+                gMenuPosition.y += delta.y;
             }
 
-            ImGui::Separator();
-
-            // Menü açık durumdaysa sekmeleri ve içeriği göster
+            // Eğer menü açıksa alt kısımdaki sekmeleri ve içerikleri göster
             if (!gMenuCollapsed)
             {
+                ImGui::Separator();
                 ImGui::Spacing();
+                
                 if (ImGui::BeginTabBar("ToolTabBar", ImGuiTabBarFlags_FittingPolicyResizeDown))
                 {
                     if (ImGui::BeginTabItem("Aimbot"))
@@ -224,7 +211,7 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                     {
                         ImGui::Spacing();
                         ImGui::BeginChild("VisualsScroll", ImVec2(0, 220.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.5f, 1.0f), "Visuals Content"); // Düzeltildi
+                        ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.5f, 1.0f), "Visuals Content");
                         ImGui::Separator();
                         ImGui::Text("ESP Configs & Objects");
                         ImGui::EndChild();
@@ -249,6 +236,7 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
 
         ImGui::End();
     }
+
 
     ImGui::Render();
 
