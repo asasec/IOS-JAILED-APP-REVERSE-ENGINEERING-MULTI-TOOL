@@ -52,11 +52,12 @@ jobs:
           echo "========================================"
           echo "Generated packages:"
           echo "========================================"
-          find .theos/packages -type f -maxdepth 1 -print
+          mv MULTI-TOOL/packages/*.deb MULTI-TOOL/packages/asasec-MultiTool.deb
+          find MULTI-TOOL/packages -type f -maxdepth 1 -print
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: AsasecImGui
-          path: .theos/packages/*.deb
+          path: MULTI-TOOL/packages/*.deb
           if-no-files-found: error
