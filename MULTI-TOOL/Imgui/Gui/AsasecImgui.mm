@@ -33,7 +33,11 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
     float left = gMenuPosition.x;
     float top = gMenuPosition.y;
     float right = left + gMenuSize.x;
-    float bottom = top + gMenuSize.y;
+    
+    // Küçülmüşse sadece başlık yüksekliği kadar (42.0f), açıksa tam boyut kadar alan dokunma yakalar
+    float activeHeight = gMenuCollapsed ? 42.0f : gMenuSize.y;
+    float bottom = top + activeHeight;
+    
     return (x >= left && x <= right && y >= top && y <= bottom);
 }
 
@@ -43,7 +47,7 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
     if ([self pointInsideMenu:point]) {
         return self;
     }
-    return nil; // Menü dışı tıklamalar arkadaki oyuna iletilir
+    return nil; // Menü dışı veya küçüldüğündeki boş kalan alanlar doğrudan arka plana iletilir!
 }
 
 - (void)updateIOWithTouchEvent:(UIEvent *)event
