@@ -6,7 +6,7 @@
 #import <dispatch/dispatch.h>
 
 #include "../imgui.h"
-#include "../Backends/imgui_impl_metal.h"
+#include "../backends/imgui_impl_metal.h"
 
 static MTKView *gImGuiView = nil;
 static id<MTLCommandQueue> gCommandQueue = nil;
@@ -15,10 +15,38 @@ static BOOL gInitialized = NO;
 static BOOL gMenuVisible = YES;
 static BOOL gMenuCollapsed = NO;
 
+static ImVec2 gMenuPosition = ImVec2(40.0f, 80.0f);
+static ImVec2 gMenuSize = ImVec2(310.0f, 380.0f);
+
 @interface ASASECImGuiView : MTKView
 @end
 
 @implementation ASASECImGuiView
+
+- (BOOL)pointInsideMenu:(CGPoint)point
+{
+    if (!gMenuVisible)
+        return NO;
+
+    float x = (float)point.x;
+    float y = (float)point.y;
+
+    float left = gMenuPosition.x;
+    float top = gMenuPosition.y;
+
+    float right =
+        left + gMenuSize.x;
+
+    float bottom =
+        top + gMenuSize.y;
+
+    return (
+        x >= left &&
+        x <= right &&
+        y >= top &&
+        y <= bottom
+    );
+}
 
 - (UIView *)hitTest:(CGPoint)point
           withEvent:(UIEvent *)event
@@ -29,15 +57,10 @@ static BOOL gMenuCollapsed = NO;
     if (!gMenuVisible)
         return nil;
 
-    CGPoint localPoint =
-        [self convertPoint:point
-                  fromView:self];
-
-    ImGuiIO &io = ImGui::GetIO();
-
-    if (io.WantCaptureMouse)
+    if ([self pointInsideMenu:point])
     {
-        return [super hitTest:point withEvent:event];
+        return [super hitTest:point
+                    withEvent:event];
     }
 
     return nil;
@@ -60,7 +83,10 @@ static BOOL gMenuCollapsed = NO;
     ImGuiIO &io = ImGui::GetIO();
 
     io.MousePos =
-        ImVec2(point.x, point.y);
+        ImVec2(
+            point.x,
+            point.y
+        );
 
     io.MouseDown[0] = true;
 
@@ -85,7 +111,10 @@ static BOOL gMenuCollapsed = NO;
     ImGuiIO &io = ImGui::GetIO();
 
     io.MousePos =
-        ImVec2(point.x, point.y);
+        ImVec2(
+            point.x,
+            point.y
+        );
 
     [super touchesMoved:touches
               withEvent:event];
@@ -105,10 +134,14 @@ static BOOL gMenuCollapsed = NO;
             [touch locationInView:self];
 
         ImGui::GetIO().MousePos =
-            ImVec2(point.x, point.y);
+            ImVec2(
+                point.x,
+                point.y
+            );
     }
 
-    ImGui::GetIO().MouseDown[0] = false;
+    ImGui::GetIO().MouseDown[0] =
+        false;
 
     [super touchesEnded:touches
               withEvent:event];
@@ -119,7 +152,8 @@ static BOOL gMenuCollapsed = NO;
 {
     if (gInitialized)
     {
-        ImGui::GetIO().MouseDown[0] = false;
+        ImGui::GetIO().MouseDown[0] =
+            false;
     }
 
     [super touchesCancelled:touches
@@ -197,14 +231,14 @@ drawableSizeWillChange:(CGSize)size
 
     if (gMenuVisible)
     {
-        ImGui::SetNextWindowSize(
-            ImVec2(310.0f, 380.0f),
-            ImGuiCond_FirstUseEver
+        ImGui::SetNextWindowPos(
+            gMenuPosition,
+            ImGuiCond_Always
         );
 
-        ImGui::SetNextWindowPos(
-            ImVec2(40.0f, 80.0f),
-            ImGuiCond_FirstUseEver
+        ImGui::SetNextWindowSize(
+            gMenuSize,
+            ImGuiCond_Always
         );
 
         ImGuiWindowFlags flags =
@@ -215,6 +249,12 @@ drawableSizeWillChange:(CGSize)size
                 nullptr,
                 flags))
         {
+            gMenuPosition =
+                ImGui::GetWindowPos();
+
+            gMenuSize =
+                ImGui::GetWindowSize();
+
             if (ImGui::Button(
                     gMenuCollapsed
                         ? "OPEN"
@@ -231,9 +271,11 @@ drawableSizeWillChange:(CGSize)size
                     "CLOSE",
                     ImVec2(80.0f, 38.0f)))
             {
-                gMenuVisible = NO;
+                gMenuVisible =
+                    NO;
 
-                io.MouseDown[0] = false;
+                io.MouseDown[0] =
+                    false;
             }
 
             if (!gMenuCollapsed)
@@ -246,13 +288,17 @@ drawableSizeWillChange:(CGSize)size
 
                 ImGui::Separator();
 
-                static bool option1 = false;
-                static bool option2 = false;
-                static bool option3 = false;
+                static bool option1 =
+                    false;
 
-                static float value = 5.0f;
+                static bool option2 =
+                    false;
 
-                ImGui::Spacing();
+                static bool option3 =
+                    false;
+
+                static float value =
+                    5.0f;
 
                 ImGui::Checkbox(
                     "Option 1",
@@ -287,26 +333,24 @@ drawableSizeWillChange:(CGSize)size
 
                 if (ImGui::Button(
                         "TEST",
-                        ImVec2(120.0f, 45.0f)))
+                        ImVec2(
+                            120.0f,
+                            45.0f)))
                 {
                     NSLog(
-                        @"[ASASEC] TEST button pressed"
+                        @"[ASASEC] TEST pressed"
                     );
                 }
-
-                ImGui::Spacing();
-
-                ImGui::Separator();
-
-                ImGui::Text(
-                    "Screen: %.0f x %.0f",
-                    io.DisplaySize.x,
-                    io.DisplaySize.y
-                );
             }
         }
 
         ImGui::End();
+
+        gMenuPosition =
+            ImGui::GetWindowPos();
+
+        gMenuSize =
+            ImGui::GetWindowSize();
     }
 
     ImGui::Render();
@@ -336,7 +380,8 @@ drawableSizeWillChange:(CGSize)size
 
     [encoder endEncoding];
 
-    [commandBuffer presentDrawable:drawable];
+    [commandBuffer presentDrawable:
+        drawable];
 
     [commandBuffer commit];
 }
@@ -344,7 +389,8 @@ drawableSizeWillChange:(CGSize)size
 @end
 
 
-static ASASECImGuiRenderer *gRenderer = nil;
+static ASASECImGuiRenderer *gRenderer =
+    nil;
 
 
 void ASASECImGuiStart(void)
@@ -415,21 +461,17 @@ void ASASECImGuiStart(void)
             [device newCommandQueue];
 
         if (!gCommandQueue)
-        {
-            NSLog(
-                @"[ASASEC] Command queue unavailable"
-            );
-
             return;
-        }
 
         ImGui::CreateContext();
 
-        ImGuiIO &io = ImGui::GetIO();
+        ImGuiIO &io =
+            ImGui::GetIO();
 
         io.IniFilename = nullptr;
 
-        io.FontGlobalScale = 1.20f;
+        io.FontGlobalScale =
+            1.20f;
 
         io.DisplaySize =
             ImVec2(
@@ -449,16 +491,28 @@ void ASASECImGuiStart(void)
             ImGui::GetStyle();
 
         style.WindowPadding =
-            ImVec2(14.0f, 14.0f);
+            ImVec2(
+                14.0f,
+                14.0f
+            );
 
         style.FramePadding =
-            ImVec2(10.0f, 8.0f);
+            ImVec2(
+                10.0f,
+                8.0f
+            );
 
         style.ItemSpacing =
-            ImVec2(8.0f, 9.0f);
+            ImVec2(
+                8.0f,
+                9.0f
+            );
 
         style.ItemInnerSpacing =
-            ImVec2(7.0f, 7.0f);
+            ImVec2(
+                7.0f,
+                7.0f
+            );
 
         style.ScrollbarSize =
             16.0f;
@@ -474,13 +528,16 @@ void ASASECImGuiStart(void)
 
         gImGuiView =
             [[ASASECImGuiView alloc]
-                initWithFrame:window.bounds
-                device:device];
+                initWithFrame:
+                    window.bounds
+                device:
+                    device];
 
         gImGuiView.backgroundColor =
             UIColor.clearColor;
 
-        gImGuiView.opaque = NO;
+        gImGuiView.opaque =
+            NO;
 
         gImGuiView.clearColor =
             MTLClearColorMake(
@@ -506,21 +563,27 @@ void ASASECImGuiStart(void)
             NO;
 
         gRenderer =
-            [[ASASECImGuiRenderer alloc] init];
+            [[ASASECImGuiRenderer alloc]
+                init];
 
         gImGuiView.delegate =
             gRenderer;
 
-        [window addSubview:gImGuiView];
+        [window addSubview:
+            gImGuiView];
 
-        [window bringSubviewToFront:gImGuiView];
+        [window bringSubviewToFront:
+            gImGuiView];
 
-        ImGui_ImplMetal_Init(device);
+        ImGui_ImplMetal_Init(
+            device
+        );
 
-        gInitialized = YES;
+        gInitialized =
+            YES;
 
         NSLog(
-            @"[ASASEC] ImGui overlay started"
+            @"[ASASEC] ImGui started"
         );
     });
 }
@@ -537,7 +600,8 @@ void ASASECImGuiStop(void)
 
         if (gImGuiView)
         {
-            gImGuiView.delegate = nil;
+            gImGuiView.delegate =
+                nil;
 
             [gImGuiView removeFromSuperview];
 
@@ -555,10 +619,13 @@ void ASASECImGuiStop(void)
         gInitialized = NO;
 
         gMenuVisible = YES;
+
         gMenuCollapsed = NO;
 
-        NSLog(
-            @"[ASASEC] ImGui stopped"
-        );
+        gMenuPosition =
+            ImVec2(40.0f, 80.0f);
+
+        gMenuSize =
+            ImVec2(310.0f, 380.0f);
     });
 }
