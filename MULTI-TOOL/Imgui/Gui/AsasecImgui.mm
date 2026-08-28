@@ -25,78 +25,54 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
 
 @implementation ASASECImGuiView
 
-- (BOOL)pointInsideMenu:(CGPoint)point
+- (void)updateIOWithTouchEvent:(UIEvent *)event
 {
-    if (!gMenuVisible)
-        return NO;
+    UITouch *anyTouch = event.allTouches.anyObject;
+    if (!anyTouch) return;
+    
+    CGPoint touchLocation = [anyTouch locationInView:self];
+    ImGuiIO &io = ImGui::GetIO();
+    io.MousePos = ImVec2(touchLocation.x, touchLocation.y);
 
-    float x = (float)point.x;
-    float y = (float)point.y;
-
-    float left = gMenuPosition.x;
-    float top = gMenuPosition.y;
-    float right = left + gMenuSize.x;
-    float bottom = top + gMenuSize.y;
-
-    return (x >= left && x <= right && y >= top && y <= bottom);
-}
-
-- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
-{
-    if (!gInitialized || !gMenuVisible)
-        return nil;
-
-    if ([self pointInsideMenu:point])
+    BOOL hasActiveTouch = NO;
+    for (UITouch *touch in event.allTouches)
     {
-        return self;
+        if (touch.phase != UITouchPhaseEnded && touch.phase != UITouchPhaseCancelled)
+        {
+            hasActiveTouch = YES;
+            break;
+        }
     }
-
-    return nil;
+    io.MouseDown[0] = hasActiveTouch;
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     if (!gInitialized) return;
-    UITouch *touch = touches.anyObject;
-    if (!touch) return;
-    CGPoint point = [touch locationInView:self];
-    ImGuiIO &io = ImGui::GetIO();
-    io.MousePos = ImVec2(point.x, point.y);
-    io.MouseDown[0] = true;
+    [self setUserInteractionEnabled:(gMenuVisible ? YES : NO)];
+    [self updateIOWithTouchEvent:event];
     [super touchesBegan:touches withEvent:event];
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     if (!gInitialized) return;
-    UITouch *touch = touches.anyObject;
-    if (!touch) return;
-    CGPoint point = [touch locationInView:self];
-    ImGuiIO &io = ImGui::GetIO();
-    io.MousePos = ImVec2(point.x, point.y);
+    [self updateIOWithTouchEvent:event];
     [super touchesMoved:touches withEvent:event];
+}
+
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
+{
+    if (!gInitialized) return;
+    [self updateIOWithTouchEvent:event];
+    [super touchesCancelled:touches withEvent:event];
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     if (!gInitialized) return;
-    UITouch *touch = touches.anyObject;
-    if (touch)
-    {
-        CGPoint point = [touch locationInView:self];
-        ImGui::GetIO().MousePos = ImVec2(point.x, point.y);
-    }
-    ImGui::GetIO().MouseDown[0] = false;
+    [self updateIOWithTouchEvent:event];
     [super touchesEnded:touches withEvent:event];
-}
-
-- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
-{
-    if (gInitialized)
-    {
-        ImGui::GetIO().MouseDown[0] = false;
-    }
-    [super touchesCancelled:touches withEvent:event];
 }
 
 @end
@@ -131,15 +107,17 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
     ImGuiIO &io = ImGui::GetIO();
     io.DisplaySize = ImVec2(view.bounds.size.width, view.bounds.size.height);
     io.DisplayFramebufferScale = ImVec2(view.contentScaleFactor, view.contentScaleFactor);
+    io.DeltaTime = 1.0f / (view.preferredFramesPerSecond ?: 60.0f);
 
     ImGui::NewFrame();
 
+    [gImGuiView setUserInteractionEnabled:(gMenuVisible ? YES : NO)];
+
     if (gMenuVisible)
     {
-        ImGui::SetNextWindowPos(gMenuPosition, ImGuiCond_Always);
-        ImGui::SetNextWindowSize(gMenuSize, ImGuiCond_Always);
+        ImGui::SetNextWindowPos(gMenuPosition, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(gMenuSize, ImGuiCond_FirstUseEver);
 
-        // Standart başlık çubuğu ve sağ üst kapatma butonu aktif
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
 
         if (ImGui::Begin("My First Tool", &gMenuVisible, flags))
@@ -160,24 +138,21 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                     gMenuCollapsed = !gMenuCollapsed;
                     if (gMenuCollapsed)
                     {
-                        gMenuSize.y = 35.0f; // Sadece başlık yüksekliği
+                        gMenuSize.y = 35.0f;
                     }
                     else
                     {
-                        gMenuSize.y = 360.0f; // Normal yükseklik
+                        gMenuSize.y = 360.0f;
                     }
                 }
                 
                 ImGui::SetCursorScreenPos(ImVec2(windowObj->Pos.x + 10.0f, windowObj->Pos.y + windowObj->TitleBarHeight + 5.0f));
             }
 
-            // Menü açık durumdaysa sekmeleri ve içeriği göster
             if (!gMenuCollapsed)
             {
-                // Sekmeler Arası Tek Basışta Akıcı Geçiş
                 if (ImGui::BeginTabBar("ToolTabBar", ImGuiTabBarFlags_FittingPolicyResizeDown))
                 {
-                    // --- AIMBOT KATEGORİSİ ---
                     if (ImGui::BeginTabItem("Aimbot"))
                     {
                         ImGui::Spacing();
@@ -198,7 +173,6 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                         ImGui::EndTabItem();
                     }
 
-                    // --- VISUALS KATEGORİSİ ---
                     if (ImGui::BeginTabItem("Visuals"))
                     {
                         ImGui::Spacing();
@@ -210,7 +184,6 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                         ImGui::EndTabItem();
                     }
 
-                    // --- OTHER KATEGORİSİ ---
                     if (ImGui::BeginTabItem("Other"))
                     {
                         ImGui::Spacing();
@@ -284,11 +257,7 @@ void ASASECImGuiStart(void)
         }
 
         id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-        if (!device)
-        {
-            NSLog(@"[ASASEC] Metal unavailable");
-            return;
-        }
+        if (!device) return;
 
         gCommandQueue = [device newCommandQueue];
         if (!gCommandQueue) return;
@@ -327,7 +296,7 @@ void ASASECImGuiStart(void)
         gImGuiView.preferredFramesPerSecond = 60;
         gImGuiView.enableSetNeedsDisplay = NO;
         gImGuiView.paused = NO;
-        gImGuiView.multipleTouchEnabled = NO;
+        gImGuiView.multipleTouchEnabled = YES;
 
         gRenderer = [[ASASECImGuiRenderer alloc] init];
         gImGuiView.delegate = gRenderer;
@@ -338,7 +307,7 @@ void ASASECImGuiStart(void)
         ImGui_ImplMetal_Init(device);
         gInitialized = YES;
 
-        NSLog(@"[ASASEC] Full file updated successfully");
+        NSLog(@"[ASASEC] Touch event system updated successfully!");
     });
 }
 
