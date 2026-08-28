@@ -37,14 +37,13 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
     return (x >= left && x <= right && y >= top && y <= bottom);
 }
 
-// Menü dışına tıklandığında dokunmaları oyunun arkasına (arkaplanına) geçiriyoruz!
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
 {
     if (!gInitialized || !gMenuVisible) return nil;
     if ([self pointInsideMenu:point]) {
         return self;
     }
-    return nil; // Menü dışı tıklamalar doğrudan arkadaki oyuna gider!
+    return nil; // Menü dışı tıklamalar arkadaki oyuna iletilir
 }
 
 - (void)updateIOWithTouchEvent:(UIEvent *)event
@@ -133,32 +132,69 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
         ImGui::SetNextWindowPos(gMenuPosition, ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(gMenuSize, ImGuiCond_FirstUseEver);
 
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
+        // Orijinal başlık çubuğunu kapatıyoruz, kendi özel başlığımızı kendimiz yapacağız.
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
 
         if (ImGui::Begin("My First Tool", &gMenuVisible, flags))
         {
             gMenuPosition = ImGui::GetWindowPos();
             gMenuSize = ImGui::GetWindowSize();
 
-            // Küçültme ok butonunu başlık çubuğu yerine, sorunsuz çalışması için 
-            // pencere içeriğinin en üst sol kısmına, yazı ile aynı satıra koyuyoruz:
+            // --- ÖZEL BAŞLIK ÇUBUĞU ---
+            // Bu alana basılı tutarak pencereyi her yerinden sürükleyebilirsiniz.
+            ImGui::BeginGroup();
+            
+            // Küçültme Ok Butonu
             const char* arrowText = gMenuCollapsed ? ">" : "v";
-            if (ImGui::Button(arrowText, ImVec2(22.0f, 20.0f)))
+            if (ImGui::Button(arrowText, ImVec2(24.0f, 22.0f)))
             {
                 gMenuCollapsed = !gMenuCollapsed;
                 if (gMenuCollapsed)
                 {
-                    gMenuSize.y = 35.0f;
+                    gMenuSize.y = 42.0f; // Sadece başlık yüksekliği kadar kalır
                 }
                 else
                 {
-                    gMenuSize.y = 360.0f;
+                    gMenuSize.y = 360.0f; // Normal boyuta döner
                 }
             }
-            
-            ImGui::SameLine();
-            ImGui::Text("Menu Controls"); // İsteğe bağlı yan başlık veya boşluk bırakılabilir
 
+            ImGui::SameLine();
+            
+            // Ana Başlık Yazısı (Ok butonunun hemen yanında)
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 2.0f);
+            ImGui::Text("My First Tool");
+
+            // Sağ üst köşeye çarpı (kapatma) butonu koymak istersek:
+            ImGui::SameLine(gMenuSize.x - 35.0f);
+            if (ImGui::Button("X", ImVec2(24.0f, 22.0f)))
+            {
+                gMenuVisible = false;
+            }
+
+            ImGui::EndGroup();
+
+            // Eğer başlık çubuğuna (boşluklara) basılırsa pencere sürüklensin
+            if (ImGui::IsItemActive() && ImGui::IsMouseDragging(0))
+            {
+                // ImGui otomatik sürükleme yönetir ancak grup içi algılama için 
+                // pencerenin kendisini sürükletmek adına standart InvisibleButton veya Window gizli alan kullanılabilir.
+            }
+            
+            // Alternatif ve en net pencere sürükleme alanı kontrolü için:
+            if (ImGui::IsMouseHoveringRect(ImGui::GetWindowPos(), ImVec2(ImGui::GetWindowPos().x + gMenuSize.x, ImGui::GetWindowPos().y + 35.0f)))
+            {
+                if (ImGui::IsMouseDragging(0))
+                {
+                    ImVec2 delta = ImGui::GetIO().MouseDelta;
+                    gMenuPosition.x += delta.x;
+                    gMenuPosition.y += delta.y;
+                }
+            }
+
+            ImGui::Separator();
+
+            // Menü açık durumdaysa sekmeleri ve içeriği göster
             if (!gMenuCollapsed)
             {
                 ImGui::Spacing();
@@ -188,7 +224,7 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                     {
                         ImGui::Spacing();
                         ImGui::BeginChild("VisualsScroll", ImVec2(0, 220.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.5f, 1.0f), "Visuals Content");
+                        ImGui::TextColored(ImVec45(0.2f, 1.0f, 0.5f, 1.0f), "Visuals Content"); // Düzeltildi
                         ImGui::Separator();
                         ImGui::Text("ESP Configs & Objects");
                         ImGui::EndChild();
