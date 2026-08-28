@@ -15,8 +15,16 @@ AsasecMultiTool_FILES := \
     Imgui/imgui_widgets.cpp \
     Imgui/Backends/imgui_impl_metal.mm
 
-AsasecMultiTool_CFLAGS := -fobjc-arc
-AsasecMultiTool_CCFLAGS := -std=c++17 -fobjc-arc
+AsasecMultiTool_CFLAGS := \
+    -fobjc-arc \
+    -IImgui \
+    -IImgui/Backends
+
+AsasecMultiTool_CCFLAGS := \
+    -std=c++17 \
+    -fobjc-arc \
+    -IImgui \
+    -IImgui/Backends
 
 AsasecMultiTool_FRAMEWORKS := UIKit Metal MetalKit
 
