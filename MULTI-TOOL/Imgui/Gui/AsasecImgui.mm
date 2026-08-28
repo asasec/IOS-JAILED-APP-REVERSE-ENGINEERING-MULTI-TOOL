@@ -5,7 +5,6 @@
 #import <MetalKit/MetalKit.h>
 #import <dispatch/dispatch.h>
 
-// Doğru sıralama: Önce define, sonra ana imGui başlığı
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "../imgui.h"
 #include "../imgui_internal.h"
@@ -25,6 +24,28 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
 @end
 
 @implementation ASASECImGuiView
+
+- (BOOL)pointInsideMenu:(CGPoint)point
+{
+    if (!gMenuVisible) return NO;
+    float x = (float)point.x;
+    float y = (float)point.y;
+    float left = gMenuPosition.x;
+    float top = gMenuPosition.y;
+    float right = left + gMenuSize.x;
+    float bottom = top + gMenuSize.y;
+    return (x >= left && x <= right && y >= top && y <= bottom);
+}
+
+// Menü dışına tıklandığında dokunmaları oyunun arkasına (arkaplanına) geçiriyoruz!
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
+{
+    if (!gInitialized || !gMenuVisible) return nil;
+    if ([self pointInsideMenu:point]) {
+        return self;
+    }
+    return nil; // Menü dışı tıklamalar doğrudan arkadaki oyuna gider!
+}
 
 - (void)updateIOWithTouchEvent:(UIEvent *)event
 {
@@ -50,30 +71,25 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     if (!gInitialized) return;
-    [self setUserInteractionEnabled:(gMenuVisible ? YES : NO)];
     [self updateIOWithTouchEvent:event];
-    [super touchesBegan:touches withEvent:event];
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     if (!gInitialized) return;
     [self updateIOWithTouchEvent:event];
-    [super touchesMoved:touches withEvent:event];
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     if (!gInitialized) return;
     [self updateIOWithTouchEvent:event];
-    [super touchesCancelled:touches withEvent:event];
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     if (!gInitialized) return;
     [self updateIOWithTouchEvent:event];
-    [super touchesEnded:touches withEvent:event];
 }
 
 @end
@@ -112,8 +128,6 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
 
     ImGui::NewFrame();
 
-    [gImGuiView setUserInteractionEnabled:(gMenuVisible ? YES : NO)];
-
     if (gMenuVisible)
     {
         ImGui::SetNextWindowPos(gMenuPosition, ImGuiCond_FirstUseEver);
@@ -126,32 +140,28 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
             gMenuPosition = ImGui::GetWindowPos();
             gMenuSize = ImGui::GetWindowSize();
 
-            // Ok butonunu başlık çubuğunun sol üst köşesine tam hizalıyoruz
-            ImGuiWindow* windowObj = ImGui::GetCurrentWindow();
-            if (windowObj)
+            // Küçültme ok butonunu başlık çubuğu yerine, sorunsuz çalışması için 
+            // pencere içeriğinin en üst sol kısmına, yazı ile aynı satıra koyuyoruz:
+            const char* arrowText = gMenuCollapsed ? ">" : "v";
+            if (ImGui::Button(arrowText, ImVec2(22.0f, 20.0f)))
             {
-                ImVec2 titleBarPos = ImVec2(windowObj->Pos.x + 8.0f, windowObj->Pos.y + 4.0f);
-                ImGui::SetCursorScreenPos(titleBarPos);
-
-                const char* arrowText = gMenuCollapsed ? ">" : "v";
-                if (ImGui::Button(arrowText, ImVec2(18.0f, 16.0f)))
+                gMenuCollapsed = !gMenuCollapsed;
+                if (gMenuCollapsed)
                 {
-                    gMenuCollapsed = !gMenuCollapsed;
-                    if (gMenuCollapsed)
-                    {
-                        gMenuSize.y = 35.0f;
-                    }
-                    else
-                    {
-                        gMenuSize.y = 360.0f;
-                    }
+                    gMenuSize.y = 35.0f;
                 }
-                
-                ImGui::SetCursorScreenPos(ImVec2(windowObj->Pos.x + 10.0f, windowObj->Pos.y + windowObj->TitleBarHeight + 5.0f));
+                else
+                {
+                    gMenuSize.y = 360.0f;
+                }
             }
+            
+            ImGui::SameLine();
+            ImGui::Text("Menu Controls"); // İsteğe bağlı yan başlık veya boşluk bırakılabilir
 
             if (!gMenuCollapsed)
             {
+                ImGui::Spacing();
                 if (ImGui::BeginTabBar("ToolTabBar", ImGuiTabBarFlags_FittingPolicyResizeDown))
                 {
                     if (ImGui::BeginTabItem("Aimbot"))
@@ -251,11 +261,7 @@ void ASASECImGuiStart(void)
             if (window) break;
         }
 
-        if (!window)
-        {
-            NSLog(@"[ASASEC] Window not found");
-            return;
-        }
+        if (!window) return;
 
         id<MTLDevice> device = MTLCreateSystemDefaultDevice();
         if (!device) return;
@@ -307,8 +313,6 @@ void ASASECImGuiStart(void)
 
         ImGui_ImplMetal_Init(device);
         gInitialized = YES;
-
-        NSLog(@"[ASASEC] Touch event system updated successfully!");
     });
 }
 
