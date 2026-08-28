@@ -5,8 +5,9 @@
 #import <MetalKit/MetalKit.h>
 #import <dispatch/dispatch.h>
 
-#include "../imgui.h"
+// Doğru sıralama: Önce define, sonra ana imGui başlığı
 #define IMGUI_DEFINE_MATH_OPERATORS
+#include "../imgui.h"
 #include "../imgui_internal.h"
 #include "../Backends/imgui_impl_metal.h"
 
