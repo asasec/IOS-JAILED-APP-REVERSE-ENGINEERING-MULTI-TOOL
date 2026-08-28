@@ -2,9 +2,6 @@ name: Build Multi-Tool
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   build:
@@ -29,31 +26,56 @@ jobs:
       - name: Setup Theos
         run: |
           echo "THEOS=$HOME/theos" >> $GITHUB_ENV
-          echo "PATH=$HOME/theos/bin:$PATH" >> $GITHUB_ENV
+          echo "PATH=$HOME/theos/bin:$PATH" >> $GITHUB_PATH
 
       - name: Check environment
         run: |
           echo "========================================"
-          echo "Theos:"
+          echo "Theos / Xcode Environment"
+          echo "========================================"
+
+          echo "THEOS=$HOME/theos"
+
           $HOME/theos/bin/nic.pl --version || true
-          echo "========================================"
+
+          echo "----------------------------------------"
           xcodebuild -version
+
+          echo "----------------------------------------"
           clang --version
+
           echo "========================================"
+
+      - name: Clean previous build
+        run: |
+          make clean
 
       - name: Build package
         run: |
-          make clean
           make package FINALPACKAGE=1
 
-      - name: Find package
+      - name: Find generated package
         run: |
           echo "========================================"
-          echo "Generated packages:"
+          echo "Generated packages"
           echo "========================================"
+
           find packages -type f -name "*.deb" -print
 
-      - name: Upload artifact
+          echo "========================================"
+
+      - name: Verify package
+        run: |
+          COUNT=$(find packages -type f -name "*.deb" | wc -l | tr -d ' ')
+
+          if [ "$COUNT" -eq 0 ]; then
+            echo "ERROR: No .deb package was generated."
+            exit 1
+          fi
+
+          echo "Package count: $COUNT"
+
+      - name: Upload Debian package
         uses: actions/upload-artifact@v4
         with:
           name: AsasecMultiTool
