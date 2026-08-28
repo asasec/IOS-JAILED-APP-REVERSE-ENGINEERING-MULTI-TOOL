@@ -44,7 +44,6 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
     if (!gInitialized || !gMenuVisible)
         return nil;
 
-    // Menü sınırları içindeyse dokunmayı tamamen ImGui view'ına ver (Sürükleme ve butonlar çalışır)
     if ([self pointInsideMenu:point])
     {
         return self;
@@ -138,20 +137,18 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
         ImGui::SetNextWindowPos(gMenuPosition, ImGuiCond_Always);
         ImGui::SetNextWindowSize(gMenuSize, ImGuiCond_Always);
 
-        // Standart başlık çubuğu bayrakları (Sürükleme ve pencere kapatma 'x' butonu aktif)
+        // Standart başlık çubuğu kullanıyoruz (Sürükleme ve sağ üstte 'X' kapatma butonu aktif)
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
 
-        // p_open parametresi olarak &gMenuVisible vererek sağ üstteki standart 'X' butonunun menüyü kapatmasını sağlıyoruz.
+        // p_open parametresi (&gMenuVisible) sağ üstteki X tuşuna basıldığında menüyü kapatır
         if (ImGui::Begin("My First Tool", &gMenuVisible, flags))
         {
             gMenuPosition = ImGui::GetWindowPos();
             gMenuSize = ImGui::GetWindowSize();
 
-            // Sol üst köşeye (başlık çubuğuna) minik açılır/kapanır yön oku ekleme
-            // ImGui pencere başlık çizim alanında sol tarafa imleci kaydırıyoruz
-            ImGui::SameLine(10.0f);
+            // Başlık satırının başına gidip küçültme okunu ekliyoruz (Yazının solunda yer alır)
+            ImGui::SameLine(8.0f);
             
-            // Ok Butonu (Küçültmeye / Genişletmeye yarar)
             const char* arrowText = gMenuCollapsed ? ">" : "v";
             if (ImGui::Button(arrowText, ImVec2(18.0f, 16.0f)))
             {
@@ -166,7 +163,7 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                 }
             }
 
-            // Menü açık durumdaysa sekmeleri ve içeriği göster
+            // Menü daraltılmadıysa sekmeleri ve içerikleri göster
             if (!gMenuCollapsed)
             {
                 ImGui::Spacing();
@@ -307,7 +304,7 @@ void ASASECImGuiStart(void)
         style.WindowRounding = 8.0f;
         style.FrameRounding = 4.0f;
 
-        // İstediğiniz koyu gri / mavi tema renkleri
+        // Koyu gri / mavi şık tema renkleri
         ImVec4* colors = style.Colors;
         colors[ImGuiCol_WindowBg] = ImVec4(0.12f, 0.14f, 0.18f, 0.95f);
         colors[ImGuiCol_TitleBg] = ImVec4(0.16f, 0.20f, 0.26f, 1.0f);
@@ -336,7 +333,7 @@ void ASASECImGuiStart(void)
         ImGui_ImplMetal_Init(device);
         gInitialized = YES;
 
-        NSLog(@"[ASASEC] Dragging and controls fixed successfully");
+        NSLog(@"[ASASEC] Collapse button moved to the left of the title successfully");
     });
 }
 
