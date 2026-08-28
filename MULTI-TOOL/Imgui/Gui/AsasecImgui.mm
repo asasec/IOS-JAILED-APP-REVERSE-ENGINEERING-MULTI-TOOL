@@ -29,17 +29,21 @@ static BOOL gInitialized = NO;
 - (void)touchesBegan:(NSSet<UITouch *> *)touches
            withEvent:(UIEvent *)event
 {
-    ImGuiIO &io = ImGui::GetIO();
+    if (!gInitialized)
+        return;
 
     UITouch *touch = touches.anyObject;
 
-    CGPoint p = [touch locationInView:self];
+    if (!touch)
+        return;
 
-    CGFloat scale = self.contentScaleFactor;
+    CGPoint point = [touch locationInView:self];
+
+    ImGuiIO &io = ImGui::GetIO();
 
     io.MousePos = ImVec2(
-        p.x * scale,
-        p.y * scale
+        point.x,
+        point.y
     );
 
     io.MouseDown[0] = true;
@@ -50,17 +54,21 @@ static BOOL gInitialized = NO;
 - (void)touchesMoved:(NSSet<UITouch *> *)touches
            withEvent:(UIEvent *)event
 {
-    ImGuiIO &io = ImGui::GetIO();
+    if (!gInitialized)
+        return;
 
     UITouch *touch = touches.anyObject;
 
-    CGPoint p = [touch locationInView:self];
+    if (!touch)
+        return;
 
-    CGFloat scale = self.contentScaleFactor;
+    CGPoint point = [touch locationInView:self];
+
+    ImGuiIO &io = ImGui::GetIO();
 
     io.MousePos = ImVec2(
-        p.x * scale,
-        p.y * scale
+        point.x,
+        point.y
     );
 
     [super touchesMoved:touches withEvent:event];
@@ -69,20 +77,24 @@ static BOOL gInitialized = NO;
 - (void)touchesEnded:(NSSet<UITouch *> *)touches
            withEvent:(UIEvent *)event
 {
-    ImGuiIO &io = ImGui::GetIO();
+    if (!gInitialized)
+        return;
 
     UITouch *touch = touches.anyObject;
 
-    CGPoint p = [touch locationInView:self];
+    if (touch)
+    {
+        CGPoint point = [touch locationInView:self];
 
-    CGFloat scale = self.contentScaleFactor;
+        ImGuiIO &io = ImGui::GetIO();
 
-    io.MousePos = ImVec2(
-        p.x * scale,
-        p.y * scale
-    );
+        io.MousePos = ImVec2(
+            point.x,
+            point.y
+        );
+    }
 
-    io.MouseDown[0] = false;
+    ImGui::GetIO().MouseDown[0] = false;
 
     [super touchesEnded:touches withEvent:event];
 }
@@ -90,14 +102,16 @@ static BOOL gInitialized = NO;
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches
                 withEvent:(UIEvent *)event
 {
-    ImGuiIO &io = ImGui::GetIO();
-
-    io.MouseDown[0] = false;
+    if (gInitialized)
+    {
+        ImGui::GetIO().MouseDown[0] = false;
+    }
 
     [super touchesCancelled:touches withEvent:event];
 }
 
 @end
+
 
 @interface ASASECImGuiRenderer : NSObject <MTKViewDelegate>
 @end
@@ -107,11 +121,19 @@ static BOOL gInitialized = NO;
 - (void)mtkView:(MTKView *)view
 drawableSizeWillChange:(CGSize)size
 {
+    if (!gInitialized)
+        return;
+
     ImGuiIO &io = ImGui::GetIO();
 
     io.DisplaySize = ImVec2(
-        size.width,
-        size.height
+        view.bounds.size.width,
+        view.bounds.size.height
+    );
+
+    io.DisplayFramebufferScale = ImVec2(
+        view.contentScaleFactor,
+        view.contentScaleFactor
     );
 }
 
@@ -132,35 +154,32 @@ drawableSizeWillChange:(CGSize)size
     id<MTLCommandBuffer> commandBuffer =
         [gCommandQueue commandBuffer];
 
+    if (!commandBuffer)
+        return;
+
     ImGui_ImplMetal_NewFrame(passDescriptor);
 
     ImGuiIO &io = ImGui::GetIO();
 
     io.DisplaySize = ImVec2(
-        view.drawableSize.width,
-        view.drawableSize.height
+        view.bounds.size.width,
+        view.bounds.size.height
+    );
+
+    io.DisplayFramebufferScale = ImVec2(
+        view.contentScaleFactor,
+        view.contentScaleFactor
     );
 
     ImGui::NewFrame();
 
-    CGFloat scale = view.contentScaleFactor;
-
-    if (scale <= 0.0)
-        scale = 1.0;
-
     ImGui::SetNextWindowSize(
-        ImVec2(
-            340.0f * scale,
-            420.0f * scale
-        ),
+        ImVec2(340.0f, 420.0f),
         ImGuiCond_FirstUseEver
     );
 
     ImGui::SetNextWindowPos(
-        ImVec2(
-            40.0f * scale,
-            80.0f * scale
-        ),
+        ImVec2(40.0f, 80.0f),
         ImGuiCond_FirstUseEver
     );
 
@@ -170,40 +189,88 @@ drawableSizeWillChange:(CGSize)size
         ImGuiWindowFlags_NoCollapse
     );
 
-    ImGui::Text("ASASEC ImGui");
+    ImGui::Text(
+        "ASASEC ImGui"
+    );
 
     ImGui::Separator();
 
     static bool option1 = false;
     static bool option2 = false;
+    static bool option3 = false;
+
     static float value = 5.0f;
 
-    ImGui::Checkbox(
-        "Option 1",
-        &option1
-    );
+    ImGui::Spacing();
 
-    ImGui::Checkbox(
+    if (ImGui::Checkbox(
+        "Option 1",
+        &option1))
+    {
+        NSLog(
+            @"[ASASEC] Option 1: %s",
+            option1 ? "ON" : "OFF"
+        );
+    }
+
+    if (ImGui::Checkbox(
         "Option 2",
-        &option2
+        &option2))
+    {
+        NSLog(
+            @"[ASASEC] Option 2: %s",
+            option2 ? "ON" : "OFF"
+        );
+    }
+
+    if (ImGui::Checkbox(
+        "Option 3",
+        &option3))
+    {
+        NSLog(
+            @"[ASASEC] Option 3: %s",
+            option3 ? "ON" : "OFF"
+        );
+    }
+
+    ImGui::Spacing();
+
+    ImGui::Text(
+        "Value"
     );
 
     ImGui::SliderFloat(
-        "Value",
+        "##value",
         &value,
         0.0f,
-        10.0f
+        10.0f,
+        "%.1f"
     );
 
-    if (ImGui::Button("Test"))
+    ImGui::Spacing();
+
+    if (ImGui::Button(
+        "TEST",
+        ImVec2(120.0f, 50.0f)))
     {
-        NSLog(@"[ASASEC] Test button pressed");
+        NSLog(
+            @"[ASASEC] TEST button pressed"
+        );
     }
+
+    ImGui::Spacing();
+
+    ImGui::Separator();
 
     ImGui::Text(
         "Screen: %.0f x %.0f",
         io.DisplaySize.x,
         io.DisplaySize.y
+    );
+
+    ImGui::Text(
+        "Scale: %.2f",
+        view.contentScaleFactor
     );
 
     ImGui::End();
@@ -212,7 +279,11 @@ drawableSizeWillChange:(CGSize)size
 
     id<MTLRenderCommandEncoder> encoder =
         [commandBuffer
-            renderCommandEncoderWithDescriptor:passDescriptor];
+            renderCommandEncoderWithDescriptor:
+                passDescriptor];
+
+    if (!encoder)
+        return;
 
     [encoder setViewport:(MTLViewport){
         0.0,
@@ -238,37 +309,46 @@ drawableSizeWillChange:(CGSize)size
 
 @end
 
+
 static ASASECImGuiRenderer *gRenderer = nil;
+
 
 void ASASECImGuiStart(void)
 {
     if (gInitialized)
         return;
 
-    dispatch_async(dispatch_get_main_queue(), ^{
+    dispatch_async(
+        dispatch_get_main_queue(),
+        ^{
 
         UIWindow *window = nil;
 
         for (UIScene *scene
              in UIApplication.sharedApplication.connectedScenes)
         {
-            if (scene.activationState ==
+            if (scene.activationState !=
                 UISceneActivationStateForegroundActive)
             {
-                if ([scene isKindOfClass:[UIWindowScene class]])
-                {
-                    UIWindowScene *windowScene =
-                        (UIWindowScene *)scene;
+                continue;
+            }
 
-                    for (UIWindow *candidate
-                         in windowScene.windows)
-                    {
-                        if (candidate.isKeyWindow)
-                        {
-                            window = candidate;
-                            break;
-                        }
-                    }
+            if (![scene isKindOfClass:
+                    [UIWindowScene class]])
+            {
+                continue;
+            }
+
+            UIWindowScene *windowScene =
+                (UIWindowScene *)scene;
+
+            for (UIWindow *candidate
+                 in windowScene.windows)
+            {
+                if (candidate.isKeyWindow)
+                {
+                    window = candidate;
+                    break;
                 }
             }
 
@@ -278,7 +358,10 @@ void ASASECImGuiStart(void)
 
         if (!window)
         {
-            NSLog(@"[ASASEC] Window not found");
+            NSLog(
+                @"[ASASEC] Window not found"
+            );
+
             return;
         }
 
@@ -287,12 +370,71 @@ void ASASECImGuiStart(void)
 
         if (!device)
         {
-            NSLog(@"[ASASEC] Metal unavailable");
+            NSLog(
+                @"[ASASEC] Metal device unavailable"
+            );
+
             return;
         }
 
         gCommandQueue =
             [device newCommandQueue];
+
+        if (!gCommandQueue)
+        {
+            NSLog(
+                @"[ASASEC] Command queue unavailable"
+            );
+
+            return;
+        }
+
+        ImGui::CreateContext();
+
+        ImGuiIO &io = ImGui::GetIO();
+
+        io.IniFilename = nullptr;
+
+        io.FontGlobalScale = 1.5f;
+
+        io.DisplaySize = ImVec2(
+            window.bounds.size.width,
+            window.bounds.size.height
+        );
+
+        io.DisplayFramebufferScale = ImVec2(
+            window.screen.scale,
+            window.screen.scale
+        );
+
+        ImGui::StyleColorsDark();
+
+        ImGuiStyle &style =
+            ImGui::GetStyle();
+
+        style.WindowPadding =
+            ImVec2(16.0f, 16.0f);
+
+        style.FramePadding =
+            ImVec2(12.0f, 10.0f);
+
+        style.ItemSpacing =
+            ImVec2(10.0f, 12.0f);
+
+        style.ItemInnerSpacing =
+            ImVec2(8.0f, 8.0f);
+
+        style.ScrollbarSize =
+            18.0f;
+
+        style.GrabMinSize =
+            24.0f;
+
+        style.WindowRounding =
+            10.0f;
+
+        style.FrameRounding =
+            6.0f;
 
         gImGuiView =
             [[ASASECImGuiView alloc]
@@ -315,47 +457,54 @@ void ASASECImGuiStart(void)
         gImGuiView.colorPixelFormat =
             MTLPixelFormatBGRA8Unorm;
 
-        gImGuiView.preferredFramesPerSecond = 60;
+        gImGuiView.preferredFramesPerSecond =
+            60;
 
-        gImGuiView.enableSetNeedsDisplay = NO;
-        gImGuiView.paused = NO;
+        gImGuiView.enableSetNeedsDisplay =
+            NO;
+
+        gImGuiView.paused =
+            NO;
 
         gRenderer =
             [[ASASECImGuiRenderer alloc] init];
 
-        gImGuiView.delegate = gRenderer;
+        gImGuiView.delegate =
+            gRenderer;
+
+        gImGuiView.multipleTouchEnabled =
+            NO;
 
         [window addSubview:gImGuiView];
 
-        ImGui::CreateContext();
-
-        ImGuiIO &io = ImGui::GetIO();
-
-        io.IniFilename = nullptr;
-
-        io.ConfigFlags |=
-            ImGuiConfigFlags_NavEnableKeyboard;
-
-        ImGui::StyleColorsDark();
+        [window bringSubviewToFront:gImGuiView];
 
         ImGui_ImplMetal_Init(device);
 
         gInitialized = YES;
 
-        NSLog(@"[ASASEC] ImGui touch overlay started");
+        NSLog(
+            @"[ASASEC] ImGui overlay started"
+        );
     });
 }
 
+
 void ASASECImGuiStop(void)
 {
-    dispatch_async(dispatch_get_main_queue(), ^{
+    dispatch_async(
+        dispatch_get_main_queue(),
+        ^{
 
         if (!gInitialized)
             return;
 
         if (gImGuiView)
         {
+            gImGuiView.delegate = nil;
+
             [gImGuiView removeFromSuperview];
+
             gImGuiView = nil;
         }
 
@@ -364,10 +513,13 @@ void ASASECImGuiStop(void)
         ImGui::DestroyContext();
 
         gCommandQueue = nil;
+
         gRenderer = nil;
 
         gInitialized = NO;
 
-        NSLog(@"[ASASEC] ImGui stopped");
+        NSLog(
+            @"[ASASEC] ImGui overlay stopped"
+        );
     });
 }
