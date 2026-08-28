@@ -1,3 +1,6 @@
+#import <UIKit/UIKit.h>
+#import <dispatch/dispatch.h>
+
 #import "../Imgui/Gui/AsasecImgui.h"
 
 %ctor
