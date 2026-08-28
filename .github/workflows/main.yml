@@ -46,18 +46,17 @@ jobs:
         run: |
           make clean
           make package FINALPACKAGE=1
-
       - name: Find package
         run: |
           echo "========================================"
           echo "Generated packages:"
           echo "========================================"
-          mv MULTI-TOOL/packages/*.deb MULTI-TOOL/packages/asasec-MultiTool.deb
-          find MULTI-TOOL/packages -type f -maxdepth 1 -print
+          mv packages/*.deb packages/asasec-MultiTool.deb
+          find packages -type f -name "*.deb" -print
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AsasecImGui
-          path: MULTI-TOOL/packages/*.deb
-          if-no-files-found: error
+         name: AsasecMultiTool
+         path: packages/*.deb
+         if-no-files-found: error
