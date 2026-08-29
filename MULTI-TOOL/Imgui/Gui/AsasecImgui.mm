@@ -1661,7 +1661,7 @@ static void ASASECApplyStyle(void)
         ImGui::SetCursorPos(
             ImVec2(
                 18.0f,
-                9.0f
+                11.0f
             )
         );
 
@@ -1679,6 +1679,9 @@ static void ASASECApplyStyle(void)
             0.0f,
             7.0f
         );
+
+        ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]); 
+        ImGui::SetWindowFontScale(1.15f);
 
         ImGui::TextColored(
             ImVec4(
@@ -1704,6 +1707,9 @@ static void ASASECApplyStyle(void)
             ),
             "UI"
         );
+
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopFont();
 
         float collapseButtonX =
             windowSize.x -
@@ -2451,164 +2457,25 @@ static void ASASECApplyStyle(void)
 
                 ImGui::Spacing();
 
-                static bool aimbot = false;
-                static bool esp = true;
-                static bool autoFire = false;
-                static bool silentAim = false;
-                static float fov = 90.0f;
+                static bool sw1 = false;
+                static bool sw2 = false;
+                static bool sw3 = false;
+                static bool sw4 = false;
 
                 ImGui::BeginChild(
                     "##CombatCard",
                     ImVec2(
                         ImGui::GetContentRegionAvail().x -
                             18.0f,
-                        315.0f
+                        250.0f
                     ),
                     true
                 );
 
-                ImGui::TextColored(
-                    ImVec4(
-                        0.93f,
-                        0.96f,
-                        1.0f,
-                        1.0f
-                    ),
-                    "Combat Features"
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.37f,
-                        0.42f,
-                        0.50f,
-                        1.0f
-                    ),
-                    "Main configuration"
-                );
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                ASASECModernSwitch(
-                    "Enable Aimbot",
-                    &aimbot
-                );
-
-                ASASECModernSwitch(
-                    "Box ESP",
-                    &esp
-                );
-
-                ASASECModernSwitch(
-                    "Auto Fire",
-                    &autoFire
-                );
-
-                ASASECModernSwitch(
-                    "Silent Aim",
-                    &silentAim
-                );
-
-                ImGui::Spacing();
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.80f,
-                        0.84f,
-                        0.91f,
-                        1.0f
-                    ),
-                    "FOV Radius"
-                );
-
-                ImGui::SetNextItemWidth(
-                    ImGui::GetContentRegionAvail().x -
-                        10.0f
-                );
-
-                ImGui::SliderFloat(
-                    "##FOV",
-                    &fov,
-                    10.0f,
-                    180.0f,
-                    "%.0f"
-                );
-
-                ImGui::Spacing();
-
-                if (ImGui::Button(
-                    "Reset Defaults",
-                    ImVec2(
-                        130.0f,
-                        36.0f
-                    )
-                ))
-                {
-                    aimbot = false;
-                    esp = true;
-                    autoFire = false;
-                    silentAim = false;
-                    fov = 90.0f;
-                }
-
-                ImGui::EndChild();
-
-                ImGui::Spacing();
-
-                static bool targetLock = false;
-                static bool prediction = false;
-                static bool visibilityCheck = true;
-
-                ImGui::BeginChild(
-                    "##CombatExtra",
-                    ImVec2(
-                        ImGui::GetContentRegionAvail().x -
-                            18.0f,
-                        220.0f
-                    ),
-                    true
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.93f,
-                        0.96f,
-                        1.0f,
-                        1.0f
-                    ),
-                    "Advanced"
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.37f,
-                        0.42f,
-                        0.50f,
-                        1.0f
-                    ),
-                    "Additional options"
-                );
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                ASASECModernSwitch(
-                    "Target Lock",
-                    &targetLock
-                );
-
-                ASASECModernSwitch(
-                    "Prediction",
-                    &prediction
-                );
-
-                ASASECModernSwitch(
-                    "Visibility Check",
-                    &visibilityCheck
-                );
+                ASASECModernSwitch("Swicht 1", &sw1);
+                ASASECModernSwitch("Swicht 2", &sw2);
+                ASASECModernSwitch("Swicht 3", &sw3);
+                ASASECModernSwitch("Swicht 4", &sw4);
 
                 ImGui::EndChild();
             }
@@ -2651,127 +2518,25 @@ static void ASASECApplyStyle(void)
 
                 ImGui::Spacing();
 
-                static bool playerESP = true;
-                static bool healthBar = true;
-                static bool wallhack = false;
-                static bool nameTags = true;
-                static bool distance = true;
+                static bool sw1 = false;
+                static bool sw2 = false;
+                static bool sw3 = false;
+                static bool sw4 = false;
 
                 ImGui::BeginChild(
                     "##VisualCard",
                     ImVec2(
                         ImGui::GetContentRegionAvail().x -
                             18.0f,
-                        315.0f
+                        250.0f
                     ),
                     true
                 );
 
-                ImGui::TextColored(
-                    ImVec4(
-                        0.93f,
-                        0.96f,
-                        1.0f,
-                        1.0f
-                    ),
-                    "ESP Features"
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.37f,
-                        0.42f,
-                        0.50f,
-                        1.0f
-                    ),
-                    "Visual configuration"
-                );
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                ASASECModernSwitch(
-                    "Player ESP",
-                    &playerESP
-                );
-
-                ASASECModernSwitch(
-                    "Health Bar",
-                    &healthBar
-                );
-
-                ASASECModernSwitch(
-                    "Wallhack",
-                    &wallhack
-                );
-
-                ASASECModernSwitch(
-                    "Name Tags",
-                    &nameTags
-                );
-
-                ASASECModernSwitch(
-                    "Distance",
-                    &distance
-                );
-
-                ImGui::EndChild();
-
-                ImGui::Spacing();
-
-                static bool glow = false;
-                static bool skeleton = false;
-                static bool snapLines = false;
-
-                ImGui::BeginChild(
-                    "##VisualExtra",
-                    ImVec2(
-                        ImGui::GetContentRegionAvail().x -
-                            18.0f,
-                        240.0f
-                    ),
-                    true
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.93f,
-                        0.96f,
-                        1.0f,
-                        1.0f
-                    ),
-                    "Visual Style"
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.37f,
-                        0.42f,
-                        0.50f,
-                        1.0f
-                    ),
-                    "Overlay configuration"
-                );
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                ASASECModernSwitch(
-                    "Glow",
-                    &glow
-                );
-
-                ASASECModernSwitch(
-                    "Skeleton",
-                    &skeleton
-                );
-
-                ASASECModernSwitch(
-                    "Snap Lines",
-                    &snapLines
-                );
+                ASASECModernSwitch("Swicht 1", &sw1);
+                ASASECModernSwitch("Swicht 2", &sw2);
+                ASASECModernSwitch("Swicht 3", &sw3);
+                ASASECModernSwitch("Swicht 4", &sw4);
 
                 ImGui::EndChild();
             }
@@ -2814,159 +2579,25 @@ static void ASASECApplyStyle(void)
 
                 ImGui::Spacing();
 
-                static bool animations = true;
-                static bool haptics = true;
-                static bool compactMode = false;
+                static bool sw1 = false;
+                static bool sw2 = false;
+                static bool sw3 = false;
+                static bool sw4 = false;
 
                 ImGui::BeginChild(
                     "##SettingsCard",
                     ImVec2(
                         ImGui::GetContentRegionAvail().x -
                             18.0f,
-                        330.0f
+                        250.0f
                     ),
                     true
                 );
 
-                ImGui::TextColored(
-                    ImVec4(
-                        0.93f,
-                        0.96f,
-                        1.0f,
-                        1.0f
-                    ),
-                    "Application"
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.37f,
-                        0.42f,
-                        0.50f,
-                        1.0f
-                    ),
-                    "Runtime information"
-                );
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                ImGui::Text(
-                    "Version"
-                );
-
-                ImGui::SameLine(
-                    ImGui::GetContentRegionAvail().x -
-                        55.0f
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.30f,
-                        0.68f,
-                        1.0f,
-                        1.0f
-                    ),
-                    "3.1"
-                );
-
-                ImGui::Spacing();
-
-                ImGui::Text(
-                    "Renderer"
-                );
-
-                ImGui::SameLine(
-                    ImGui::GetContentRegionAvail().x -
-                        55.0f
-                );
-
-                ImGui::Text(
-                    "Metal"
-                );
-
-                ImGui::Spacing();
-
-                ImGui::Text(
-                    "Status"
-                );
-
-                ImGui::SameLine(
-                    ImGui::GetContentRegionAvail().x -
-                        55.0f
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.30f,
-                        0.88f,
-                        0.56f,
-                        1.0f
-                    ),
-                    "ACTIVE"
-                );
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                ASASECModernSwitch(
-                    "Animations",
-                    &animations
-                );
-
-                ASASECModernSwitch(
-                    "Haptic Feedback",
-                    &haptics
-                );
-
-                ASASECModernSwitch(
-                    "Compact Mode",
-                    &compactMode
-                );
-
-                ImGui::EndChild();
-
-                ImGui::Spacing();
-
-                ImGui::BeginChild(
-                    "##InfoCard",
-                    ImVec2(
-                        ImGui::GetContentRegionAvail().x -
-                            18.0f,
-                        210.0f
-                    ),
-                    true
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.93f,
-                        0.96f,
-                        1.0f,
-                        1.0f
-                    ),
-                    "Interface"
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.37f,
-                        0.42f,
-                        0.50f,
-                        1.0f
-                    ),
-                    "Display configuration"
-                );
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                ImGui::TextWrapped(
-                    "Swipe directly inside the content area to navigate vertically. Use the bottom-right corner icon to resize the menu."
-                );
+                ASASECModernSwitch("Swicht 1", &sw1);
+                ASASECModernSwitch("Swicht 2", &sw2);
+                ASASECModernSwitch("Swicht 3", &sw3);
+                ASASECModernSwitch("Swicht 4", &sw4);
 
                 ImGui::EndChild();
             }
@@ -3033,10 +2664,10 @@ static void ASASECApplyStyle(void)
                 ImVec2(
                     windowPos.x +
                         right -
-                        10.0f,
+                        12.0f,
                     windowPos.y +
                         bottom -
-                        10.0f
+                        12.0f
                 );
 
             BOOL resizeActive =
@@ -3051,10 +2682,10 @@ static void ASASECApplyStyle(void)
                     1.0f
                 )
                 : ASASECColor(
-                    0.70f,
-                    0.76f,
-                    0.86f,
-                    0.80f
+                    0.85f,
+                    0.90f,
+                    0.98f,
+                    0.45f
                 );
 
             if (gResizingMenu)
@@ -3073,56 +2704,26 @@ static void ASASECApplyStyle(void)
                 );
             }
 
+            // Sağ alt köşe için yumuşatılmış hatlar ve ters L (Corner / Resize) simgesi
             draw->AddLine(
-                ImVec2(
-                    iconCenter.x - 9.0f,
-                    iconCenter.y + 7.0f
-                ),
-                ImVec2(
-                    iconCenter.x + 7.0f,
-                    iconCenter.y + 7.0f
-                ),
+                ImVec2(iconCenter.x - 6.0f, iconCenter.y + 6.0f),
+                ImVec2(iconCenter.x + 6.0f, iconCenter.y + 6.0f),
                 iconColor,
-                2.2f
+                2.0f
             );
 
             draw->AddLine(
-                ImVec2(
-                    iconCenter.x + 7.0f,
-                    iconCenter.y + 7.0f
-                ),
-                ImVec2(
-                    iconCenter.x + 7.0f,
-                    iconCenter.y - 9.0f
-                ),
+                ImVec2(iconCenter.x + 6.0f, iconCenter.y - 6.0f),
+                ImVec2(iconCenter.x + 6.0f, iconCenter.y + 6.0f),
                 iconColor,
-                2.2f
+                2.0f
             );
 
             draw->AddLine(
-                ImVec2(
-                    iconCenter.x - 3.0f,
-                    iconCenter.y + 7.0f
-                ),
-                ImVec2(
-                    iconCenter.x + 7.0f,
-                    iconCenter.y - 3.0f
-                ),
+                ImVec2(iconCenter.x - 1.0f, iconCenter.y + 6.0f),
+                ImVec2(iconCenter.x + 6.0f, iconCenter.y - 1.0f),
                 iconColor,
-                1.7f
-            );
-
-            draw->AddLine(
-                ImVec2(
-                    iconCenter.x + 2.0f,
-                    iconCenter.y + 7.0f
-                ),
-                ImVec2(
-                    iconCenter.x + 7.0f,
-                    iconCenter.y + 2.0f
-                ),
-                iconColor,
-                1.7f
+                1.5f
             );
         }
 
