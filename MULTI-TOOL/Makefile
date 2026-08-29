@@ -17,15 +17,20 @@ AsasecMultiTool_FILES := \
 
 AsasecMultiTool_CFLAGS := \
     -fobjc-arc \
+    -Wno-error \
     -IImgui \
     -IImgui/Backends
 
 AsasecMultiTool_CCFLAGS := \
     -std=c++17 \
     -fobjc-arc \
+    -Wno-error \
     -IImgui \
     -IImgui/Backends
 
-AsasecMultiTool_FRAMEWORKS := UIKit Metal MetalKit
+AsasecMultiTool_FRAMEWORKS := \
+    UIKit \
+    Metal \
+    MetalKit
 
 include $(THEOS_MAKE_PATH)/tweak.mk
