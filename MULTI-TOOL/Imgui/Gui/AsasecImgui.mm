@@ -5,6 +5,8 @@
 #import <MetalKit/MetalKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import <dispatch/dispatch.h>
+#import <math.h>
+#import <string.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "../imgui.h"
@@ -32,7 +34,7 @@ static const float kMenuMinHeight = 300.0f;
 static const float kMenuMaxHeight = 620.0f;
 
 static const float kHeaderHeight = 54.0f;
-static const float kResizeSize = 46.0f;
+static const float kResizeSize = 48.0f;
 
 static int gSelectedPage = 0;
 static int gPreviousPage = 0;
@@ -50,11 +52,13 @@ static ImVec2 gDragStartPosition = ImVec2(25.0f, 75.0f);
 static ImVec2 gResizeStartSize = ImVec2(560.0f, 390.0f);
 
 static float gPendingContentScrollY = 0.0f;
+static float gContentScrollVelocity = 0.0f;
+
+static BOOL gContentHasMoved = NO;
+static BOOL gContentTouchCandidate = NO;
 
 static float gPageAnimation = 1.0f;
 static float gMenuAnimation = 1.0f;
-
-static CFTimeInterval gLastFrameTime = 0.0;
 
 #pragma mark - Renderer
 
@@ -225,12 +229,14 @@ typedef struct
 {
     const char *label;
     float progress;
+    float pulse;
 } ASASECSwitchAnimation;
 
 static ASASECSwitchAnimation gSwitchAnimations[64];
 static int gSwitchAnimationCount = 0;
 
-static float *ASASECGetSwitchAnimation(const char *label)
+static ASASECSwitchAnimation *
+ASASECGetSwitchAnimationData(const char *label)
 {
     if (!label)
         return NULL;
@@ -238,9 +244,12 @@ static float *ASASECGetSwitchAnimation(const char *label)
     for (int i = 0; i < gSwitchAnimationCount; i++)
     {
         if (gSwitchAnimations[i].label &&
-            strcmp(gSwitchAnimations[i].label, label) == 0)
+            strcmp(
+                gSwitchAnimations[i].label,
+                label
+            ) == 0)
         {
-            return &gSwitchAnimations[i].progress;
+            return &gSwitchAnimations[i];
         }
     }
 
@@ -250,10 +259,16 @@ static float *ASASECGetSwitchAnimation(const char *label)
     int index =
         gSwitchAnimationCount++;
 
-    gSwitchAnimations[index].label = label;
-    gSwitchAnimations[index].progress = 0.0f;
+    gSwitchAnimations[index].label =
+        label;
 
-    return &gSwitchAnimations[index].progress;
+    gSwitchAnimations[index].progress =
+        0.0f;
+
+    gSwitchAnimations[index].pulse =
+        0.0f;
+
+    return &gSwitchAnimations[index];
 }
 
 static bool ASASECModernSwitch(const char *label,
@@ -266,7 +281,7 @@ static bool ASASECModernSwitch(const char *label,
 
     const float switchWidth = 48.0f;
     const float switchHeight = 27.0f;
-    const float rowHeight = 42.0f;
+    const float rowHeight = 44.0f;
 
     float available =
         ImGui::GetContentRegionAvail().x;
@@ -298,36 +313,60 @@ static bool ASASECModernSwitch(const char *label,
         return clicked;
     }
 
+    ASASECSwitchAnimation *animationData =
+        ASASECGetSwitchAnimationData(label);
+
     if (clicked)
+    {
         *value = !(*value);
+
+        if (animationData)
+            animationData->pulse = 1.0f;
+    }
 
     bool hovered =
         ImGui::IsItemHovered();
 
-    float *progress =
-        ASASECGetSwitchAnimation(label);
+    float dt =
+        ImGui::GetIO().DeltaTime;
 
-    if (progress)
+    if (dt <= 0.0f || dt > 0.1f)
+        dt = 1.0f / 60.0f;
+
+    float progress =
+        animationData
+        ? animationData->progress
+        : (*value ? 1.0f : 0.0f);
+
+    float target =
+        *value ? 1.0f : 0.0f;
+
+    progress =
+        ASASECEase(
+            progress,
+            target,
+            14.0f,
+            dt
+        );
+
+    if (animationData)
     {
-        float dt =
-            ImGui::GetIO().DeltaTime;
+        animationData->progress =
+            progress;
 
-        float target =
-            *value ? 1.0f : 0.0f;
-
-        *progress =
+        animationData->pulse =
             ASASECEase(
-                *progress,
-                target,
-                13.0f,
+                animationData->pulse,
+                0.0f,
+                10.0f,
                 dt
             );
     }
 
-    float animation =
-        progress
-        ? *progress
-        : (*value ? 1.0f : 0.0f);
+    float pulse =
+        animationData
+        ? animationData->pulse
+        : 0.0f;
 
     float switchX =
         itemMax.x -
@@ -352,16 +391,16 @@ static bool ASASECModernSwitch(const char *label,
         );
 
     float bgR =
-        0.09f +
-        (0.18f - 0.09f) * animation;
+        0.08f +
+        (0.18f - 0.08f) * progress;
 
     float bgG =
-        0.13f +
-        (0.52f - 0.13f) * animation;
+        0.12f +
+        (0.52f - 0.12f) * progress;
 
     float bgB =
-        0.19f +
-        (1.00f - 0.19f) * animation;
+        0.18f +
+        (1.00f - 0.18f) * progress;
 
     if (hovered)
     {
@@ -392,12 +431,9 @@ static bool ASASECModernSwitch(const char *label,
             switchMax.y - 0.5f
         ),
         ASASECColor(
-            0.20f +
-            0.25f * animation,
-            0.26f +
-            0.35f * animation,
-            0.36f +
-            0.45f * animation,
+            0.20f + 0.25f * progress,
+            0.26f + 0.35f * progress,
+            0.36f + 0.45f * progress,
             0.9f
         ),
         switchHeight * 0.5f,
@@ -414,18 +450,41 @@ static bool ASASECModernSwitch(const char *label,
     float knobX =
         offX +
         (onX - offX) *
-        animation;
+        progress;
 
     float knobY =
         switchMin.y +
         switchHeight * 0.5f;
+
+    float knobRadius =
+        9.0f +
+        pulse * 1.6f;
+
+    if (pulse > 0.01f)
+    {
+        draw->AddCircle(
+            ImVec2(
+                knobX,
+                knobY
+            ),
+            12.0f + pulse * 3.0f,
+            ASASECColor(
+                0.30f,
+                0.68f,
+                1.0f,
+                pulse * 0.30f
+            ),
+            24,
+            1.5f
+        );
+    }
 
     draw->AddCircleFilled(
         ImVec2(
             knobX + 1.0f,
             knobY + 1.5f
         ),
-        10.0f,
+        knobRadius + 0.5f,
         ASASECColor(
             0.0f,
             0.0f,
@@ -439,7 +498,7 @@ static bool ASASECModernSwitch(const char *label,
             knobX,
             knobY
         ),
-        9.0f,
+        knobRadius,
         ASASECColor(
             0.95f,
             0.98f,
@@ -451,7 +510,7 @@ static bool ASASECModernSwitch(const char *label,
     ImGui::SetCursorScreenPos(
         ImVec2(
             itemMin.x,
-            itemMin.y + 10.0f
+            itemMin.y + 11.0f
         )
     );
 
@@ -515,9 +574,9 @@ static bool ASASECModernSwitch(const char *label,
 
     return
         point.x >= right - kResizeSize &&
-        point.x <= right + 10.0f &&
+        point.x <= right + 8.0f &&
         point.y >= bottom - kResizeSize &&
-        point.y <= bottom + 10.0f;
+        point.y <= bottom + 8.0f;
 }
 
 - (BOOL)pointInsideDragHeader:(CGPoint)point
@@ -545,7 +604,7 @@ static bool ASASECModernSwitch(const char *label,
 
     float contentTop =
         gMenuPosition.y +
-        54.0f;
+        kHeaderHeight;
 
     float contentRight =
         gMenuPosition.x +
@@ -577,7 +636,7 @@ static bool ASASECModernSwitch(const char *label,
     return nil;
 }
 
-#pragma mark - Drag
+#pragma mark - Menu Drag
 
 - (void)beginMenuDragAtPoint:(CGPoint)point
 {
@@ -721,6 +780,9 @@ static bool ASASECModernSwitch(const char *label,
         return;
 
     gContentDragging = YES;
+    gContentTouchCandidate = YES;
+    gContentHasMoved = NO;
+
     gDraggingMenu = NO;
     gResizingMenu = NO;
 
@@ -728,6 +790,11 @@ static bool ASASECModernSwitch(const char *label,
     gContentLastPoint = point;
 
     gPendingContentScrollY = 0.0f;
+
+    /*
+     Yeni dokunmada eski momentum kesilir.
+     */
+    gContentScrollVelocity = 0.0f;
 }
 
 - (void)updateContentDragAtPoint:(CGPoint)point
@@ -741,14 +808,80 @@ static bool ASASECModernSwitch(const char *label,
             gContentLastPoint.y
         );
 
-    gPendingContentScrollY += -dy;
+    float dx =
+        (float)(
+            point.x -
+            gContentLastPoint.x
+        );
+
+    /*
+     Çok küçük hareketlerde gürültü oluşmasını
+     engelle.
+     */
+    if (fabsf(dy) < 0.05f)
+        dy = 0.0f;
+
+    /*
+     Dikey hareket yatay hareketten belirgin
+     şekilde fazlaysa scroll başlat.
+     */
+    float totalDX =
+        fabsf(
+            (float)(
+                point.x -
+                gContentStartPoint.x
+            )
+        );
+
+    float totalDY =
+        fabsf(
+            (float)(
+                point.y -
+                gContentStartPoint.y
+            )
+        );
+
+    if (!gContentHasMoved)
+    {
+        if (totalDY > 5.0f &&
+            totalDY >= totalDX)
+        {
+            gContentHasMoved = YES;
+        }
+    }
+
+    if (gContentHasMoved)
+    {
+        /*
+         Parmağı aşağı sürüklemek =
+         içeriği aşağı doğru hareket ettir.
+
+         Parmağı yukarı sürüklemek =
+         içeriği yukarı doğru hareket ettir.
+         */
+        float scrollDelta =
+            -dy;
+
+        gPendingContentScrollY +=
+            scrollDelta;
+
+        /*
+         Momentum için son hareketi sakla.
+         */
+        gContentScrollVelocity =
+            scrollDelta;
+    }
 
     gContentLastPoint = point;
 }
 
 - (void)endContentDrag
 {
+    if (!gContentDragging)
+        return;
+
     gContentDragging = NO;
+    gContentTouchCandidate = NO;
 }
 
 #pragma mark - Interaction
@@ -758,6 +891,7 @@ static bool ASASECModernSwitch(const char *label,
     gDraggingMenu = NO;
     gResizingMenu = NO;
     gContentDragging = NO;
+    gContentTouchCandidate = NO;
 }
 
 - (void)clampMenuPosition
@@ -886,7 +1020,14 @@ static bool ASASECModernSwitch(const char *label,
 - (void)touchesEnded:(NSSet<UITouch *> *)touches
            withEvent:(UIEvent *)event
 {
-    [self endMenuInteraction];
+    if (gContentDragging)
+    {
+        [self endContentDrag];
+    }
+    else
+    {
+        [self endMenuInteraction];
+    }
 
     if (!gInitialized)
         return;
@@ -906,6 +1047,9 @@ static bool ASASECModernSwitch(const char *label,
                withEvent:(UIEvent *)event
 {
     [self endMenuInteraction];
+
+    gContentScrollVelocity = 0.0f;
+    gPendingContentScrollY = 0.0f;
 
     if (!gInitialized)
         return;
@@ -945,6 +1089,10 @@ static void ASASECApplyStyle(void)
     style.ItemInnerSpacing =
         ImVec2(7.0f, 6.0f);
 
+    /*
+     ImGui scrollbar tamamen gizli.
+     Scroll yine manuel olarak çalışır.
+     */
     style.ScrollbarSize = 1.0f;
     style.GrabMinSize = 15.0f;
 
@@ -966,70 +1114,180 @@ static void ASASECApplyStyle(void)
         style.Colors;
 
     c[ImGuiCol_Text] =
-        ImVec4(0.93f, 0.96f, 1.0f, 1.0f);
+        ImVec4(
+            0.93f,
+            0.96f,
+            1.0f,
+            1.0f
+        );
 
     c[ImGuiCol_TextDisabled] =
-        ImVec4(0.40f, 0.45f, 0.54f, 1.0f);
+        ImVec4(
+            0.40f,
+            0.45f,
+            0.54f,
+            1.0f
+        );
 
     c[ImGuiCol_WindowBg] =
-        ImVec4(0.018f, 0.024f, 0.038f, 0.985f);
+        ImVec4(
+            0.018f,
+            0.024f,
+            0.038f,
+            0.985f
+        );
 
     c[ImGuiCol_ChildBg] =
-        ImVec4(0.040f, 0.052f, 0.074f, 0.98f);
+        ImVec4(
+            0.040f,
+            0.052f,
+            0.074f,
+            0.98f
+        );
 
     c[ImGuiCol_Border] =
-        ImVec4(0.13f, 0.17f, 0.24f, 0.75f);
+        ImVec4(
+            0.13f,
+            0.17f,
+            0.24f,
+            0.75f
+        );
 
     c[ImGuiCol_FrameBg] =
-        ImVec4(0.060f, 0.076f, 0.108f, 1.0f);
+        ImVec4(
+            0.060f,
+            0.076f,
+            0.108f,
+            1.0f
+        );
 
     c[ImGuiCol_FrameBgHovered] =
-        ImVec4(0.095f, 0.125f, 0.18f, 1.0f);
+        ImVec4(
+            0.095f,
+            0.125f,
+            0.18f,
+            1.0f
+        );
 
     c[ImGuiCol_FrameBgActive] =
-        ImVec4(0.12f, 0.18f, 0.27f, 1.0f);
+        ImVec4(
+            0.12f,
+            0.18f,
+            0.27f,
+            1.0f
+        );
 
     c[ImGuiCol_Button] =
-        ImVec4(0.060f, 0.080f, 0.12f, 1.0f);
+        ImVec4(
+            0.060f,
+            0.080f,
+            0.12f,
+            1.0f
+        );
 
     c[ImGuiCol_ButtonHovered] =
-        ImVec4(0.105f, 0.15f, 0.23f, 1.0f);
+        ImVec4(
+            0.105f,
+            0.15f,
+            0.23f,
+            1.0f
+        );
 
     c[ImGuiCol_ButtonActive] =
-        ImVec4(0.14f, 0.24f, 0.39f, 1.0f);
+        ImVec4(
+            0.14f,
+            0.24f,
+            0.39f,
+            1.0f
+        );
 
     c[ImGuiCol_CheckMark] =
-        ImVec4(0.30f, 0.68f, 1.0f, 1.0f);
+        ImVec4(
+            0.30f,
+            0.68f,
+            1.0f,
+            1.0f
+        );
 
     c[ImGuiCol_SliderGrab] =
-        ImVec4(0.22f, 0.56f, 1.0f, 1.0f);
+        ImVec4(
+            0.22f,
+            0.56f,
+            1.0f,
+            1.0f
+        );
 
     c[ImGuiCol_SliderGrabActive] =
-        ImVec4(0.38f, 0.70f, 1.0f, 1.0f);
+        ImVec4(
+            0.38f,
+            0.70f,
+            1.0f,
+            1.0f
+        );
 
     c[ImGuiCol_Header] =
-        ImVec4(0.10f, 0.17f, 0.27f, 1.0f);
+        ImVec4(
+            0.10f,
+            0.17f,
+            0.27f,
+            1.0f
+        );
 
     c[ImGuiCol_HeaderHovered] =
-        ImVec4(0.14f, 0.23f, 0.36f, 1.0f);
+        ImVec4(
+            0.14f,
+            0.23f,
+            0.36f,
+            1.0f
+        );
 
     c[ImGuiCol_HeaderActive] =
-        ImVec4(0.17f, 0.30f, 0.47f, 1.0f);
+        ImVec4(
+            0.17f,
+            0.30f,
+            0.47f,
+            1.0f
+        );
 
     c[ImGuiCol_Separator] =
-        ImVec4(0.13f, 0.17f, 0.23f, 0.80f);
+        ImVec4(
+            0.13f,
+            0.17f,
+            0.23f,
+            0.80f
+        );
 
     c[ImGuiCol_ScrollbarBg] =
-        ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+        ImVec4(
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f
+        );
 
     c[ImGuiCol_ScrollbarGrab] =
-        ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+        ImVec4(
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f
+        );
 
     c[ImGuiCol_ScrollbarGrabHovered] =
-        ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+        ImVec4(
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f
+        );
 
     c[ImGuiCol_ScrollbarGrabActive] =
-        ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+        ImVec4(
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f
+        );
 }
 
 #pragma mark - Renderer
@@ -1145,18 +1403,42 @@ drawableSizeWillChange:(CGSize)size
     if (dt <= 0.0f || dt > 0.1f)
         dt = 1.0f / 60.0f;
 
+    /*
+     Page animation
+     */
+
+    if (gSelectedPage != gPreviousPage)
+    {
+        gPreviousPage =
+            gSelectedPage;
+
+        gPageAnimation =
+            0.0f;
+    }
+
     gPageAnimation =
         ASASECEase(
             gPageAnimation,
             1.0f,
-            9.0f,
+            10.0f,
             dt
         );
 
-    if (gSelectedPage != gPreviousPage)
+    /*
+     Content momentum.
+     */
+
+    if (!gContentDragging &&
+        fabsf(gContentScrollVelocity) > 0.01f)
     {
-        gPreviousPage = gSelectedPage;
-        gPageAnimation = 0.0f;
+        gPendingContentScrollY +=
+            gContentScrollVelocity;
+
+        gContentScrollVelocity *=
+            expf(-7.0f * dt);
+
+        if (fabsf(gContentScrollVelocity) < 0.01f)
+            gContentScrollVelocity = 0.0f;
     }
 
     if (gMenuVisible)
@@ -1217,8 +1499,10 @@ drawableSizeWillChange:(CGSize)size
 
             ImVec2 windowEnd =
                 ImVec2(
-                    windowPos.x + windowSize.x,
-                    windowPos.y + windowSize.y
+                    windowPos.x +
+                    windowSize.x,
+                    windowPos.y +
+                    windowSize.y
                 );
 
             ImDrawList *draw =
@@ -1229,7 +1513,12 @@ drawableSizeWillChange:(CGSize)size
                 draw->AddRectFilled(
                     windowPos,
                     windowEnd,
-                    IM_COL32(6, 9, 16, 252),
+                    IM_COL32(
+                        6,
+                        9,
+                        16,
+                        252
+                    ),
                     20.0f
                 );
 
@@ -1242,7 +1531,12 @@ drawableSizeWillChange:(CGSize)size
                         windowEnd.x - 0.5f,
                         windowEnd.y - 0.5f
                     ),
-                    IM_COL32(42, 53, 73, 190),
+                    IM_COL32(
+                        42,
+                        53,
+                        73,
+                        190
+                    ),
                     20.0f,
                     0,
                     1.0f
@@ -1257,7 +1551,12 @@ drawableSizeWillChange:(CGSize)size
                         windowEnd.x - 1.0f,
                         windowPos.y + 54.0f
                     ),
-                    IM_COL32(10, 15, 25, 255),
+                    IM_COL32(
+                        10,
+                        15,
+                        25,
+                        255
+                    ),
                     19.0f,
                     ImDrawFlags_RoundCornersTop
                 );
@@ -1271,17 +1570,25 @@ drawableSizeWillChange:(CGSize)size
                         windowEnd.x - 16.0f,
                         windowPos.y + 53.0f
                     ),
-                    IM_COL32(34, 44, 61, 220),
+                    IM_COL32(
+                        34,
+                        44,
+                        61,
+                        220
+                    ),
                     1.0f
                 );
             }
 
             /*
-             Header
+             HEADER
              */
 
             ImGui::SetCursorPos(
-                ImVec2(18.0f, 9.0f)
+                ImVec2(
+                    18.0f,
+                    9.0f
+                )
             );
 
             ImGui::TextColored(
@@ -1375,7 +1682,10 @@ drawableSizeWillChange:(CGSize)size
 
             if (ImGui::Button(
                 "···",
-                ImVec2(38.0f, 32.0f)
+                ImVec2(
+                    38.0f,
+                    32.0f
+                )
             ))
             {
             }
@@ -1419,8 +1729,13 @@ drawableSizeWillChange:(CGSize)size
             );
 
             if (ImGui::Button(
-                gMenuCollapsed ? "↓" : "↑",
-                ImVec2(30.0f, 32.0f)
+                gMenuCollapsed
+                ? "↓"
+                : "↑",
+                ImVec2(
+                    30.0f,
+                    32.0f
+                )
             ))
             {
                 gMenuCollapsed =
@@ -1430,7 +1745,9 @@ drawableSizeWillChange:(CGSize)size
                     view.window;
 
                 if (window)
-                    ASASECClampMenuToScreen(window);
+                    ASASECClampMenuToScreen(
+                        window
+                    );
             }
 
             ImGui::PopStyleColor(3);
@@ -1472,7 +1789,10 @@ drawableSizeWillChange:(CGSize)size
 
             if (ImGui::Button(
                 "×",
-                ImVec2(30.0f, 32.0f)
+                ImVec2(
+                    30.0f,
+                    32.0f
+                )
             ))
             {
                 gMenuVisible = NO;
@@ -1481,7 +1801,7 @@ drawableSizeWillChange:(CGSize)size
             ImGui::PopStyleColor(3);
 
             /*
-             Collapsed state
+             COLLAPSED
              */
 
             if (gMenuCollapsed)
@@ -1506,7 +1826,7 @@ drawableSizeWillChange:(CGSize)size
             else
             {
                 /*
-                 Sidebar
+                 SIDEBAR
                  */
 
                 if (draw)
@@ -1518,7 +1838,12 @@ drawableSizeWillChange:(CGSize)size
                             sidebarWidth,
                             windowEnd.y
                         ),
-                        IM_COL32(9, 14, 24, 255),
+                        IM_COL32(
+                            9,
+                            14,
+                            24,
+                            255
+                        ),
                         20.0f,
                         ImDrawFlags_RoundCornersBottomLeft
                     );
@@ -1534,7 +1859,12 @@ drawableSizeWillChange:(CGSize)size
                             sidebarWidth,
                             windowEnd.y - 16.0f
                         ),
-                        IM_COL32(34, 43, 59, 210),
+                        IM_COL32(
+                            34,
+                            43,
+                            59,
+                            210
+                        ),
                         1.0f
                     );
                 }
@@ -1592,7 +1922,12 @@ drawableSizeWillChange:(CGSize)size
                                 windowPos.y +
                                 itemY + 42.0f
                             ),
-                            IM_COL32(19, 48, 84, 255),
+                            IM_COL32(
+                                19,
+                                48,
+                                84,
+                                255
+                            ),
                             11.0f
                         );
 
@@ -1603,7 +1938,12 @@ drawableSizeWillChange:(CGSize)size
                                 itemY + 21.0f
                             ),
                             3.0f,
-                            IM_COL32(80, 160, 255, 255)
+                            IM_COL32(
+                                80,
+                                160,
+                                255,
+                                255
+                            )
                         );
                     }
 
@@ -1672,6 +2012,13 @@ drawableSizeWillChange:(CGSize)size
                         {
                             gSelectedPage = i;
                             gPageAnimation = 0.0f;
+
+                            /*
+                             Sayfa değişiminde scroll
+                             konumunu başa al.
+                             */
+                            gPendingContentScrollY = 0.0f;
+                            gContentScrollVelocity = 0.0f;
                         }
                     }
 
@@ -1680,7 +2027,7 @@ drawableSizeWillChange:(CGSize)size
                 }
 
                 /*
-                 Content Root
+                 CONTENT ROOT
                  */
 
                 ImGui::SetCursorPos(
@@ -1773,18 +2120,23 @@ drawableSizeWillChange:(CGSize)size
                                 windowEnd.x - 16.0f,
                                 windowPos.y + 51.0f
                             ),
-                            IM_COL32(32, 41, 56, 220),
+                            IM_COL32(
+                                32,
+                                41,
+                                56,
+                                220
+                            ),
                             1.0f
                         );
                     }
 
                     /*
-                     Scrollable Content
+                     SCROLLABLE CONTENT
 
-                     ÖNEMLİ:
-                     Artık sağ scrollbar kullanılmıyor.
-                     Parmak hareketi touchesMoved tarafından
-                     gPendingContentScrollY içine aktarılıyor.
+                     Burada kritik fark:
+                     Scroll işlemi child oluşturulduktan
+                     ve içeriğin tamamı çizildikten sonra
+                     uygulanıyor.
                      */
 
                     ImGui::SetCursorPos(
@@ -1807,36 +2159,9 @@ drawableSizeWillChange:(CGSize)size
                             scrollHeight
                         ),
                         false,
-                        ImGuiWindowFlags_NoScrollbar |
-                        ImGuiWindowFlags_NoScrollWithMouse
+                        ImGuiWindowFlags_NoScrollbar
                     ))
                     {
-                        if (gPendingContentScrollY != 0.0f)
-                        {
-                            float currentScroll =
-                                ImGui::GetScrollY();
-
-                            float maxScroll =
-                                ImGui::GetScrollMaxY();
-
-                            float targetScroll =
-                                currentScroll +
-                                gPendingContentScrollY;
-
-                            targetScroll =
-                                ASASECClampFloat(
-                                    targetScroll,
-                                    0.0f,
-                                    maxScroll
-                                );
-
-                            ImGui::SetScrollY(
-                                targetScroll
-                            );
-
-                            gPendingContentScrollY = 0.0f;
-                        }
-
                         float fade =
                             ASASECClampFloat(
                                 gPageAnimation,
@@ -1979,7 +2304,10 @@ drawableSizeWillChange:(CGSize)size
 
                                 if (ImGui::Button(
                                     "Reset Defaults",
-                                    ImVec2(130.0f, 36.0f)
+                                    ImVec2(
+                                        130.0f,
+                                        36.0f
+                                    )
                                 ))
                                 {
                                     aimbot = false;
@@ -2284,7 +2612,9 @@ drawableSizeWillChange:(CGSize)size
                                 ImGui::Separator();
                                 ImGui::Spacing();
 
-                                ImGui::Text("Version");
+                                ImGui::Text(
+                                    "Version"
+                                );
 
                                 ImGui::SameLine(
                                     ImGui::GetContentRegionAvail().x - 55.0f
@@ -2302,17 +2632,23 @@ drawableSizeWillChange:(CGSize)size
 
                                 ImGui::Spacing();
 
-                                ImGui::Text("Renderer");
+                                ImGui::Text(
+                                    "Renderer"
+                                );
 
                                 ImGui::SameLine(
                                     ImGui::GetContentRegionAvail().x - 55.0f
                                 );
 
-                                ImGui::Text("Metal");
+                                ImGui::Text(
+                                    "Metal"
+                                );
 
                                 ImGui::Spacing();
 
-                                ImGui::Text("Status");
+                                ImGui::Text(
+                                    "Status"
+                                );
 
                                 ImGui::SameLine(
                                     ImGui::GetContentRegionAvail().x - 55.0f
@@ -2398,14 +2734,66 @@ drawableSizeWillChange:(CGSize)size
                         }
 
                         ImGui::PopStyleVar();
+
+                        /*
+                         ------------------------------------------------
+                         KRİTİK SCROLL NOKTASI
+                         ------------------------------------------------
+
+                         İçerik artık tamamen çizilmiş durumda.
+                         Bu nedenle GetScrollMaxY() gerçek değeri
+                         döndürüyor.
+
+                         Önceki kodda scroll değeri içerik
+                         oluşturulmadan uygulanıyordu. Özellikle
+                         ilk frame ve nested BeginChild yapısında
+                         bu yüzden 0 kalabiliyordu.
+                         */
+
+                        if (fabsf(gPendingContentScrollY) > 0.001f)
+                        {
+                            float currentScroll =
+                                ImGui::GetScrollY();
+
+                            float maxScroll =
+                                ImGui::GetScrollMaxY();
+
+                            float targetScroll =
+                                currentScroll +
+                                gPendingContentScrollY;
+
+                            targetScroll =
+                                ASASECClampFloat(
+                                    targetScroll,
+                                    0.0f,
+                                    maxScroll
+                                );
+
+                            ImGui::SetScrollY(
+                                targetScroll
+                            );
+
+                            /*
+                             Eğer sınıra ulaştıysak momentum
+                             birikmeye devam etmesin.
+                             */
+                            if ((targetScroll <= 0.0f &&
+                                 gPendingContentScrollY < 0.0f) ||
+                                (targetScroll >= maxScroll &&
+                                 gPendingContentScrollY > 0.0f))
+                            {
+                                gContentScrollVelocity = 0.0f;
+                            }
+
+                            gPendingContentScrollY = 0.0f;
+                        }
                     }
 
                     ImGui::EndChild();
 
                     /*
-                     Resize icon
-                     Sağ alt köşe.
-                     Artık eski uzun resize çizgisi yok.
+                     Bottom-right resize icon.
+                     Eski uzun resize çizgisi YOK.
                      */
 
                     if (draw &&
@@ -2426,8 +2814,11 @@ drawableSizeWillChange:(CGSize)size
                                 bottom - 10.0f
                             );
 
+                        BOOL resizeActive =
+                            gResizingMenu;
+
                         ImU32 iconColor =
-                            gResizingMenu
+                            resizeActive
                             ? ASASECColor(
                                 0.42f,
                                 0.72f,
@@ -2438,11 +2829,31 @@ drawableSizeWillChange:(CGSize)size
                                 0.70f,
                                 0.76f,
                                 0.86f,
-                                0.75f
+                                0.80f
                             );
 
                         /*
-                         Ters L / resize simgesi
+                         Hover benzeri canlılık.
+                         */
+
+                        if (gResizingMenu)
+                        {
+                            draw->AddCircle(
+                                iconCenter,
+                                13.0f,
+                                ASASECColor(
+                                    0.30f,
+                                    0.68f,
+                                    1.0f,
+                                    0.18f
+                                ),
+                                24,
+                                1.2f
+                            );
+                        }
+
+                        /*
+                         Ters L simgesi
                          */
 
                         draw->AddLine(
@@ -2470,6 +2881,10 @@ drawableSizeWillChange:(CGSize)size
                             iconColor,
                             2.2f
                         );
+
+                        /*
+                         Modern çift çapraz detay.
+                         */
 
                         draw->AddLine(
                             ImVec2(
@@ -2573,8 +2988,10 @@ void ASASECImGuiStart(void)
                 dispatch_after(
                     dispatch_time(
                         DISPATCH_TIME_NOW,
-                        (int64_t)(0.25 *
-                        NSEC_PER_SEC)
+                        (int64_t)(
+                            0.25 *
+                            NSEC_PER_SEC
+                        )
                     ),
                     dispatch_get_main_queue(),
                     ^{
@@ -2711,7 +3128,8 @@ void ASASECImGuiStart(void)
                 YES;
 
             ASASECImGuiRenderer *renderer =
-                [[ASASECImGuiRenderer alloc] init];
+                [[ASASECImGuiRenderer alloc]
+                 init];
 
             if (!renderer)
             {
@@ -2747,7 +3165,9 @@ void ASASECImGuiStart(void)
 
             [window bringSubviewToFront:view];
 
-            ASASECClampMenuToScreen(window);
+            ASASECClampMenuToScreen(
+                window
+            );
 
             gInitialized = YES;
             gStarting = NO;
@@ -2774,8 +3194,11 @@ void ASASECImGuiStop(void)
             gDraggingMenu = NO;
             gResizingMenu = NO;
             gContentDragging = NO;
+            gContentTouchCandidate = NO;
+            gContentHasMoved = NO;
 
             gPendingContentScrollY = 0.0f;
+            gContentScrollVelocity = 0.0f;
 
             if (gImGuiView)
             {
@@ -2844,8 +3267,14 @@ void ASASECImGuiStop(void)
 
             for (int i = 0; i < 64; i++)
             {
-                gSwitchAnimations[i].label = NULL;
-                gSwitchAnimations[i].progress = 0.0f;
+                gSwitchAnimations[i].label =
+                    NULL;
+
+                gSwitchAnimations[i].progress =
+                    0.0f;
+
+                gSwitchAnimations[i].pulse =
+                    0.0f;
             }
         }
     );
