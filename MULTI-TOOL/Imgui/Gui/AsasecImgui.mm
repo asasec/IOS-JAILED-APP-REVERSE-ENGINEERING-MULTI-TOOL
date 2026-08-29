@@ -1473,7 +1473,7 @@ drawableSizeWillChange:(CGSize)size
                 if (contentHeight < 100.0f)
                     contentHeight = 100.0f;
 
-                ImGui::BeginChild(
+                if (ImGui::BeginChild(
                     "##ContentRoot",
                     ImVec2(
                         contentWidth,
@@ -1481,837 +1481,839 @@ drawableSizeWillChange:(CGSize)size
                     ),
                     false,
                     ImGuiWindowFlags_NoBackground
-                );
-
-                ImGui::SetCursorPos(
-                    ImVec2(15.0f, 9.0f)
-                );
-
-                const char *pageTitle =
-                    gSelectedPage == 0
-                    ? "Combat"
-                    : gSelectedPage == 1
-                        ? "Visuals"
-                        : "Settings";
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.94f,
-                        0.97f,
-                        1.0f,
-                        1.0f
-                    ),
-                    "%s",
-                    pageTitle
-                );
-
-                ImGui::SameLine(
-                    0.0f,
-                    7.0f
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.30f,
-                        0.36f,
-                        0.45f,
-                        1.0f
-                    ),
-                    "/ ASASEC"
-                );
-
-                float controlX =
-                    contentWidth - 73.0f;
-
-                ImGui::SetCursorPos(
-                    ImVec2(
-                        controlX,
-                        8.0f
-                    )
-                );
-
-                ImGui::PushStyleVar(
-                    ImGuiStyleVar_FrameRounding,
-                    9.0f
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_Button,
-                    ImVec4(
-                        0.065f,
-                        0.095f,
-                        0.15f,
-                        1.0f
-                    )
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_ButtonHovered,
-                    ImVec4(
-                        0.12f,
-                        0.18f,
-                        0.28f,
-                        1.0f
-                    )
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_ButtonActive,
-                    ImVec4(
-                        0.17f,
-                        0.26f,
-                        0.40f,
-                        1.0f
-                    )
-                );
-
-                if (ImGui::Button(
-                    "v",
-                    ImVec2(28.0f, 32.0f)
                 ))
                 {
-                    gMenuCollapsed = YES;
-
-                    UIWindow *window =
-                        view.window;
-
-                    if (window)
-                        ASASECClampMenuToScreen(window);
-                }
-
-                ImGui::PopStyleColor(3);
-                ImGui::PopStyleVar();
-
-                ImGui::SameLine(
-                    0.0f,
-                    6.0f
-                );
-
-                ImGui::PushStyleVar(
-                    ImGuiStyleVar_FrameRounding,
-                    9.0f
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_Button,
-                    ImVec4(
-                        0.32f,
-                        0.055f,
-                        0.085f,
-                        1.0f
-                    )
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_ButtonHovered,
-                    ImVec4(
-                        0.55f,
-                        0.09f,
-                        0.14f,
-                        1.0f
-                    )
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_ButtonActive,
-                    ImVec4(
-                        0.70f,
-                        0.13f,
-                        0.19f,
-                        1.0f
-                    )
-                );
-
-                if (ImGui::Button(
-                    "x",
-                    ImVec2(28.0f, 32.0f)
-                ))
-                {
-                    gMenuVisible = NO;
-                }
-
-                ImGui::PopStyleColor(3);
-                ImGui::PopStyleVar();
-
-                if (draw)
-                {
-                    draw->AddLine(
-                        ImVec2(
-                            windowPos.x +
-                            sidebarWidth +
-                            16.0f,
-                            windowPos.y + 51.0f
-                        ),
-                        ImVec2(
-                            windowEnd.x - 16.0f,
-                            windowPos.y + 51.0f
-                        ),
-                        IM_COL32(32, 41, 56, 220),
-                        1.0f
+                    ImGui::SetCursorPos(
+                        ImVec2(15.0f, 9.0f)
                     );
-                }
 
-                ImGui::SetCursorPos(
-                    ImVec2(0.0f, 60.0f)
-                );
+                    const char *pageTitle =
+                        gSelectedPage == 0
+                        ? "Combat"
+                        : gSelectedPage == 1
+                            ? "Visuals"
+                            : "Settings";
 
-                float scrollHeight =
-                    contentHeight - 60.0f;
-
-                if (scrollHeight < 100.0f)
-                    scrollHeight = 100.0f;
-
-                ImGui::BeginChild(
-                    "##ScrollableContent",
-                    ImVec2(
-                        contentWidth,
-                        scrollHeight
-                    ),
-                    false,
-                    ImGuiWindowFlags_AlwaysVerticalScrollbar
-                );
-
-                ImGui::SetCursorPosX(15.0f);
-
-                if (gSelectedPage == 0)
-                {
                     ImGui::TextColored(
                         ImVec4(
-                            0.30f,
-                            0.68f,
+                            0.94f,
+                            0.97f,
                             1.0f,
                             1.0f
                         ),
-                        "COMBAT"
+                        "%s",
+                        pageTitle
                     );
 
                     ImGui::SameLine(
                         0.0f,
-                        6.0f
+                        7.0f
                     );
 
                     ImGui::TextColored(
                         ImVec4(
-                            0.34f,
-                            0.39f,
-                            0.48f,
+                            0.30f,
+                            0.36f,
+                            0.45f,
                             1.0f
                         ),
-                        "ACTIONS"
+                        "/ ASASEC"
                     );
 
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.43f,
-                            0.47f,
-                            0.55f,
-                            1.0f
-                        ),
-                        "Configure your combat options"
-                    );
+                    float controlX =
+                        contentWidth - 73.0f;
 
-                    ImGui::Spacing();
-
-                    static bool aimbot = false;
-                    static bool esp = true;
-                    static bool autoFire = false;
-                    static bool silentAim = false;
-                    static float fov = 90.0f;
-
-                    ImGui::BeginChild(
-                        "##CombatCard",
+                    ImGui::SetCursorPos(
                         ImVec2(
-                            ImGui::GetContentRegionAvail().x - 18.0f,
-                            315.0f
-                        ),
-                        true
+                            controlX,
+                            8.0f
+                        )
                     );
 
-                    ImGui::TextColored(
+                    ImGui::PushStyleVar(
+                        ImGuiStyleVar_FrameRounding,
+                        9.0f
+                    );
+
+                    ImGui::PushStyleColor(
+                        ImGuiCol_Button,
                         ImVec4(
-                            0.93f,
-                            0.96f,
-                            1.0f,
+                            0.065f,
+                            0.095f,
+                            0.15f,
                             1.0f
-                        ),
-                        "Combat Features"
+                        )
                     );
 
-                    ImGui::TextColored(
+                    ImGui::PushStyleColor(
+                        ImGuiCol_ButtonHovered,
                         ImVec4(
-                            0.37f,
-                            0.42f,
-                            0.50f,
+                            0.12f,
+                            0.18f,
+                            0.28f,
                             1.0f
-                        ),
-                        "Main configuration"
+                        )
                     );
 
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-
-                    ASASECModernSwitch(
-                        "Enable Aimbot",
-                        &aimbot
-                    );
-
-                    ASASECModernSwitch(
-                        "Box ESP",
-                        &esp
-                    );
-
-                    ASASECModernSwitch(
-                        "Auto Fire",
-                        &autoFire
-                    );
-
-                    ASASECModernSwitch(
-                        "Silent Aim",
-                        &silentAim
-                    );
-
-                    ImGui::Spacing();
-
-                    ImGui::TextColored(
+                    ImGui::PushStyleColor(
+                        ImGuiCol_ButtonActive,
                         ImVec4(
-                            0.80f,
-                            0.84f,
-                            0.91f,
+                            0.17f,
+                            0.26f,
+                            0.40f,
                             1.0f
-                        ),
-                        "FOV Radius"
+                        )
                     );
-
-                    ImGui::SetNextItemWidth(
-                        ImGui::GetContentRegionAvail().x - 10.0f
-                    );
-
-                    ImGui::SliderFloat(
-                        "##FOV",
-                        &fov,
-                        10.0f,
-                        180.0f,
-                        "%.0f"
-                    );
-
-                    ImGui::Spacing();
 
                     if (ImGui::Button(
-                        "Reset Defaults",
-                        ImVec2(130.0f, 36.0f)
+                        "v",
+                        ImVec2(28.0f, 32.0f)
                     ))
                     {
-                        aimbot = false;
-                        esp = true;
-                        autoFire = false;
-                        silentAim = false;
-                        fov = 90.0f;
+                        gMenuCollapsed = YES;
+
+                        UIWindow *window =
+                            view.window;
+
+                        if (window)
+                            ASASECClampMenuToScreen(window);
                     }
 
-                    ImGui::EndChild();
-
-                    ImGui::Spacing();
-
-                    ImGui::BeginChild(
-                        "##CombatExtra",
-                        ImVec2(
-                            ImGui::GetContentRegionAvail().x - 18.0f,
-                            220.0f
-                        ),
-                        true
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.93f,
-                            0.96f,
-                            1.0f,
-                            1.0f
-                        ),
-                        "Advanced"
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.37f,
-                            0.42f,
-                            0.50f,
-                            1.0f
-                        ),
-                        "Additional options"
-                    );
-
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-
-                    static bool targetLock = false;
-                    static bool prediction = false;
-                    static bool visibilityCheck = true;
-
-                    ASASECModernSwitch(
-                        "Target Lock",
-                        &targetLock
-                    );
-
-                    ASASECModernSwitch(
-                        "Prediction",
-                        &prediction
-                    );
-
-                    ASASECModernSwitch(
-                        "Visibility Check",
-                        &visibilityCheck
-                    );
-
-                    ImGui::EndChild();
-                }
-                else if (gSelectedPage == 1)
-                {
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.28f,
-                            0.86f,
-                            0.58f,
-                            1.0f
-                        ),
-                        "VISUALS"
-                    );
+                    ImGui::PopStyleColor(3);
+                    ImGui::PopStyleVar();
 
                     ImGui::SameLine(
                         0.0f,
                         6.0f
                     );
 
-                    ImGui::TextColored(
+                    ImGui::PushStyleVar(
+                        ImGuiStyleVar_FrameRounding,
+                        9.0f
+                    );
+
+                    ImGui::PushStyleColor(
+                        ImGuiCol_Button,
                         ImVec4(
-                            0.34f,
-                            0.39f,
-                            0.48f,
+                            0.32f,
+                            0.055f,
+                            0.085f,
                             1.0f
-                        ),
-                        "ESP"
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.43f,
-                            0.47f,
-                            0.55f,
-                            1.0f
-                        ),
-                        "Configure visual options"
-                    );
-
-                    ImGui::Spacing();
-
-                    static bool playerESP = true;
-                    static bool healthBar = true;
-                    static bool wallhack = false;
-                    static bool nameTags = true;
-                    static bool distance = true;
-
-                    ImGui::BeginChild(
-                        "##VisualCard",
-                        ImVec2(
-                            ImGui::GetContentRegionAvail().x - 18.0f,
-                            315.0f
-                        ),
-                        true
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.93f,
-                            0.96f,
-                            1.0f,
-                            1.0f
-                        ),
-                        "ESP Features"
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.37f,
-                            0.42f,
-                            0.50f,
-                            1.0f
-                        ),
-                        "Visual configuration"
-                    );
-
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-
-                    ASASECModernSwitch(
-                        "Player ESP",
-                        &playerESP
-                    );
-
-                    ASASECModernSwitch(
-                        "Health Bar",
-                        &healthBar
-                    );
-
-                    ASASECModernSwitch(
-                        "Wallhack",
-                        &wallhack
-                    );
-
-                    ASASECModernSwitch(
-                        "Name Tags",
-                        &nameTags
-                    );
-
-                    ASASECModernSwitch(
-                        "Distance",
-                        &distance
-                    );
-
-                    ImGui::EndChild();
-
-                    ImGui::Spacing();
-
-                    ImGui::BeginChild(
-                        "##VisualExtra",
-                        ImVec2(
-                            ImGui::GetContentRegionAvail().x - 18.0f,
-                            240.0f
-                        ),
-                        true
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.93f,
-                            0.96f,
-                            1.0f,
-                            1.0f
-                        ),
-                        "Visual Style"
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.37f,
-                            0.42f,
-                            0.50f,
-                            1.0f
-                        ),
-                        "Overlay configuration"
-                    );
-
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-
-                    static bool glow = false;
-                    static bool skeleton = false;
-                    static bool snapLines = false;
-
-                    ASASECModernSwitch(
-                        "Glow",
-                        &glow
-                    );
-
-                    ASASECModernSwitch(
-                        "Skeleton",
-                        &skeleton
-                    );
-
-                    ASASECModernSwitch(
-                        "Snap Lines",
-                        &snapLines
-                    );
-
-                    ImGui::EndChild();
-                }
-                else
-                {
-                    ImGui::TextColored(
-                        ImVec4(
-                            1.0f,
-                            0.67f,
-                            0.28f,
-                            1.0f
-                        ),
-                        "SETTINGS"
-                    );
-
-                    ImGui::SameLine(
-                        0.0f,
-                        6.0f
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.34f,
-                            0.39f,
-                            0.48f,
-                            1.0f
-                        ),
-                        "SYSTEM"
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.43f,
-                            0.47f,
-                            0.55f,
-                            1.0f
-                        ),
-                        "ASASEC configuration"
-                    );
-
-                    ImGui::Spacing();
-
-                    ImGui::BeginChild(
-                        "##SettingsCard",
-                        ImVec2(
-                            ImGui::GetContentRegionAvail().x - 18.0f,
-                            330.0f
-                        ),
-                        true
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.93f,
-                            0.96f,
-                            1.0f,
-                            1.0f
-                        ),
-                        "Application"
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.37f,
-                            0.42f,
-                            0.50f,
-                            1.0f
-                        ),
-                        "Runtime information"
-                    );
-
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-
-                    ImGui::Text("Version");
-
-                    ImGui::SameLine(
-                        ImGui::GetContentRegionAvail().x - 55.0f
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.30f,
-                            0.68f,
-                            1.0f,
-                            1.0f
-                        ),
-                        "3.1"
-                    );
-
-                    ImGui::Spacing();
-
-                    ImGui::Text("Renderer");
-
-                    ImGui::SameLine(
-                        ImGui::GetContentRegionAvail().x - 55.0f
-                    );
-
-                    ImGui::Text("Metal");
-
-                    ImGui::Spacing();
-
-                    ImGui::Text("Status");
-
-                    ImGui::SameLine(
-                        ImGui::GetContentRegionAvail().x - 55.0f
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.30f,
-                            0.88f,
-                            0.56f,
-                            1.0f
-                        ),
-                        "ACTIVE"
-                    );
-
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-
-                    static bool animations = true;
-                    static bool haptics = true;
-                    static bool compactMode = false;
-
-                    ASASECModernSwitch(
-                        "Animations",
-                        &animations
-                    );
-
-                    ASASECModernSwitch(
-                        "Haptic Feedback",
-                        &haptics
-                    );
-
-                    ASASECModernSwitch(
-                        "Compact Mode",
-                        &compactMode
-                    );
-
-                    ImGui::EndChild();
-
-                    ImGui::Spacing();
-
-                    ImGui::BeginChild(
-                        "##InfoCard",
-                        ImVec2(
-                            ImGui::GetContentRegionAvail().x - 18.0f,
-                            210.0f
-                        ),
-                        true
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.93f,
-                            0.96f,
-                            1.0f,
-                            1.0f
-                        ),
-                        "Interface"
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.37f,
-                            0.42f,
-                            0.50f,
-                            1.0f
-                        ),
-                        "Display configuration"
-                    );
-
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-
-                    ImGui::TextWrapped(
-                        "Use the internal scroll area to navigate through the menu. The lower-right handle controls the menu size."
-                    );
-
-                    ImGui::EndChild();
-                }
-
-                ImGui::EndChild();
-
-                if (draw &&
-                    windowSize.x > 300.0f &&
-                    windowSize.y > 220.0f)
-                {
-                    float right =
-                        windowSize.x - 8.0f;
-
-                    float bottom =
-                        windowSize.y - 8.0f;
-
-                    ImVec2 origin =
-                        ImVec2(
-                            windowPos.x +
-                            right - 26.0f,
-                            windowPos.y +
-                            bottom - 26.0f
-                        );
-
-                    ImU32 handleColor =
-                        gResizingMenu
-                        ? ASASECColor(
-                            0.45f,
-                            0.73f,
-                            1.0f,
-                            0.95f
                         )
-                        : ASASECColor(
-                            0.82f,
-                            0.85f,
-                            0.90f,
-                            0.45f
+                    );
+
+                    ImGui::PushStyleColor(
+                        ImGuiCol_ButtonHovered,
+                        ImVec4(
+                            0.55f,
+                            0.09f,
+                            0.14f,
+                            1.0f
+                        )
+                    );
+
+                    ImGui::PushStyleColor(
+                        ImGuiCol_ButtonActive,
+                        ImVec4(
+                            0.70f,
+                            0.13f,
+                            0.19f,
+                            1.0f
+                        )
+                    );
+
+                    if (ImGui::Button(
+                        "x",
+                        ImVec2(28.0f, 32.0f)
+                    ))
+                    {
+                        gMenuVisible = NO;
+                    }
+
+                    ImGui::PopStyleColor(3);
+                    ImGui::PopStyleVar();
+
+                    if (draw)
+                    {
+                        draw->AddLine(
+                            ImVec2(
+                                windowPos.x +
+                                sidebarWidth +
+                                16.0f,
+                                windowPos.y + 51.0f
+                            ),
+                            ImVec2(
+                                windowEnd.x - 16.0f,
+                                windowPos.y + 51.0f
+                            ),
+                            IM_COL32(32, 41, 56, 220),
+                            1.0f
+                        );
+                    }
+
+                    ImGui::SetCursorPos(
+                        ImVec2(0.0f, 60.0f)
+                    );
+
+                    float scrollHeight =
+                        contentHeight - 60.0f;
+
+                    if (scrollHeight < 100.0f)
+                        scrollHeight = 100.0f;
+
+                    if (ImGui::BeginChild(
+                        "##ScrollableContent",
+                        ImVec2(
+                            contentWidth,
+                            scrollHeight
+                        ),
+                        false,
+                        ImGuiWindowFlags_AlwaysVerticalScrollbar
+                    ))
+                    {
+                        ImGui::SetCursorPosX(15.0f);
+
+                        if (gSelectedPage == 0)
+                        {
+                            ImGui::TextColored(
+                                ImVec4(
+                                    0.30f,
+                                    0.68f,
+                                    1.0f,
+                                    1.0f
+                                ),
+                                "COMBAT"
+                            );
+
+                            ImGui::SameLine(
+                                0.0f,
+                                6.0f
+                            );
+
+                            ImGui::TextColored(
+                                ImVec4(
+                                    0.34f,
+                                    0.39f,
+                                    0.48f,
+                                    1.0f
+                                ),
+                                "ACTIONS"
+                            );
+
+                            ImGui::TextColored(
+                                ImVec4(
+                                    0.43f,
+                                    0.47f,
+                                    0.55f,
+                                    1.0f
+                                ),
+                                "Configure your combat options"
+                            );
+
+                            ImGui::Spacing();
+
+                            static bool aimbot = false;
+                            static bool esp = true;
+                            static bool autoFire = false;
+                            static bool silentAim = false;
+                            static float fov = 90.0f;
+
+                            if (ImGui::BeginChild(
+                                "##CombatCard",
+                                ImVec2(
+                                    ImGui::GetContentRegionAvail().x - 18.0f,
+                                    315.0f
+                                ),
+                                true
+                            ))
+                            {
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.93f,
+                                        0.96f,
+                                        1.0f,
+                                        1.0f
+                                    ),
+                                    "Combat Features"
+                                );
+
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.37f,
+                                        0.42f,
+                                        0.50f,
+                                        1.0f
+                                    ),
+                                    "Main configuration"
+                                );
+
+                                ImGui::Spacing();
+                                ImGui::Separator();
+                                ImGui::Spacing();
+
+                                ASASECModernSwitch(
+                                    "Enable Aimbot",
+                                    &aimbot
+                                );
+
+                                ASASECModernSwitch(
+                                    "Box ESP",
+                                    &esp
+                                );
+
+                                ASASECModernSwitch(
+                                    "Auto Fire",
+                                    &autoFire
+                                );
+
+                                ASASECModernSwitch(
+                                    "Silent Aim",
+                                    &silentAim
+                                );
+
+                                ImGui::Spacing();
+
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.80f,
+                                        0.84f,
+                                        0.91f,
+                                        1.0f
+                                    ),
+                                    "FOV Radius"
+                                );
+
+                                ImGui::SetNextItemWidth(
+                                    ImGui::GetContentRegionAvail().x - 10.0f
+                                );
+
+                                ImGui::SliderFloat(
+                                    "##FOV",
+                                    &fov,
+                                    10.0f,
+                                    180.0f,
+                                    "%.0f"
+                                );
+
+                                ImGui::Spacing();
+
+                                if (ImGui::Button(
+                                    "Reset Defaults",
+                                    ImVec2(130.0f, 36.0f)
+                                ))
+                                {
+                                    aimbot = false;
+                                    esp = true;
+                                    autoFire = false;
+                                    silentAim = false;
+                                    fov = 90.0f;
+                                }
+                            }
+                            ImGui::EndChild();
+
+                            ImGui::Spacing();
+
+                            if (ImGui::BeginChild(
+                                "##CombatExtra",
+                                ImVec2(
+                                    ImGui::GetContentRegionAvail().x - 18.0f,
+                                    220.0f
+                                ),
+                                true
+                            ))
+                            {
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.93f,
+                                        0.96f,
+                                        1.0f,
+                                        1.0f
+                                    ),
+                                    "Advanced"
+                                );
+
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.37f,
+                                        0.42f,
+                                        0.50f,
+                                        1.0f
+                                    ),
+                                    "Additional options"
+                                );
+
+                                ImGui::Spacing();
+                                ImGui::Separator();
+                                ImGui::Spacing();
+
+                                static bool targetLock = false;
+                                static bool prediction = false;
+                                static bool visibilityCheck = true;
+
+                                ASASECModernSwitch(
+                                    "Target Lock",
+                                    &targetLock
+                                );
+
+                                ASASECModernSwitch(
+                                    "Prediction",
+                                    &prediction
+                                );
+
+                                ASASECModernSwitch(
+                                    "Visibility Check",
+                                    &visibilityCheck
+                                );
+                            }
+                            ImGui::EndChild();
+                        }
+                        else if (gSelectedPage == 1)
+                        {
+                            ImGui::TextColored(
+                                ImVec4(
+                                    0.28f,
+                                    0.86f,
+                                    0.58f,
+                                    1.0f
+                                ),
+                                "VISUALS"
+                            );
+
+                            ImGui::SameLine(
+                                0.0f,
+                                6.0f
+                            );
+
+                            ImGui::TextColored(
+                                ImVec4(
+                                    0.34f,
+                                    0.39f,
+                                    0.48f,
+                                    1.0f
+                                ),
+                                "ESP"
+                            );
+
+                            ImGui::TextColored(
+                                ImVec4(
+                                    0.43f,
+                                    0.47f,
+                                    0.55f,
+                                    1.0f
+                                ),
+                                "Configure visual options"
+                            );
+
+                            ImGui::Spacing();
+
+                            static bool playerESP = true;
+                            static bool healthBar = true;
+                            static bool wallhack = false;
+                            static bool nameTags = true;
+                            static bool distance = true;
+
+                            if (ImGui::BeginChild(
+                                "##VisualCard",
+                                ImVec2(
+                                    ImGui::GetContentRegionAvail().x - 18.0f,
+                                    315.0f
+                                ),
+                                true
+                            ))
+                            {
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.93f,
+                                        0.96f,
+                                        1.0f,
+                                        1.0f
+                                    ),
+                                    "ESP Features"
+                                );
+
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.37f,
+                                        0.42f,
+                                        0.50f,
+                                        1.0f
+                                    ),
+                                    "Visual configuration"
+                                );
+
+                                ImGui::Spacing();
+                                ImGui::Separator();
+                                ImGui::Spacing();
+
+                                ASASECModernSwitch(
+                                    "Player ESP",
+                                    &playerESP
+                                );
+
+                                ASASECModernSwitch(
+                                    "Health Bar",
+                                    &healthBar
+                                );
+
+                                ASASECModernSwitch(
+                                    "Wallhack",
+                                    &wallhack
+                                );
+
+                                ASASECModernSwitch(
+                                    "Name Tags",
+                                    &nameTags
+                                );
+
+                                ASASECModernSwitch(
+                                    "Distance",
+                                    &distance
+                                );
+                            }
+                            ImGui::EndChild();
+
+                            ImGui::Spacing();
+
+                            if (ImGui::BeginChild(
+                                "##VisualExtra",
+                                ImVec2(
+                                    ImGui::GetContentRegionAvail().x - 18.0f,
+                                    240.0f
+                                ),
+                                true
+                            ))
+                            {
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.93f,
+                                        0.96f,
+                                        1.0f,
+                                        1.0f
+                                    ),
+                                    "Visual Style"
+                                );
+
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.37f,
+                                        0.42f,
+                                        0.50f,
+                                        1.0f
+                                    ),
+                                    "Overlay configuration"
+                                );
+
+                                ImGui::Spacing();
+                                ImGui::Separator();
+                                ImGui::Spacing();
+
+                                static bool glow = false;
+                                static bool skeleton = false;
+                                static bool snapLines = false;
+
+                                ASASECModernSwitch(
+                                    "Glow",
+                                    &glow
+                                );
+
+                                ASASECModernSwitch(
+                                    "Skeleton",
+                                    &skeleton
+                                );
+
+                                ASASECModernSwitch(
+                                    "Snap Lines",
+                                    &snapLines
+                                );
+                            }
+                            ImGui::EndChild();
+                        }
+                        else
+                        {
+                            ImGui::TextColored(
+                                ImVec4(
+                                    1.0f,
+                                    0.67f,
+                                    0.28f,
+                                    1.0f
+                                ),
+                                "SETTINGS"
+                            );
+
+                            ImGui::SameLine(
+                                0.0f,
+                                6.0f
+                            );
+
+                            ImGui::TextColored(
+                                ImVec4(
+                                    0.34f,
+                                    0.39f,
+                                    0.48f,
+                                    1.0f
+                                ),
+                                "SYSTEM"
+                            );
+
+                            ImGui::TextColored(
+                                ImVec4(
+                                    0.43f,
+                                    0.47f,
+                                    0.55f,
+                                    1.0f
+                                ),
+                                "ASASEC configuration"
+                            );
+
+                            ImGui::Spacing();
+
+                            if (ImGui::BeginChild(
+                                "##SettingsCard",
+                                ImVec2(
+                                    ImGui::GetContentRegionAvail().x - 18.0f,
+                                    330.0f
+                                ),
+                                true
+                            ))
+                            {
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.93f,
+                                        0.96f,
+                                        1.0f,
+                                        1.0f
+                                    ),
+                                    "Application"
+                                );
+
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.37f,
+                                        0.42f,
+                                        0.50f,
+                                        1.0f
+                                    ),
+                                    "Runtime information"
+                                );
+
+                                ImGui::Spacing();
+                                ImGui::Separator();
+                                ImGui::Spacing();
+
+                                ImGui::Text("Version");
+
+                                ImGui::SameLine(
+                                    ImGui::GetContentRegionAvail().x - 55.0f
+                                );
+
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.30f,
+                                        0.68f,
+                                        1.0f,
+                                        1.0f
+                                    ),
+                                    "3.1"
+                                );
+
+                                ImGui::Spacing();
+
+                                ImGui::Text("Renderer");
+
+                                ImGui::SameLine(
+                                    ImGui::GetContentRegionAvail().x - 55.0f
+                                );
+
+                                ImGui::Text("Metal");
+
+                                ImGui::Spacing();
+
+                                ImGui::Text("Status");
+
+                                ImGui::SameLine(
+                                    ImGui::GetContentRegionAvail().x - 55.0f
+                                );
+
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.30f,
+                                        0.88f,
+                                        0.56f,
+                                        1.0f
+                                    ),
+                                    "ACTIVE"
+                                );
+
+                                ImGui::Spacing();
+                                ImGui::Separator();
+                                ImGui::Spacing();
+
+                                static bool animations = true;
+                                static bool haptics = true;
+                                static bool compactMode = false;
+
+                                ASASECModernSwitch(
+                                    "Animations",
+                                    &animations
+                                );
+
+                                ASASECModernSwitch(
+                                    "Haptic Feedback",
+                                    &haptics
+                                );
+
+                                ASASECModernSwitch(
+                                    "Compact Mode",
+                                    &compactMode
+                                );
+                            }
+                            ImGui::EndChild();
+
+                            ImGui::Spacing();
+
+                            if (ImGui::BeginChild(
+                                "##InfoCard",
+                                ImVec2(
+                                    ImGui::GetContentRegionAvail().x - 18.0f,
+                                    210.0f
+                                ),
+                                true
+                            ))
+                            {
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.93f,
+                                        0.96f,
+                                        1.0f,
+                                        1.0f
+                                    ),
+                                    "Interface"
+                                );
+
+                                ImGui::TextColored(
+                                    ImVec4(
+                                        0.37f,
+                                        0.42f,
+                                        0.50f,
+                                        1.0f
+                                    ),
+                                    "Display configuration"
+                                );
+
+                                ImGui::Spacing();
+                                ImGui::Separator();
+                                ImGui::Spacing();
+
+                                ImGui::TextWrapped(
+                                    "Use the internal scroll area to navigate through the menu. The lower-right handle controls the menu size."
+                                );
+                            }
+                            ImGui::EndChild();
+                        }
+                    }
+                    ImGui::EndChild();
+
+                    if (draw &&
+                        windowSize.x > 300.0f &&
+                        windowSize.y > 220.0f)
+                    {
+                        float right =
+                            windowSize.x - 8.0f;
+
+                        float bottom =
+                            windowSize.y - 8.0f;
+
+                        ImVec2 origin =
+                            ImVec2(
+                                windowPos.x +
+                                right - 26.0f,
+                                windowPos.y +
+                                bottom - 26.0f
+                            );
+
+                        ImU32 handleColor =
+                            gResizingMenu
+                            ? ASASECColor(
+                                0.45f,
+                                0.73f,
+                                1.0f,
+                                0.95f
+                            )
+                            : ASASECColor(
+                                0.82f,
+                                0.85f,
+                                0.90f,
+                                0.45f
+                            );
+
+                        float thickness =
+                            gResizingMenu
+                            ? 2.6f
+                            : 2.0f;
+
+                        draw->AddLine(
+                            ImVec2(
+                                origin.x + 5.0f,
+                                origin.y + 20.0f
+                            ),
+                            ImVec2(
+                                origin.x + 20.0f,
+                                origin.y + 20.0f
+                            ),
+                            handleColor,
+                            thickness
                         );
 
-                    float thickness =
-                        gResizingMenu
-                        ? 2.6f
-                        : 2.0f;
+                        draw->AddLine(
+                            ImVec2(
+                                origin.x + 11.0f,
+                                origin.y + 14.0f
+                            ),
+                            ImVec2(
+                                origin.x + 20.0f,
+                                origin.y + 14.0f
+                            ),
+                            handleColor,
+                            thickness
+                        );
 
-                    draw->AddLine(
-                        ImVec2(
-                            origin.x + 5.0f,
-                            origin.y + 20.0f
-                        ),
-                        ImVec2(
-                            origin.x + 20.0f,
-                            origin.y + 20.0f
-                        ),
-                        handleColor,
-                        thickness
-                    );
+                        draw->AddLine(
+                            ImVec2(
+                                origin.x + 17.0f,
+                                origin.y + 8.0f
+                            ),
+                            ImVec2(
+                                origin.x + 20.0f,
+                                origin.y + 8.0f
+                            ),
+                            handleColor,
+                            thickness
+                        );
 
-                    draw->AddLine(
-                        ImVec2(
-                            origin.x + 11.0f,
-                            origin.y + 14.0f
-                        ),
-                        ImVec2(
-                            origin.x + 20.0f,
-                            origin.y + 14.0f
-                        ),
-                        handleColor,
-                        thickness
-                    );
+                        draw->AddLine(
+                            ImVec2(
+                                origin.x + 20.0f,
+                                origin.y + 8.0f
+                            ),
+                            ImVec2(
+                                origin.x + 20.0f,
+                                origin.y + 20.0f
+                            ),
+                            handleColor,
+                            thickness
+                        );
 
-                    draw->AddLine(
-                        ImVec2(
-                            origin.x + 17.0f,
-                            origin.y + 8.0f
-                        ),
-                        ImVec2(
-                            origin.x + 20.0f,
-                            origin.y + 8.0f
-                        ),
-                        handleColor,
-                        thickness
-                    );
-
-                    draw->AddLine(
-                        ImVec2(
-                            origin.x + 20.0f,
-                            origin.y + 8.0f
-                        ),
-                        ImVec2(
-                            origin.x + 20.0f,
-                            origin.y + 20.0f
-                        ),
-                        handleColor,
-                        thickness
-                    );
-
-                    draw->AddCircleFilled(
-                        ImVec2(
-                            origin.x + 20.0f,
-                            origin.y + 20.0f
-                        ),
-                        2.0f,
-                        handleColor
-                    );
+                        draw->AddCircleFilled(
+                            ImVec2(
+                                origin.x + 20.0f,
+                                origin.y + 20.0f
+                            ),
+                            2.0f,
+                            handleColor
+                        );
+                    }
                 }
+                ImGui::EndChild();
             }
         }
 
