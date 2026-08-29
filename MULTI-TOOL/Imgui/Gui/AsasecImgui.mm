@@ -3,6 +3,7 @@
 #import <UIKit/UIKit.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
+#import <QuartzCore/QuartzCore.h>
 #import <dispatch/dispatch.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -28,7 +29,12 @@ static const float kMenuMinHeight = 300.0f;
 static const float kMenuMaxHeight = 620.0f;
 
 static const float kHeaderHeight = 54.0f;
-static const float kResizeSize = 30.0f;
+
+/*
+ Sağ-alt resize alanı.
+ Biraz geniş tutuldu ki parmakla yakalamak kolay olsun.
+ */
+static const float kResizeHitSize = 44.0f;
 
 static int gSelectedPage = 0;
 
@@ -43,7 +49,11 @@ static ImVec2 gResizeStartSize = ImVec2(560.0f, 390.0f);
 
 #pragma mark - Helpers
 
-static float ASASECClampFloat(float value, float minValue, float maxValue)
+static float ASASECClampFloat(
+    float value,
+    float minValue,
+    float maxValue
+)
 {
     if (value < minValue)
         return minValue;
@@ -54,16 +64,71 @@ static float ASASECClampFloat(float value, float minValue, float maxValue)
     return value;
 }
 
+static UIWindow *ASASECActiveWindow(void)
+{
+    UIApplication *application =
+        UIApplication.sharedApplication;
+
+    if (!application)
+        return nil;
+
+    if (@available(iOS 13.0, *))
+    {
+        for (UIScene *scene
+             in application.connectedScenes)
+        {
+            if (scene.activationState !=
+                UISceneActivationStateForegroundActive)
+            {
+                continue;
+            }
+
+            if (![scene isKindOfClass:
+                  [UIWindowScene class]])
+            {
+                continue;
+            }
+
+            UIWindowScene *windowScene =
+                (UIWindowScene *)scene;
+
+            for (UIWindow *candidate
+                 in windowScene.windows)
+            {
+                if (candidate.isKeyWindow)
+                    return candidate;
+            }
+
+            for (UIWindow *candidate
+                 in windowScene.windows)
+            {
+                if (!candidate.hidden &&
+                    candidate.alpha > 0.0f &&
+                    candidate.windowLevel ==
+                    UIWindowLevelNormal)
+                {
+                    return candidate;
+                }
+            }
+        }
+    }
+
+    return nil;
+}
+
 static void ASASECClampMenuToScreen(UIWindow *window)
 {
     if (!window)
         return;
 
-    CGSize screenSize = window.bounds.size;
+    CGSize screenSize =
+        window.bounds.size;
 
-    float width = gMenuSize.x;
+    float width =
+        gMenuSize.x;
 
-    float height = gMenuCollapsed
+    float height =
+        gMenuCollapsed
         ? kHeaderHeight
         : gMenuSize.y;
 
@@ -100,6 +165,45 @@ static void ASASECClampMenuToScreen(UIWindow *window)
         );
 }
 
+static void ASASECClampMenuSizeToScreen(UIWindow *window)
+{
+    if (!window)
+        return;
+
+    CGSize screenSize =
+        window.bounds.size;
+
+    float availableWidth =
+        (float)screenSize.width -
+        gMenuPosition.x -
+        8.0f;
+
+    float availableHeight =
+        (float)screenSize.height -
+        gMenuPosition.y -
+        8.0f;
+
+    if (availableWidth < kMenuMinWidth)
+        availableWidth = kMenuMinWidth;
+
+    if (availableHeight < kMenuMinHeight)
+        availableHeight = kMenuMinHeight;
+
+    gMenuSize.x =
+        ASASECClampFloat(
+            gMenuSize.x,
+            kMenuMinWidth,
+            MIN(kMenuMaxWidth, availableWidth)
+        );
+
+    gMenuSize.y =
+        ASASECClampFloat(
+            gMenuSize.y,
+            kMenuMinHeight,
+            MIN(kMenuMaxHeight, availableHeight)
+        );
+}
+
 #pragma mark - ImGui View
 
 @interface ASASECImGuiView : MTKView
@@ -107,14 +211,15 @@ static void ASASECClampMenuToScreen(UIWindow *window)
 
 @implementation ASASECImGuiView
 
-#pragma mark Hit Testing
+#pragma mark - Hit Testing
 
 - (BOOL)pointInsideMenu:(CGPoint)point
 {
     if (!gMenuVisible)
         return NO;
 
-    float width = gMenuSize.x;
+    float width =
+        gMenuSize.x;
 
     float height =
         gMenuCollapsed
@@ -130,20 +235,28 @@ static void ASASECClampMenuToScreen(UIWindow *window)
 
 - (BOOL)pointInsideResizeHandle:(CGPoint)point
 {
-    if (!gMenuVisible || gMenuCollapsed)
+    if (!gMenuVisible ||
+        gMenuCollapsed)
+    {
         return NO;
+    }
 
     float right =
-        gMenuPosition.x + gMenuSize.x;
+        gMenuPosition.x +
+        gMenuSize.x;
 
     float bottom =
-        gMenuPosition.y + gMenuSize.y;
+        gMenuPosition.y +
+        gMenuSize.y;
 
+    /*
+     Sağ-alt köşede geniş dokunma alanı.
+     */
     return
-        point.x >= right - kResizeSize &&
-        point.x <= right + 4.0f &&
-        point.y >= bottom - kResizeSize &&
-        point.y <= bottom + 4.0f;
+        point.x >= right - kResizeHitSize &&
+        point.x <= right + 8.0f &&
+        point.y >= bottom - kResizeHitSize &&
+        point.y <= bottom + 8.0f;
 }
 
 - (BOOL)pointInsideDragHeader:(CGPoint)point
@@ -151,25 +264,21 @@ static void ASASECClampMenuToScreen(UIWindow *window)
     if (!gMenuVisible)
         return NO;
 
-    float width = gMenuSize.x;
-
-    float height =
-        gMenuCollapsed
-        ? kHeaderHeight
-        : kHeaderHeight;
-
     return
         point.x >= gMenuPosition.x &&
-        point.x <= gMenuPosition.x + width &&
+        point.x <= gMenuPosition.x + gMenuSize.x &&
         point.y >= gMenuPosition.y &&
-        point.y <= gMenuPosition.y + height;
+        point.y <= gMenuPosition.y + kHeaderHeight;
 }
 
 - (UIView *)hitTest:(CGPoint)point
           withEvent:(UIEvent *)event
 {
-    if (!gInitialized || !gMenuVisible)
+    if (!gInitialized ||
+        !gMenuVisible)
+    {
         return nil;
+    }
 
     if ([self pointInsideMenu:point])
         return self;
@@ -177,15 +286,18 @@ static void ASASECClampMenuToScreen(UIWindow *window)
     return nil;
 }
 
-#pragma mark Menu Drag
+#pragma mark - Menu Drag
 
 - (void)beginMenuDragAtPoint:(CGPoint)point
 {
     gDraggingMenu = YES;
     gResizingMenu = NO;
 
-    gDragStartPoint = point;
-    gDragStartPosition = gMenuPosition;
+    gDragStartPoint =
+        point;
+
+    gDragStartPosition =
+        gMenuPosition;
 }
 
 - (void)updateMenuDragAtPoint:(CGPoint)point
@@ -194,21 +306,29 @@ static void ASASECClampMenuToScreen(UIWindow *window)
         return;
 
     CGFloat dx =
-        point.x - gDragStartPoint.x;
+        point.x -
+        gDragStartPoint.x;
 
     CGFloat dy =
-        point.y - gDragStartPoint.y;
+        point.y -
+        gDragStartPoint.y;
 
     gMenuPosition.x =
-        gDragStartPosition.x + (float)dx;
+        gDragStartPosition.x +
+        (float)dx;
 
     gMenuPosition.y =
-        gDragStartPosition.y + (float)dy;
+        gDragStartPosition.y +
+        (float)dy;
 
-    [self clampMenuPosition];
+    UIWindow *window =
+        self.window;
+
+    if (window)
+        ASASECClampMenuToScreen(window);
 }
 
-#pragma mark Menu Resize
+#pragma mark - Menu Resize
 
 - (void)beginMenuResizeAtPoint:(CGPoint)point
 {
@@ -218,8 +338,11 @@ static void ASASECClampMenuToScreen(UIWindow *window)
     gResizingMenu = YES;
     gDraggingMenu = NO;
 
-    gResizeStartPoint = point;
-    gResizeStartSize = gMenuSize;
+    gResizeStartPoint =
+        point;
+
+    gResizeStartSize =
+        gMenuSize;
 }
 
 - (void)updateMenuResizeAtPoint:(CGPoint)point
@@ -228,32 +351,29 @@ static void ASASECClampMenuToScreen(UIWindow *window)
         return;
 
     CGFloat dx =
-        point.x - gResizeStartPoint.x;
+        point.x -
+        gResizeStartPoint.x;
 
     CGFloat dy =
-        point.y - gResizeStartPoint.y;
+        point.y -
+        gResizeStartPoint.y;
 
     float newWidth =
-        gResizeStartSize.x + (float)dx;
+        gResizeStartSize.x +
+        (float)dx;
 
     float newHeight =
-        gResizeStartSize.y + (float)dy;
+        gResizeStartSize.y +
+        (float)dy;
 
-    newWidth =
-        ASASECClampFloat(
-            newWidth,
-            kMenuMinWidth,
-            kMenuMaxWidth
-        );
+    UIWindow *window =
+        self.window;
 
-    newHeight =
-        ASASECClampFloat(
-            newHeight,
-            kMenuMinHeight,
-            kMenuMaxHeight
-        );
+    float maxWidth =
+        kMenuMaxWidth;
 
-    UIWindow *window = self.window;
+    float maxHeight =
+        kMenuMaxHeight;
 
     if (window)
     {
@@ -270,30 +390,47 @@ static void ASASECClampMenuToScreen(UIWindow *window)
             gMenuPosition.y -
             8.0f;
 
-        if (availableWidth < kMenuMinWidth)
-            availableWidth = kMenuMinWidth;
+        if (availableWidth >= kMenuMinWidth)
+        {
+            maxWidth =
+                MIN(
+                    kMenuMaxWidth,
+                    availableWidth
+                );
+        }
 
-        if (availableHeight < kMenuMinHeight)
-            availableHeight = kMenuMinHeight;
-
-        newWidth =
-            MIN(
-                newWidth,
-                availableWidth
-            );
-
-        newHeight =
-            MIN(
-                newHeight,
-                availableHeight
-            );
+        if (availableHeight >= kMenuMinHeight)
+        {
+            maxHeight =
+                MIN(
+                    kMenuMaxHeight,
+                    availableHeight
+                );
+        }
     }
 
-    gMenuSize.x = newWidth;
-    gMenuSize.y = newHeight;
+    newWidth =
+        ASASECClampFloat(
+            newWidth,
+            kMenuMinWidth,
+            maxWidth
+        );
+
+    newHeight =
+        ASASECClampFloat(
+            newHeight,
+            kMenuMinHeight,
+            maxHeight
+        );
+
+    gMenuSize =
+        ImVec2(
+            newWidth,
+            newHeight
+        );
 }
 
-#pragma mark Gesture End
+#pragma mark - Gesture End
 
 - (void)endMenuInteraction
 {
@@ -301,19 +438,7 @@ static void ASASECClampMenuToScreen(UIWindow *window)
     gResizingMenu = NO;
 }
 
-#pragma mark Clamp
-
-- (void)clampMenuPosition
-{
-    UIWindow *window = self.window;
-
-    if (!window)
-        return;
-
-    ASASECClampMenuToScreen(window);
-}
-
-#pragma mark Touch -> ImGui
+#pragma mark - Touch -> ImGui
 
 - (void)updateIOWithTouchEvent:(UIEvent *)event
 {
@@ -338,9 +463,11 @@ static void ASASECClampMenuToScreen(UIWindow *window)
             (float)point.y
         );
 
-    BOOL touching = NO;
+    BOOL touching =
+        NO;
 
-    for (UITouch *t in event.allTouches)
+    for (UITouch *t
+         in event.allTouches)
     {
         if (t.phase != UITouchPhaseEnded &&
             t.phase != UITouchPhaseCancelled)
@@ -350,10 +477,11 @@ static void ASASECClampMenuToScreen(UIWindow *window)
         }
     }
 
-    io.MouseDown[0] = touching;
+    io.MouseDown[0] =
+        touching;
 }
 
-#pragma mark Touches
+#pragma mark - Touches
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches
            withEvent:(UIEvent *)event
@@ -410,10 +538,14 @@ static void ASASECClampMenuToScreen(UIWindow *window)
 
     [self updateIOWithTouchEvent:event];
 
-    ImGuiIO &io =
-        ImGui::GetIO();
+    if (gInitialized)
+    {
+        ImGuiIO &io =
+            ImGui::GetIO();
 
-    io.MouseDown[0] = false;
+        io.MouseDown[0] =
+            false;
+    }
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches
@@ -423,10 +555,14 @@ static void ASASECClampMenuToScreen(UIWindow *window)
 
     [self updateIOWithTouchEvent:event];
 
-    ImGuiIO &io =
-        ImGui::GetIO();
+    if (gInitialized)
+    {
+        ImGuiIO &io =
+            ImGui::GetIO();
 
-    io.MouseDown[0] = false;
+        io.MouseDown[0] =
+            false;
+    }
 }
 
 @end
@@ -474,8 +610,11 @@ drawableSizeWillChange:(CGSize)size
     id<CAMetalDrawable> drawable =
         view.currentDrawable;
 
-    if (!pass || !drawable)
+    if (!pass ||
+        !drawable)
+    {
         return;
+    }
 
     id<MTLCommandBuffer> commandBuffer =
         [gCommandQueue commandBuffer];
@@ -513,7 +652,8 @@ drawableSizeWillChange:(CGSize)size
 
     if (gMenuVisible)
     {
-        const float sidebarWidth = 145.0f;
+        const float sidebarWidth =
+            145.0f;
 
         float windowHeight =
             gMenuCollapsed
@@ -543,7 +683,10 @@ drawableSizeWillChange:(CGSize)size
 
         ImGui::PushStyleVar(
             ImGuiStyleVar_WindowPadding,
-            ImVec2(0.0f, 0.0f)
+            ImVec2(
+                0.0f,
+                0.0f
+            )
         );
 
         ImGui::PushStyleVar(
@@ -578,16 +721,24 @@ drawableSizeWillChange:(CGSize)size
 
         ImVec2 windowEnd =
             ImVec2(
-                windowPos.x + windowSize.x,
-                windowPos.y + windowSize.y
+                windowPos.x +
+                windowSize.x,
+
+                windowPos.y +
+                windowSize.y
             );
 
-        #pragma mark Background
+        #pragma mark - Background
 
         draw->AddRectFilled(
             windowPos,
             windowEnd,
-            IM_COL32(6, 9, 16, 252),
+            IM_COL32(
+                6,
+                9,
+                16,
+                252
+            ),
             20.0f
         );
 
@@ -600,23 +751,34 @@ drawableSizeWillChange:(CGSize)size
                 windowEnd.x - 0.5f,
                 windowEnd.y - 0.5f
             ),
-            IM_COL32(42, 53, 73, 190),
+            IM_COL32(
+                42,
+                53,
+                73,
+                190
+            ),
             20.0f,
             0,
             1.0f
         );
 
+        #pragma mark - Collapsed
+
         if (gMenuCollapsed)
         {
-            #pragma mark Collapsed Header
-
             draw->AddRectFilled(
                 windowPos,
                 ImVec2(
                     windowEnd.x,
-                    windowPos.y + kHeaderHeight
+                    windowPos.y +
+                    kHeaderHeight
                 ),
-                IM_COL32(10, 15, 25, 255),
+                IM_COL32(
+                    10,
+                    15,
+                    25,
+                    255
+                ),
                 20.0f,
                 ImDrawFlags_RoundCornersAll
             );
@@ -624,18 +786,30 @@ drawableSizeWillChange:(CGSize)size
             draw->AddLine(
                 ImVec2(
                     windowPos.x + 18.0f,
-                    windowPos.y + kHeaderHeight - 2.0f
+                    windowPos.y +
+                    kHeaderHeight -
+                    2.0f
                 ),
                 ImVec2(
                     windowEnd.x - 18.0f,
-                    windowPos.y + kHeaderHeight - 2.0f
+                    windowPos.y +
+                    kHeaderHeight -
+                    2.0f
                 ),
-                IM_COL32(48, 112, 205, 170),
+                IM_COL32(
+                    48,
+                    112,
+                    205,
+                    170
+                ),
                 1.0f
             );
 
             ImGui::SetCursorPos(
-                ImVec2(18.0f, 9.0f)
+                ImVec2(
+                    18.0f,
+                    9.0f
+                )
             );
 
             ImGui::TextColored(
@@ -665,7 +839,8 @@ drawableSizeWillChange:(CGSize)size
 
             ImGui::SetCursorPos(
                 ImVec2(
-                    windowSize.x - 70.0f,
+                    windowSize.x -
+                    70.0f,
                     10.0f
                 )
             );
@@ -707,16 +882,27 @@ drawableSizeWillChange:(CGSize)size
 
             if (ImGui::Button(
                 "+",
-                ImVec2(28.0f, 32.0f)
+                ImVec2(
+                    28.0f,
+                    32.0f
+                )
             ))
             {
                 gMenuCollapsed = NO;
 
                 UIWindow *window =
-                    self->view.window;
+                    view.window;
 
                 if (window)
-                    ASASECClampMenuToScreen(window);
+                {
+                    ASASECClampMenuSizeToScreen(
+                        window
+                    );
+
+                    ASASECClampMenuToScreen(
+                        window
+                    );
+                }
             }
 
             ImGui::PopStyleColor(3);
@@ -764,7 +950,10 @@ drawableSizeWillChange:(CGSize)size
 
             if (ImGui::Button(
                 "×",
-                ImVec2(28.0f, 32.0f)
+                ImVec2(
+                    28.0f,
+                    32.0f
+                )
             ))
             {
                 gMenuVisible = NO;
@@ -775,36 +964,52 @@ drawableSizeWillChange:(CGSize)size
         }
         else
         {
-            #pragma mark Sidebar
+            #pragma mark - Sidebar
 
             draw->AddRectFilled(
                 windowPos,
                 ImVec2(
-                    windowPos.x + sidebarWidth,
+                    windowPos.x +
+                    sidebarWidth,
                     windowEnd.y
                 ),
-                IM_COL32(9, 14, 24, 255),
+                IM_COL32(
+                    9,
+                    14,
+                    24,
+                    255
+                ),
                 20.0f,
                 ImDrawFlags_RoundCornersLeft
             );
 
             draw->AddLine(
                 ImVec2(
-                    windowPos.x + sidebarWidth,
+                    windowPos.x +
+                    sidebarWidth,
                     windowPos.y + 16.0f
                 ),
                 ImVec2(
-                    windowPos.x + sidebarWidth,
+                    windowPos.x +
+                    sidebarWidth,
                     windowEnd.y - 16.0f
                 ),
-                IM_COL32(34, 43, 59, 210),
+                IM_COL32(
+                    34,
+                    43,
+                    59,
+                    210
+                ),
                 1.0f
             );
 
-            #pragma mark Logo
+            #pragma mark - Logo
 
             ImGui::SetCursorPos(
-                ImVec2(18.0f, 13.0f)
+                ImVec2(
+                    18.0f,
+                    13.0f
+                )
             );
 
             ImGui::TextColored(
@@ -833,7 +1038,10 @@ drawableSizeWillChange:(CGSize)size
             );
 
             ImGui::SetCursorPos(
-                ImVec2(18.0f, 36.0f)
+                ImVec2(
+                    18.0f,
+                    36.0f
+                )
             );
 
             ImGui::TextColored(
@@ -852,10 +1060,16 @@ drawableSizeWillChange:(CGSize)size
                     windowPos.y + 57.0f
                 ),
                 ImVec2(
-                    windowPos.x + sidebarWidth - 18.0f,
+                    windowPos.x +
+                    sidebarWidth - 18.0f,
                     windowPos.y + 57.0f
                 ),
-                IM_COL32(35, 44, 60, 190),
+                IM_COL32(
+                    35,
+                    44,
+                    60,
+                    190
+                ),
                 1.0f
             );
 
@@ -879,7 +1093,8 @@ drawableSizeWillChange:(CGSize)size
                     gSelectedPage == i;
 
                 float itemY =
-                    72.0f + i * 53.0f;
+                    72.0f +
+                    i * 53.0f;
 
                 if (active)
                 {
@@ -894,20 +1109,32 @@ drawableSizeWillChange:(CGSize)size
                             windowPos.y +
                             itemY + 42.0f
                         ),
-                        IM_COL32(19, 48, 84, 255),
+                        IM_COL32(
+                            19,
+                            48,
+                            84,
+                            255
+                        ),
                         11.0f
                     );
 
                     draw->AddRectFilled(
                         ImVec2(
                             windowPos.x + 9.0f,
-                            windowPos.y + itemY + 9.0f
+                            windowPos.y +
+                            itemY + 9.0f
                         ),
                         ImVec2(
                             windowPos.x + 12.0f,
-                            windowPos.y + itemY + 33.0f
+                            windowPos.y +
+                            itemY + 33.0f
                         ),
-                        IM_COL32(75, 153, 255, 255),
+                        IM_COL32(
+                            75,
+                            153,
+                            255,
+                            255
+                        ),
                         2.0f
                     );
                 }
@@ -973,14 +1200,15 @@ drawableSizeWillChange:(CGSize)size
                     )
                 ))
                 {
-                    gSelectedPage = i;
+                    gSelectedPage =
+                        i;
                 }
 
                 ImGui::PopStyleColor(3);
                 ImGui::PopStyleVar();
             }
 
-            #pragma mark Content
+            #pragma mark - Content
 
             ImGui::SetCursorPos(
                 ImVec2(
@@ -989,11 +1217,18 @@ drawableSizeWillChange:(CGSize)size
                 )
             );
 
+            float contentWidth =
+                windowSize.x -
+                sidebarWidth -
+                1.0f;
+
+            if (contentWidth < 1.0f)
+                contentWidth = 1.0f;
+
             ImGui::BeginChild(
                 "##Content",
                 ImVec2(
-                    windowSize.x -
-                    sidebarWidth - 1.0f,
+                    contentWidth,
                     windowSize.y
                 ),
                 false,
@@ -1001,10 +1236,13 @@ drawableSizeWillChange:(CGSize)size
                 ImGuiWindowFlags_NoScrollWithMouse
             );
 
-            #pragma mark Header
+            #pragma mark - Header
 
             ImGui::SetCursorPos(
-                ImVec2(15.0f, 9.0f)
+                ImVec2(
+                    15.0f,
+                    9.0f
+                )
             );
 
             ImGui::TextColored(
@@ -1033,11 +1271,17 @@ drawableSizeWillChange:(CGSize)size
                 "/ ASASEC"
             );
 
+            float controlsX =
+                windowSize.x -
+                sidebarWidth -
+                70.0f;
+
+            if (controlsX < 10.0f)
+                controlsX = 10.0f;
+
             ImGui::SetCursorPos(
                 ImVec2(
-                    windowSize.x -
-                    sidebarWidth -
-                    70.0f,
+                    controlsX,
                     8.0f
                 )
             );
@@ -1069,16 +1313,21 @@ drawableSizeWillChange:(CGSize)size
 
             if (ImGui::Button(
                 "—",
-                ImVec2(28.0f, 32.0f)
+                ImVec2(
+                    28.0f,
+                    32.0f
+                )
             ))
             {
                 gMenuCollapsed = YES;
 
                 UIWindow *window =
-                    self->view.window;
+                    view.window;
 
                 if (window)
-                    ASASECClampMenuToScreen(window);
+                    ASASECClampMenuToScreen(
+                        window
+                    );
             }
 
             ImGui::PopStyleColor(2);
@@ -1126,7 +1375,10 @@ drawableSizeWillChange:(CGSize)size
 
             if (ImGui::Button(
                 "×",
-                ImVec2(28.0f, 32.0f)
+                ImVec2(
+                    28.0f,
+                    32.0f
+                )
             ))
             {
                 gMenuVisible = NO;
@@ -1137,14 +1389,21 @@ drawableSizeWillChange:(CGSize)size
 
             draw->AddLine(
                 ImVec2(
-                    windowPos.x + sidebarWidth + 16.0f,
+                    windowPos.x +
+                    sidebarWidth +
+                    16.0f,
                     windowPos.y + 51.0f
                 ),
                 ImVec2(
                     windowEnd.x - 16.0f,
                     windowPos.y + 51.0f
                 ),
-                IM_COL32(32, 41, 56, 220),
+                IM_COL32(
+                    32,
+                    41,
+                    56,
+                    220
+                ),
                 1.0f
             );
 
@@ -1152,7 +1411,7 @@ drawableSizeWillChange:(CGSize)size
                 69.0f
             );
 
-            #pragma mark Combat
+            #pragma mark - Combat
 
             if (gSelectedPage == 0)
             {
@@ -1198,10 +1457,17 @@ drawableSizeWillChange:(CGSize)size
                 static bool autoFire = false;
                 static float fov = 90.0f;
 
+                float cardWidth =
+                    ImGui::GetContentRegionAvail().x -
+                    18.0f;
+
+                if (cardWidth < 100.0f)
+                    cardWidth = 100.0f;
+
                 ImGui::BeginChild(
                     "##CombatCard",
                     ImVec2(
-                        ImGui::GetContentRegionAvail().x - 18.0f,
+                        cardWidth,
                         285.0f
                     ),
                     true
@@ -1260,8 +1526,15 @@ drawableSizeWillChange:(CGSize)size
                     "FOV Radius"
                 );
 
+                float sliderWidth =
+                    ImGui::GetContentRegionAvail().x -
+                    10.0f;
+
+                if (sliderWidth < 80.0f)
+                    sliderWidth = 80.0f;
+
                 ImGui::SetNextItemWidth(
-                    ImGui::GetContentRegionAvail().x - 10.0f
+                    sliderWidth
                 );
 
                 ImGui::SliderFloat(
@@ -1276,7 +1549,10 @@ drawableSizeWillChange:(CGSize)size
 
                 if (ImGui::Button(
                     "Reset Defaults",
-                    ImVec2(130.0f, 36.0f)
+                    ImVec2(
+                        130.0f,
+                        36.0f
+                    )
                 ))
                 {
                     aimbot = false;
@@ -1288,7 +1564,7 @@ drawableSizeWillChange:(CGSize)size
                 ImGui::EndChild();
             }
 
-            #pragma mark Visuals
+            #pragma mark - Visuals
 
             else if (gSelectedPage == 1)
             {
@@ -1333,10 +1609,17 @@ drawableSizeWillChange:(CGSize)size
                 static bool healthBar = true;
                 static bool wallhack = false;
 
+                float cardWidth =
+                    ImGui::GetContentRegionAvail().x -
+                    18.0f;
+
+                if (cardWidth < 100.0f)
+                    cardWidth = 100.0f;
+
                 ImGui::BeginChild(
                     "##VisualCard",
                     ImVec2(
-                        ImGui::GetContentRegionAvail().x - 18.0f,
+                        cardWidth,
                         235.0f
                     ),
                     true
@@ -1386,7 +1669,7 @@ drawableSizeWillChange:(CGSize)size
                 ImGui::EndChild();
             }
 
-            #pragma mark Settings
+            #pragma mark - Settings
 
             else
             {
@@ -1427,10 +1710,17 @@ drawableSizeWillChange:(CGSize)size
 
                 ImGui::Spacing();
 
+                float cardWidth =
+                    ImGui::GetContentRegionAvail().x -
+                    18.0f;
+
+                if (cardWidth < 100.0f)
+                    cardWidth = 100.0f;
+
                 ImGui::BeginChild(
                     "##SettingsCard",
                     ImVec2(
-                        ImGui::GetContentRegionAvail().x - 18.0f,
+                        cardWidth,
                         235.0f
                     ),
                     true
@@ -1467,7 +1757,8 @@ drawableSizeWillChange:(CGSize)size
                 );
 
                 ImGui::SameLine(
-                    ImGui::GetContentRegionAvail().x - 55.0f
+                    ImGui::GetContentRegionAvail().x -
+                    55.0f
                 );
 
                 ImGui::TextColored(
@@ -1487,7 +1778,8 @@ drawableSizeWillChange:(CGSize)size
                 );
 
                 ImGui::SameLine(
-                    ImGui::GetContentRegionAvail().x - 55.0f
+                    ImGui::GetContentRegionAvail().x -
+                    55.0f
                 );
 
                 ImGui::Text(
@@ -1501,7 +1793,8 @@ drawableSizeWillChange:(CGSize)size
                 );
 
                 ImGui::SameLine(
-                    ImGui::GetContentRegionAvail().x - 55.0f
+                    ImGui::GetContentRegionAvail().x -
+                    55.0f
                 );
 
                 ImGui::TextColored(
@@ -1517,34 +1810,28 @@ drawableSizeWillChange:(CGSize)size
                 ImGui::EndChild();
             }
 
-            #pragma mark Resize Handle
+            #pragma mark - Resize Handle
 
             /*
-             Sağ alt köşedeki:
              
-                 |
-                 |
+                  |
+                  |
              ____|
+             
+             Sağ-alt resize tutamacı.
 
-             benzeri tutamaç.
+             Sol-yukarı  -> küçülür
+             Sağ-aşağı   -> büyür
+
+             Dokunma alanı görünenden daha büyük,
+             böylece telefonda yakalamak kolaydır.
              */
 
-            float handleRight =
-                windowSize.x - 7.0f;
+            float handleX =
+                windowSize.x - 26.0f;
 
-            float handleBottom =
-                windowSize.y - 7.0f;
-
-            ImVec2 handleOrigin =
-                ImVec2(
-                    windowPos.x +
-                    handleRight -
-                    20.0f,
-
-                    windowPos.y +
-                    handleBottom -
-                    20.0f
-                );
+            float handleY =
+                windowSize.y - 26.0f;
 
             ImVec4 resizeColor =
                 gResizingMenu
@@ -1552,7 +1839,7 @@ drawableSizeWillChange:(CGSize)size
                     0.48f,
                     0.73f,
                     1.0f,
-                    0.90f
+                    0.95f
                   )
                 : ImVec4(
                     0.72f,
@@ -1566,14 +1853,26 @@ drawableSizeWillChange:(CGSize)size
                     resizeColor
                 );
 
+            /*
+             Ana L şekli.
+             */
+
             draw->AddLine(
                 ImVec2(
-                    handleOrigin.x + 6.0f,
-                    handleOrigin.y + 18.0f
+                    windowPos.x +
+                    handleX -
+                    1.0f,
+                    windowPos.y +
+                    handleY +
+                    18.0f
                 ),
                 ImVec2(
-                    handleOrigin.x + 18.0f,
-                    handleOrigin.y + 18.0f
+                    windowPos.x +
+                    handleX +
+                    18.0f,
+                    windowPos.y +
+                    handleY +
+                    18.0f
                 ),
                 resizeColorU32,
                 2.0f
@@ -1581,41 +1880,68 @@ drawableSizeWillChange:(CGSize)size
 
             draw->AddLine(
                 ImVec2(
-                    handleOrigin.x + 12.0f,
-                    handleOrigin.y + 12.0f
+                    windowPos.x +
+                    handleX +
+                    18.0f,
+                    windowPos.y +
+                    handleY
                 ),
                 ImVec2(
-                    handleOrigin.x + 18.0f,
-                    handleOrigin.y + 12.0f
+                    windowPos.x +
+                    handleX +
+                    18.0f,
+                    windowPos.y +
+                    handleY +
+                    18.0f
                 ),
                 resizeColorU32,
                 2.0f
             );
 
+            /*
+             İç çizgi.
+             */
+
             draw->AddLine(
                 ImVec2(
-                    handleOrigin.x + 18.0f,
-                    handleOrigin.y + 6.0f
+                    windowPos.x +
+                    handleX +
+                    8.0f,
+                    windowPos.y +
+                    handleY +
+                    12.0f
                 ),
                 ImVec2(
-                    handleOrigin.x + 18.0f,
-                    handleOrigin.y + 18.0f
+                    windowPos.x +
+                    handleX +
+                    18.0f,
+                    windowPos.y +
+                    handleY +
+                    12.0f
                 ),
                 resizeColorU32,
-                2.0f
+                1.8f
             );
 
             draw->AddLine(
                 ImVec2(
-                    handleOrigin.x + 12.0f,
-                    handleOrigin.y + 12.0f
+                    windowPos.x +
+                    handleX +
+                    12.0f,
+                    windowPos.y +
+                    handleY +
+                    8.0f
                 ),
                 ImVec2(
-                    handleOrigin.x + 12.0f,
-                    handleOrigin.y + 18.0f
+                    windowPos.x +
+                    handleX +
+                    12.0f,
+                    windowPos.y +
+                    handleY +
+                    18.0f
                 ),
                 resizeColorU32,
-                2.0f
+                1.8f
             );
 
             ImGui::EndChild();
@@ -1672,16 +1998,28 @@ static void ASASECApplyStyle(void)
         ImGui::GetStyle();
 
     style.WindowPadding =
-        ImVec2(10.0f, 10.0f);
+        ImVec2(
+            10.0f,
+            10.0f
+        );
 
     style.FramePadding =
-        ImVec2(11.0f, 8.0f);
+        ImVec2(
+            11.0f,
+            8.0f
+        );
 
     style.ItemSpacing =
-        ImVec2(9.0f, 9.0f);
+        ImVec2(
+            9.0f,
+            9.0f
+        );
 
     style.ItemInnerSpacing =
-        ImVec2(7.0f, 6.0f);
+        ImVec2(
+            7.0f,
+            6.0f
+        );
 
     style.ScrollbarSize =
         7.0f;
@@ -1915,35 +2253,8 @@ void ASASECImGuiStart(void)
             if (gInitialized)
                 return;
 
-            UIWindow *window = nil;
-
-            for (UIScene *scene
-                 in UIApplication.sharedApplication.connectedScenes)
-            {
-                if (scene.activationState !=
-                    UISceneActivationStateForegroundActive)
-                    continue;
-
-                if (![scene isKindOfClass:
-                     [UIWindowScene class]])
-                    continue;
-
-                UIWindowScene *windowScene =
-                    (UIWindowScene *)scene;
-
-                for (UIWindow *candidate
-                     in windowScene.windows)
-                {
-                    if (candidate.isKeyWindow)
-                    {
-                        window = candidate;
-                        break;
-                    }
-                }
-
-                if (window)
-                    break;
-            }
+            UIWindow *window =
+                ASASECActiveWindow();
 
             if (!window)
                 return;
@@ -1965,8 +2276,11 @@ void ASASECImGuiStart(void)
             ImGuiIO &io =
                 ImGui::GetIO();
 
-            io.IniFilename = NULL;
-            io.FontGlobalScale = 1.0f;
+            io.IniFilename =
+                NULL;
+
+            io.FontGlobalScale =
+                1.0f;
 
             io.DisplaySize =
                 ImVec2(
@@ -1993,10 +2307,18 @@ void ASASECImGuiStart(void)
                  initWithFrame:window.bounds
                  device:device];
 
+            if (!gImGuiView)
+            {
+                ImGui::DestroyContext();
+                gCommandQueue = nil;
+                return;
+            }
+
             gImGuiView.backgroundColor =
                 UIColor.clearColor;
 
-            gImGuiView.opaque = NO;
+            gImGuiView.opaque =
+                NO;
 
             gImGuiView.clearColor =
                 MTLClearColorMake(
@@ -2022,7 +2344,19 @@ void ASASECImGuiStart(void)
                 YES;
 
             gRenderer =
-                [[ASASECImGuiRenderer alloc] init];
+                [[ASASECImGuiRenderer alloc]
+                 init];
+
+            if (!gRenderer)
+            {
+                gImGuiView = nil;
+
+                ImGui::DestroyContext();
+
+                gCommandQueue = nil;
+
+                return;
+            }
 
             gImGuiView.delegate =
                 gRenderer;
@@ -2033,7 +2367,16 @@ void ASASECImGuiStart(void)
 
             ImGui_ImplMetal_Init(device);
 
-            gInitialized = YES;
+            gInitialized =
+                YES;
+
+            ASASECClampMenuSizeToScreen(
+                window
+            );
+
+            ASASECClampMenuToScreen(
+                window
+            );
         }
     );
 }
@@ -2048,31 +2391,44 @@ void ASASECImGuiStop(void)
             if (!gInitialized)
                 return;
 
-            gInitialized = NO;
+            gInitialized =
+                NO;
 
             if (gImGuiView)
             {
-                gImGuiView.delegate = nil;
+                gImGuiView.delegate =
+                    nil;
 
                 [gImGuiView removeFromSuperview];
 
-                gImGuiView = nil;
+                gImGuiView =
+                    nil;
             }
 
             ImGui_ImplMetal_Shutdown();
 
             ImGui::DestroyContext();
 
-            gCommandQueue = nil;
-            gRenderer = nil;
+            gCommandQueue =
+                nil;
 
-            gMenuVisible = YES;
-            gMenuCollapsed = NO;
+            gRenderer =
+                nil;
 
-            gSelectedPage = 0;
+            gMenuVisible =
+                YES;
 
-            gDraggingMenu = NO;
-            gResizingMenu = NO;
+            gMenuCollapsed =
+                NO;
+
+            gSelectedPage =
+                0;
+
+            gDraggingMenu =
+                NO;
+
+            gResizingMenu =
+                NO;
 
             gDragStartPoint =
                 CGPointZero;
