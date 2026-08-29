@@ -1777,6 +1777,7 @@ drawableSizeWillChange:(CGSize)size
             flags
         );
 
+        // GÜNCELLENEN KISIM: windowOpened false olsa bile ImGui::End() çağrılması zorunludur!
         if (windowOpened)
         {
             ImVec2 windowPos =
@@ -3094,6 +3095,8 @@ drawableSizeWillChange:(CGSize)size
                 }
             }
         }
+        
+        // KRİTİK DÜZELTME: ImGui::End her koşulda (windowOpened false olsa bile) çağrılıyor.
         ImGui::End();
 
         ImGui::PopStyleColor();
