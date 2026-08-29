@@ -120,9 +120,6 @@ static bool ASASECModernSwitch(const char *label, bool *value)
     float width = 48.0f;
     float height = 27.0f;
 
-    ImVec2 start =
-        ImGui::GetCursorScreenPos();
-
     ImVec2 total =
         ImGui::GetContentRegionAvail();
 
