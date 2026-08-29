@@ -17,8 +17,8 @@ static BOOL gInitialized = NO;
 static BOOL gMenuVisible = YES;
 static BOOL gMenuCollapsed = NO;
 
-static ImVec2 gMenuPosition = ImVec2(40.0f, 80.0f);
-static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
+static ImVec2 gMenuPosition = ImVec2(50.0f, 80.0f);
+static ImVec2 gMenuSize = ImVec2(500.0f, 380.0f);
 
 @interface ASASECImGuiView : MTKView
 @end
@@ -34,7 +34,7 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
     float top = gMenuPosition.y;
     float right = left + gMenuSize.x;
     
-    float activeHeight = gMenuCollapsed ? 42.0f : gMenuSize.y;
+    float activeHeight = gMenuCollapsed ? 44.0f : gMenuSize.y;
     float bottom = top + activeHeight;
     
     return (x >= left && x <= right && y >= top && y <= bottom);
@@ -113,49 +113,50 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
 
     if (gMenuVisible)
     {
-        float currentHeight = gMenuCollapsed ? 42.0f : gMenuSize.y;
+        float currentHeight = gMenuCollapsed ? 44.0f : gMenuSize.y;
         
         ImGui::SetNextWindowPos(gMenuPosition, ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(gMenuSize.x, currentHeight), ImGuiCond_Always);
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f); // Modern yuvarlatılmış köşeler
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
 
         ImGuiWindowFlags flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
-        if (ImGui::Begin("My First Tool", &gMenuVisible, flags))
+        if (ImGui::Begin("ASASEC_UI", &gMenuVisible, flags))
         {
             gMenuPosition = ImGui::GetWindowPos();
             if (!gMenuCollapsed) {
                 gMenuSize.y = ImGui::GetWindowSize().y;
             }
 
-            // --- ÜST DÜZEY PROFESYONEL BAŞLIK ÇUBUĞU ---
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.10f, 0.18f, 0.32f, 1.0f)); // Derin Karbon Mavi
-            ImGui::BeginChild("HeaderBar", ImVec2(0, 42.0f), false, ImGuiWindowFlags_NoScrollbar);
+            // --- ULTRA MODERN BAŞLIK ÇUBUĞU ---
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.09f, 0.11f, 0.16f, 1.0f));
+            ImGui::BeginChild("HeaderBar", ImVec2(0, 44.0f), false, ImGuiWindowFlags_NoScrollbar);
 
-            ImGui::SetCursorPos(ImVec2(10.0f, 7.0f));
+            ImGui::SetCursorPos(ImVec2(12.0f, 8.0f));
 
-            // Küçültme Butonu (< / v)
-            const char* arrowText = gMenuCollapsed ? ">" : "v";
+            // Küçültme Butonu
+            const char* arrowText = gMenuCollapsed ? "+" : "-";
             if (ImGui::Button(arrowText, ImVec2(28.0f, 28.0f)))
             {
                 gMenuCollapsed = !gMenuCollapsed;
             }
 
             ImGui::SameLine();
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.0f);
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.0f);
             
-            // Başlık Yazısı Kalın ve Şık
-            ImGui::TextColored(ImVec4(0.9f, 0.95f, 1.0f, 1.0f), "ASASEC MULTI-TOOL");
+            // Başlık (Neon Mor/Mavi Vurgulu)
+            ImGui::TextColored(ImVec4(0.4f, 0.6f, 1.0f, 1.0f), "ASASEC");
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(0.9f, 0.92f, 0.96f, 1.0f), "CONTROL PANEL");
 
             // Kapatma Butonu (X)
-            ImGui::SameLine(gMenuSize.x - 38.0f);
-            ImGui::SetCursorPosY(7.0f);
+            ImGui::SameLine(gMenuSize.x - 40.0f);
+            ImGui::SetCursorPosY(8.0f);
             
-            // Kapatma butonuna özel kırmızımsı vurgu
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.8f));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.3f, 0.3f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.85f, 0.2f, 0.25f, 0.9f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.95f, 0.3f, 0.35f, 1.0f));
             if (ImGui::Button("X", ImVec2(28.0f, 28.0f)))
             {
                 gMenuVisible = false;
@@ -165,7 +166,7 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
             ImGui::EndChild();
             ImGui::PopStyleColor();
 
-            // Sürükleme Algılama
+            // Sürükleme Özelliği
             if (ImGui::IsItemHovered() && ImGui::IsMouseDragging(0))
             {
                 ImVec2 delta = ImGui::GetIO().MouseDelta;
@@ -177,19 +178,18 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
             if (!gMenuCollapsed)
             {
                 ImGui::Dummy(ImVec2(0.0f, 6.0f));
+                ImGui::SetCursorPosX(12.0f);
                 
-                // İçerik paneli sol/sağ boşluklu
-                ImGui::SetCursorPosX(10.0f);
-                ImGui::BeginChild("ContentArea", ImVec2(gMenuSize.x - 20.0f, gMenuSize.y - 54.0f), false, ImGuiWindowFlags_NoScrollbar);
+                ImGui::BeginChild("ContentArea", ImVec2(gMenuSize.x - 24.0f, gMenuSize.y - 56.0f), false, ImGuiWindowFlags_NoScrollbar);
                 
                 if (ImGui::BeginTabBar("ToolTabBar", ImGuiTabBarFlags_FittingPolicyResizeDown))
                 {
                     if (ImGui::BeginTabItem("Aimbot"))
                     {
                         ImGui::Spacing();
-                        ImGui::BeginChild("AimbotScroll", ImVec2(0, 240.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                        ImGui::BeginChild("AimbotScroll", ImVec2(0, 250.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
                         
-                        ImGui::TextColored(ImVec4(0.3f, 0.8f, 1.0f, 1.0f), ">> AIMBOT KONTROL MERKEZI");
+                        ImGui::TextColored(ImVec4(0.4f, 0.7f, 1.0f, 1.0f), "COMBAT SETTINGS");
                         ImGui::Separator();
                         ImGui::Spacing();
 
@@ -197,16 +197,16 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                         static bool espBoxes = true;
                         static float fovSize = 90.0f;
 
-                        ImGui::Checkbox("Aimbot Aktif Et", &aimbotActive);
+                        ImGui::Checkbox("Enable Aimbot", &aimbotActive);
                         ImGui::Spacing();
-                        ImGui::Checkbox("Kutu ESP Goster", &espBoxes);
+                        ImGui::Checkbox("Show Box ESP", &espBoxes);
                         
                         ImGui::Spacing();
-                        ImGui::SetNextItemWidth(220.0f); // Slider uzunluğunu ayarla
-                        ImGui::SliderFloat("FOV Boyutu", &fovSize, 10.0f, 180.0f, "%.1f px");
+                        ImGui::SetNextItemWidth(200.0f);
+                        ImGui::SliderFloat("FOV Radius", &fovSize, 10.0f, 180.0f, "%.1f");
 
                         ImGui::Spacing();
-                        if (ImGui::Button("Sifirla", ImVec2(120.0f, 32.0f)))
+                        if (ImGui::Button("Reset Defaults", ImVec2(130.0f, 32.0f)))
                         {
                             aimbotActive = false;
                             espBoxes = true;
@@ -220,27 +220,27 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                     if (ImGui::BeginTabItem("Visuals"))
                     {
                         ImGui::Spacing();
-                        ImGui::BeginChild("VisualsScroll", ImVec2(0, 240.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.6f, 1.0f), ">> GORSEL OZELLIKLER");
+                        ImGui::BeginChild("VisualsScroll", ImVec2(0, 250.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                        ImGui::TextColored(ImVec4(0.3f, 0.9f, 0.5f, 1.0f), "VISUAL ESP SETTINGS");
                         ImGui::Separator();
                         ImGui::Spacing();
                         
                         static bool wallhack = false;
-                        ImGui::Checkbox("Wallhack (ESP)", &wallhack);
+                        ImGui::Checkbox("Wallhack Feature", &wallhack);
 
                         ImGui::EndChild();
                         ImGui::EndTabItem();
                     }
 
-                    if (ImGui::BeginTabItem("Other"))
+                    if (ImGui::BeginTabItem("Settings"))
                     {
                         ImGui::Spacing();
-                        ImGui::BeginChild("OtherScroll", ImVec2(0, 240.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.3f, 1.0f), ">> DIGER AYARLAR");
+                        ImGui::BeginChild("SettingsScroll", ImVec2(0, 250.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                        ImGui::TextColored(ImVec4(0.9f, 0.6f, 0.3f, 1.0f), "SYSTEM INFO");
                         ImGui::Separator();
                         ImGui::Spacing();
-                        ImGui::Text("Gelistirici: Asasec");
-                        ImGui::Text("Durum: Calisiyor (Stable)");
+                        ImGui::Text("Client: Asasec iOS Menu");
+                        ImGui::Text("Status: Secure & Undetected");
                         ImGui::EndChild();
                         ImGui::EndTabItem();
                     }
@@ -324,28 +324,29 @@ void ASASECImGuiStart(void)
         style.WindowPadding = ImVec2(10.0f, 10.0f);
         style.FramePadding = ImVec2(8.0f, 6.0f);
         style.ItemSpacing = ImVec2(8.0f, 8.0f);
-        style.ScrollbarSize = 10.0f;
-        style.WindowRounding = 10.0f;
-        style.FrameRounding = 6.0f; // Buton ve kutu köşelerini yumuşattık
+        style.ScrollbarSize = 8.0f;
+        style.WindowRounding = 12.0f;
+        style.FrameRounding = 6.0f;
 
-        // Üst Düzey Modern Renk Paleti
+        // --- PREMIUM DARK / CYBERPUNK RENK PALETİ ---
         ImVec4* colors = style.Colors;
-        colors[ImGuiCol_WindowBg] = ImVec4(0.08f, 0.10f, 0.14f, 0.96f); // Şık koyu zemin
-        colors[ImGuiCol_Header] = ImVec4(0.18f, 0.30f, 0.50f, 0.8f);
-        colors[ImGuiCol_HeaderHovered] = ImVec4(0.22f, 0.38f, 0.65f, 1.0f);
-        colors[ImGuiCol_HeaderActive] = ImVec4(0.25f, 0.45f, 0.75f, 1.0f);
-        colors[ImGuiCol_Button] = ImVec4(0.16f, 0.24f, 0.38f, 1.0f);
-        colors[ImGuiCol_ButtonHovered] = ImVec4(0.22f, 0.34f, 0.54f, 1.0f);
-        colors[ImGuiCol_ButtonActive] = ImVec4(0.28f, 0.44f, 0.70f, 1.0f);
-        colors[ImGuiCol_FrameBg] = ImVec4(0.12f, 0.15f, 0.22f, 1.0f);
-        colors[ImGuiCol_FrameBgHovered] = ImVec4(0.16f, 0.22f, 0.32f, 1.0f);
-        colors[ImGuiCol_FrameBgActive] = ImVec4(0.20f, 0.28f, 0.42f, 1.0f);
-        colors[ImGuiCol_Tab] = ImVec4(0.12f, 0.16f, 0.24f, 1.0f);
-        colors[ImGuiCol_TabHovered] = ImVec4(0.20f, 0.32f, 0.52f, 1.0f);
-        colors[ImGuiCol_TabActive] = ImVec4(0.18f, 0.35f, 0.65f, 1.0f);
-        colors[ImGuiCol_ChildBg] = ImVec4(0.06f, 0.08f, 0.11f, 1.0f);
+        colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.07f, 0.10f, 0.95f);
+        colors[ImGuiCol_Header] = ImVec4(0.15f, 0.22f, 0.36f, 0.8f);
+        colors[ImGuiCol_HeaderHovered] = ImVec4(0.20f, 0.30f, 0.48f, 1.0f);
+        colors[ImGuiCol_HeaderActive] = ImVec4(0.25f, 0.38f, 0.60f, 1.0f);
+        colors[ImGuiCol_Button] = ImVec4(0.14f, 0.18f, 0.28f, 1.0f);
+        colors[ImGuiCol_ButtonHovered] = ImVec4(0.20f, 0.28f, 0.44f, 1.0f);
+        colors[ImGuiCol_ButtonActive] = ImVec4(0.28f, 0.40f, 0.62f, 1.0f);
+        colors[ImGuiCol_FrameBg] = ImVec4(0.10f, 0.13f, 0.19f, 1.0f);
+        colors[ImGuiCol_FrameBgHovered] = ImVec4(0.14f, 0.18f, 0.26f, 1.0f);
+        colors[ImGuiCol_FrameBgActive] = ImVec4(0.18f, 0.24f, 0.35f, 1.0f);
+        colors[ImGuiCol_Tab] = ImVec4(0.08f, 0.10f, 0.15f, 1.0f);
+        colors[ImGuiCol_TabHovered] = ImVec4(0.18f, 0.26f, 0.42f, 1.0f);
+        colors[ImGuiCol_TabActive] = ImVec4(0.15f, 0.30f, 0.58f, 1.0f);
+        colors[ImGuiCol_ChildBg] = ImVec4(0.04f, 0.05f, 0.08f, 1.0f);
         colors[ImGuiCol_SliderGrab] = ImVec4(0.25f, 0.50f, 0.90f, 1.0f);
         colors[ImGuiCol_SliderGrabActive] = ImVec4(0.35f, 0.65f, 1.0f, 1.0f);
+        colors[ImGuiCol_CheckMark] = ImVec4(0.30f, 0.70f, 1.0f, 1.0f);
 
         gImGuiView = [[ASASECImGuiView alloc] initWithFrame:window.bounds device:device];
         gImGuiView.backgroundColor = UIColor.clearColor;
@@ -388,7 +389,7 @@ void ASASECImGuiStop(void)
         gInitialized = NO;
         gMenuVisible = YES;
         gMenuCollapsed = NO;
-        gMenuPosition = ImVec2(40.0f, 80.0f);
-        gMenuSize = ImVec2(480.0f, 360.0f);
+        gMenuPosition = ImVec2(50.0f, 80.0f);
+        gMenuSize = ImVec2(500.0f, 380.0f);
     });
 }
