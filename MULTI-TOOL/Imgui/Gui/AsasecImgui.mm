@@ -131,7 +131,7 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
 
     ImGui::NewFrame();
 
-            if (gMenuVisible)
+    if (gMenuVisible)
     {
         // Küçüldüğünde yüksekliği tam başlık çubuğu kadar (42.0f), açıkken normal boyutta tutuyoruz
         float currentHeight = gMenuCollapsed ? 42.0f : gMenuSize.y;
@@ -154,7 +154,6 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
 
             // --- ÖZEL MAVİ BAŞLIK ÇUBUĞU ---
             ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.15f, 0.38f, 0.70f, 1.0f)); // Şık canlı mavi
-            // Başlık yüksekliğini 42 piksel yaparak butonların etrafında ferah boşluk bırakıyoruz
             ImGui::BeginChild("HeaderBar", ImVec2(0, 42.0f), false, ImGuiWindowFlags_NoScrollbar);
 
             ImGui::SetCursorPos(ImVec2(8.0f, 7.0f)); // Başlık içi soldan ve üstten boşluk
@@ -191,15 +190,13 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                 gMenuPosition.y += delta.y;
             }
 
-            // Menü açık durumdaysa alt sekmeleri göster (İçerik için sol/sağ/alt boşluk veriyoruz)
+            // Menü açık durumdaysa alt sekmeleri ve içerikleri göster
             if (!gMenuCollapsed)
             {
                 ImGui::Dummy(ImVec2(0.0f, 4.0f)); // Başlık ile içerik arası boşluk
                 
-                // İçerik paneli için hafif kenar boşluğu bırakmak adına yeni bir çocuk pencere açıyoruz
                 ImGui::BeginChild("ContentArea", ImVec2(gMenuSize.x, gMenuSize.y - 46.0f), false, ImGuiWindowFlags_NoScrollbar);
                 
-                // İçerik elemanları kenara yapışmasın diye minik bir indent ekleyebiliriz veya padding
                 ImGui::SetCursorPosX(10.0f);
                 
                 if (ImGui::BeginTabBar("ToolTabBar", ImGuiTabBarFlags_FittingPolicyResizeDown))
@@ -208,18 +205,29 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                     {
                         ImGui::Spacing();
                         ImGui::BeginChild("AimbotScroll", ImVec2(gMenuSize.x - 20.0f, 220.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "Important Stuff");
+                        
+                        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "Aimbot Ayarlari");
                         ImGui::Separator();
-                        ImGui::Text("0000: Some text");
-                        ImGui::Text("0001: Some text");
-                        ImGui::Text("0002: Some text");
-                        ImGui::Text("0003: Some text");
-                        ImGui::Text("0004: Some text");
-                        ImGui::Text("0005: Some text");
-                        ImGui::Text("0006: Some text");
-                        ImGui::Text("0007: Some text");
-                        ImGui::Text("0008: Some text");
-                        ImGui::Text("0009: Some text");
+
+                        // Örnek ImGui Widget'ları (Checkbox, Slider, Buton)
+                        static bool aimbotActive = false;
+                        static bool espBoxes = true;
+                        static float fovSize = 90.0f;
+
+                        ImGui::Checkbox("Aimbot Aktif", &aimbotActive);
+                        ImGui::Checkbox("Kutu ESP Goster", &espBoxes);
+                        
+                        ImGui::Spacing();
+                        ImGui::SliderFloat("Gorus Acisi (FOV)", &fovSize, 10.0f, 180.0f, "%.1f");
+
+                        ImGui::Spacing();
+                        if (ImGui::Button("Varsayilanlara Don", ImVec2(160.0f, 30.0f)))
+                        {
+                            aimbotActive = false;
+                            espBoxes = true;
+                            fovSize = 90.0f;
+                        }
+
                         ImGui::EndChild();
                         ImGui::EndTabItem();
                     }
@@ -228,9 +236,12 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                     {
                         ImGui::Spacing();
                         ImGui::BeginChild("VisualsScroll", ImVec2(gMenuSize.x - 20.0f, 220.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.5f, 1.0f), "Visuals Content");
+                        ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.5f, 1.0f), "Gorsel Ayarlar");
                         ImGui::Separator();
-                        ImGui::Text("ESP Configs & Objects");
+                        
+                        static bool wallhack = false;
+                        ImGui::Checkbox("Wallhack (Gorsel)", &wallhack);
+
                         ImGui::EndChild();
                         ImGui::EndTabItem();
                     }
@@ -239,9 +250,9 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                     {
                         ImGui::Spacing();
                         ImGui::BeginChild("OtherScroll", ImVec2(gMenuSize.x - 20.0f, 220.0f), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        ImGui::TextColored(ImVec4(0.4f, 0.7f, 1.0f, 1.0f), "Miscellaneous");
+                        ImGui::TextColored(ImVec4(0.4f, 0.7f, 1.0f, 1.0f), "Diger Araclar");
                         ImGui::Separator();
-                        ImGui::Text("Other settings & info");
+                        ImGui::Text("Asasec Multi-Tool v1.0");
                         ImGui::EndChild();
                         ImGui::EndTabItem();
                     }
@@ -249,15 +260,13 @@ static ImVec2 gMenuSize = ImVec2(480.0f, 360.0f);
                     ImGui::EndTabBar();
                 }
                 
-                ImGui::EndChild(); // ContentArea sonu
+                ImGui::EndChild();
             }
         }
 
         ImGui::End();
-        ImGui::PopStyleVar(2); // PushStyleVar kapatması
+        ImGui::PopStyleVar(2);
     }
-
-
 
     ImGui::Render();
 
