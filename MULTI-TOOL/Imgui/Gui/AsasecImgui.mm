@@ -2971,7 +2971,7 @@ static void ASASECApplyStyle(void)
                 ImGui::EndChild();
             }
 
-            ImGui::PopStyleVar();
+            ImGui::PopStyleVar(); // Alpha Pop
 
             if (fabsf(
                     gPendingContentScrollY
@@ -3013,7 +3013,8 @@ static void ASASECApplyStyle(void)
                     0.0f;
             }
 
-            ImGui::EndChild();
+            ImGui::EndChild(); // ##ScrollableContent
+            ImGui::EndChild(); // ##ContentRoot
         }
 
         if (draw &&
@@ -3125,7 +3126,7 @@ static void ASASECApplyStyle(void)
             );
         }
 
-        ImGui::End();
+        ImGui::End(); // ##ASASEC_WINDOW
 
         ImGui::PopStyleColor();
         ImGui::PopStyleVar(2);
