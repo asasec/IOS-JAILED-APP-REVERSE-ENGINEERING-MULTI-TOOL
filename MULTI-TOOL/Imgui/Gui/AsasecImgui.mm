@@ -472,7 +472,7 @@ return clicked;
 
 #pragma mark - Hit Testing
 
-* (BOOL)pointInsideMenu:(CGPoint)point
+- (BOOL)pointInsideMenu:(CGPoint)point
     {
     if (!gMenuVisible)
     return NO;
@@ -486,7 +486,7 @@ return clicked;
     point.y >= gMenuPosition.y &&
     point.y <= gMenuPosition.y + height;
     }
-* (BOOL)pointInsideResizeHandle:(CGPoint)point
+- (BOOL)pointInsideResizeHandle:(CGPoint)point
     {
     if (!gMenuVisible)
     return NO;
@@ -504,7 +504,7 @@ return clicked;
     point.y >= bottom - kResizeSize &&
     point.y <= bottom + 8.0f;
     }
-* (BOOL)pointInsideDragHeader:(CGPoint)point
+- (BOOL)pointInsideDragHeader:(CGPoint)point
     {
     if (!gMenuVisible)
     return NO;
@@ -514,7 +514,7 @@ return clicked;
     point.y >= gMenuPosition.y &&
     point.y <= gMenuPosition.y + kHeaderHeight;
     }
-* (BOOL)pointInsideContent:(CGPoint)point
+- (BOOL)pointInsideContent:(CGPoint)point
     {
     if (!gMenuVisible || gMenuCollapsed)
     return NO;
@@ -537,7 +537,7 @@ return clicked;
     point.y >= contentTop &&
     point.y <= contentBottom;
     }
-* (UIView *)hitTest:(CGPoint)point
+- (UIView *)hitTest:(CGPoint)point
     withEvent:(UIEvent *)event
     {
     if (!gInitialized)
@@ -551,7 +551,7 @@ return clicked;
 
 #pragma mark - Menu Drag
 
-* (void)beginMenuDragAtPoint:(CGPoint)point
+- (void)beginMenuDragAtPoint:(CGPoint)point
     {
     if (!gMenuVisible)
     return;
@@ -561,7 +561,7 @@ return clicked;
     gDragStartPoint = point;
     gDragStartPosition = gMenuPosition;
     }
-* (void)updateMenuDragAtPoint:(CGPoint)point
+- (void)updateMenuDragAtPoint:(CGPoint)point
     {
     if (!gDraggingMenu)
     return;
@@ -582,7 +582,7 @@ return clicked;
 
 #pragma mark - Resize
 
-* (void)beginMenuResizeAtPoint:(CGPoint)point
+- (void)beginMenuResizeAtPoint:(CGPoint)point
     {
     if (!gMenuVisible)
     return;
@@ -594,7 +594,7 @@ return clicked;
     gResizeStartPoint = point;
     gResizeStartSize = gMenuSize;
     }
-* (void)updateMenuResizeAtPoint:(CGPoint)point
+- (void)updateMenuResizeAtPoint:(CGPoint)point
     {
     if (!gResizingMenu)
     return;
@@ -661,7 +661,7 @@ return clicked;
 
 #pragma mark - Content Scroll
 
-* (void)beginContentDragAtPoint:(CGPoint)point
+- (void)beginContentDragAtPoint:(CGPoint)point
     {
     if (!gMenuVisible)
     return;
@@ -677,7 +677,7 @@ return clicked;
     gPendingContentScrollY = 0.0f;
     gContentScrollVelocity = 0.0f;
     }
-* (void)updateContentDragAtPoint:(CGPoint)point
+- (void)updateContentDragAtPoint:(CGPoint)point
     {
     if (!gContentDragging)
     return;
@@ -728,7 +728,7 @@ return clicked;
     }
     gContentLastPoint = point;
     }
-* (void)endContentDrag
+- (void)endContentDrag
     {
     if (!gContentDragging)
     return;
@@ -738,14 +738,14 @@ return clicked;
 
 #pragma mark - Interaction
 
-* (void)endMenuInteraction
+- (void)endMenuInteraction
     {
     gDraggingMenu = NO;
     gResizingMenu = NO;
     gContentDragging = NO;
     gContentTouchCandidate = NO;
     }
-* (void)clampMenuPosition
+- (void)clampMenuPosition
     {
     UIWindow *window =
     self.window;
@@ -756,7 +756,7 @@ return clicked;
 
 #pragma mark - Touch -> ImGui
 
-* (void)updateIOWithTouchEvent:(UIEvent *)event
+- (void)updateIOWithTouchEvent:(UIEvent *)event
     {
     if (!gInitialized)
     return;
@@ -799,7 +799,7 @@ return clicked;
 
 #pragma mark - Touches
 
-* (void)touchesBegan:(NSSet<UITouch *> *)touches
+- (void)touchesBegan:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     if (!gInitialized)
@@ -827,7 +827,7 @@ return clicked;
     }
     [self updateIOWithTouchEvent:event];
     }
-* (void)touchesMoved:(NSSet<UITouch *> *)touches
+- (void)touchesMoved:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     if (!gInitialized)
@@ -855,7 +855,7 @@ return clicked;
     }
     [self updateIOWithTouchEvent:event];
     }
-* (void)touchesEnded:(NSSet<UITouch *> *)touches
+- (void)touchesEnded:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     if (gContentDragging)
@@ -878,7 +878,7 @@ return clicked;
 
     }
     }
-* (void)touchesCancelled:(NSSet<UITouch *> *)touches
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     [self endMenuInteraction];
@@ -1092,7 +1092,7 @@ c[ImGuiCol_ScrollbarGrabActive] =
 
 @implementation ASASECImGuiRenderer
 
-* (void)mtkView:(MTKView *)view
+- (void)mtkView:(MTKView *)view
     drawableSizeWillChange:(CGSize)size
     {
     if (!gInitialized)
@@ -1118,7 +1118,7 @@ c[ImGuiCol_ScrollbarGrabActive] =
     (float)scale
     );
     }
-* (void)drawInMTKView:(MTKView *)view
+- (void)drawInMTKView:(MTKView *)view
     {
     if (!gInitialized)
     return;
@@ -1164,7 +1164,7 @@ c[ImGuiCol_ScrollbarGrabActive] =
     if (fps < 1.0f)
     fps = 60.0f;
     io.DeltaTime =
-    0f / fps;
+    0.0f / fps;
     ImGui::NewFrame();
     float dt =
     io.DeltaTime;
@@ -1182,8 +1182,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
     gPageAnimation =
     ASASECEase(
     gPageAnimation,
-    0f,
-    0f,
+    0.0f,
+    0.0f,
     dt
     );
     if (!gContentDragging &&
