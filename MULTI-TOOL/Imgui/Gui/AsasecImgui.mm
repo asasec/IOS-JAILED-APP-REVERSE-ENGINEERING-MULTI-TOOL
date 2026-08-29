@@ -286,9 +286,9 @@ static bool ASASECModernSwitch(const char *label,
 
     ImGui::PushID(label);
 
-    const float switchWidth = 52.0f;
+    const float switchWidth = 54.0f;
     const float switchHeight = 28.0f;
-    const float rowHeight = 46.0f;
+    const float rowHeight = 52.0f; // Butonların birbirine girmemesi için satır yüksekliği artırıldı
 
     float available =
         ImGui::GetContentRegionAvail().x;
@@ -369,26 +369,26 @@ static bool ASASECModernSwitch(const char *label,
         ? animationData->pulse
         : 0.0f;
 
-    // Kart Arka Planı ve Çerçevesi (Content Geliştirmesi)
+    // Modernleştirilmiş Kart Tasarımı (Content Geliştirmesi)
     draw->AddRectFilled(
         itemMin,
         itemMax,
-        ASASECColor(0.06f, 0.08f, 0.12f, 0.65f),
-        10.0f
+        ASASECColor(0.08f, 0.11f, 0.17f, 0.75f),
+        12.0f
     );
     draw->AddRect(
         itemMin,
         itemMax,
-        ASASECColor(0.15f, 0.20f, 0.28f, 0.5f),
-        10.0f,
+        ASASECColor(0.20f, 0.28f, 0.40f, 0.6f),
+        12.0f,
         0,
-        1.0f
+        1.1f
     );
 
     float switchX =
         itemMax.x -
         switchWidth -
-        12.0f;
+        16.0f;
 
     float switchY =
         itemMin.y +
@@ -524,15 +524,15 @@ static bool ASASECModernSwitch(const char *label,
 
     ImGui::SetCursorScreenPos(
         ImVec2(
-            itemMin.x + 14.0f,
-            itemMin.y + 12.0f
+            itemMin.x + 16.0f,
+            itemMin.y + (rowHeight - 20.0f) * 0.5f
         )
     );
 
     ImGui::TextColored(
         ImVec4(
-            0.92f,
-            0.95f,
+            0.94f,
+            0.97f,
             1.0f,
             1.0f
         ),
@@ -927,12 +927,12 @@ static void ASASECApplyStyle(void)
 
     style.WindowPadding = ImVec2(10.0f, 10.0f);
     style.FramePadding = ImVec2(11.0f, 8.0f);
-    style.ItemSpacing = ImVec2(9.0f, 9.0f);
+    style.ItemSpacing = ImVec2(10.0f, 10.0f); // Butonlar arası boşluk optimize edildi
     style.ItemInnerSpacing = ImVec2(7.0f, 6.0f);
     style.ScrollbarSize = 1.0f;
     style.GrabMinSize = 15.0f;
     style.WindowRounding = 22.0f;
-    style.ChildRounding = 15.0f;
+    style.ChildRounding = 16.0f;
     style.FrameRounding = 10.0f;
     style.PopupRounding = 12.0f;
     style.ScrollbarRounding = 8.0f;
@@ -1085,6 +1085,7 @@ static void ASASECApplyStyle(void)
 
         if (draw)
         {
+            // Sol üst köşe yumuşatması (TopLeft corner yumuşak çizim maskesi ile desteklendi)
             draw->AddRectFilled(windowPos, windowEnd, IM_COL32(6, 9, 16, 252), 22.0f);
             draw->AddRect(
                 ImVec2(windowPos.x + 0.5f, windowPos.y + 0.5f),
@@ -1097,7 +1098,7 @@ static void ASASECApplyStyle(void)
                 ImVec2(windowPos.x + 1.0f, windowPos.y + 1.0f),
                 ImVec2(windowEnd.x - 1.0f, windowPos.y + kHeaderHeight),
                 IM_COL32(10, 15, 25, 255),
-                21.0f, ImDrawFlags_RoundCornersTop
+                21.0f, ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersTopRight
             );
 
             draw->AddLine(
@@ -1107,7 +1108,7 @@ static void ASASECApplyStyle(void)
             );
         }
 
-        // Sol üst Logo/İsim Alanı
+        // Sol üst Logo/İsim Alanı (ASASEC UI her ikihalde de görünür)
         ImGui::SetCursorPos(ImVec2(18.0f, 11.0f));
         ImGui::TextColored(ImVec4(0.30f, 0.68f, 1.0f, 1.0f), "●");
         ImGui::SameLine(0.0f, 7.0f);
@@ -1120,12 +1121,15 @@ static void ASASECApplyStyle(void)
         ImGui::SetWindowFontScale(1.0f);
         ImGui::PopFont();
 
-        // Collapse ve Close Butonları Yanına "CONTROL CENTER" Başlığı (Açıkken/Kapalıyken Görünür)
-        float headerTitleX = windowSize.x - 290.0f;
-        if (headerTitleX > 160.0f)
+        // Control Center Başlığı: Yalnızca Menü Normal (Açık) Haldeyken Gözüksün
+        if (!gMenuCollapsed)
         {
-            ImGui::SetCursorPos(ImVec2(headerTitleX, 18.0f));
-            ImGui::TextColored(ImVec4(0.35f, 0.42f, 0.52f, 1.0f), "CONTROL CENTER");
+            float headerTitleX = windowSize.x - 290.0f;
+            if (headerTitleX > 160.0f)
+            {
+                ImGui::SetCursorPos(ImVec2(headerTitleX, 18.0f));
+                ImGui::TextColored(ImVec4(0.35f, 0.42f, 0.52f, 1.0f), "CONTROL CENTER");
+            }
         }
 
         // Collapse Butonu
@@ -1311,7 +1315,7 @@ static void ASASECApplyStyle(void)
                 ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar
             );
 
-            ImGui::SetCursorPos(ImVec2(15.0f, 9.0f));
+            ImGui::SetCursorPos(ImVec2(18.0f, 12.0f));
 
             const char *pageTitle = gSelectedPage == 0 ? "Combat" : gSelectedPage == 1 ? "Visuals" : "Settings";
 
@@ -1341,7 +1345,7 @@ static void ASASECApplyStyle(void)
 
             float fade = ASASECClampFloat(gPageAnimation, 0.0f, 1.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, fade);
-            ImGui::SetCursorPosX(15.0f + gPageSlide);
+            ImGui::SetCursorPosX(16.0f + gPageSlide);
 
             if (gSelectedPage == 0)
             {
@@ -1356,7 +1360,7 @@ static void ASASECApplyStyle(void)
                 static bool sw3 = false;
                 static bool sw4 = false;
 
-                ImGui::BeginChild("##CombatCard", ImVec2(ImGui::GetContentRegionAvail().x - 18.0f, 220.0f), true);
+                ImGui::BeginChild("##CombatCard", ImVec2(ImGui::GetContentRegionAvail().x - 20.0f, 235.0f), true);
                 ASASECModernSwitch("Aimbot Enable", &sw1);
                 ASASECModernSwitch("Silent Aim", &sw2);
                 ASASECModernSwitch("Recoil Control", &sw3);
@@ -1376,7 +1380,7 @@ static void ASASECApplyStyle(void)
                 static bool sw3 = false;
                 static bool sw4 = false;
 
-                ImGui::BeginChild("##VisualCard", ImVec2(ImGui::GetContentRegionAvail().x - 18.0f, 220.0f), true);
+                ImGui::BeginChild("##VisualCard", ImVec2(ImGui::GetContentRegionAvail().x - 20.0f, 235.0f), true);
                 ASASECModernSwitch("Player ESP", &sw1);
                 ASASECModernSwitch("Box ESP", &sw2);
                 ASASECModernSwitch("Distance ESP", &sw3);
@@ -1396,7 +1400,7 @@ static void ASASECApplyStyle(void)
                 static bool sw3 = false;
                 static bool sw4 = false;
 
-                ImGui::BeginChild("##SettingsCard", ImVec2(ImGui::GetContentRegionAvail().x - 18.0f, 220.0f), true);
+                ImGui::BeginChild("##SettingsCard", ImVec2(ImGui::GetContentRegionAvail().x - 20.0f, 235.0f), true);
                 ASASECModernSwitch("Save Config", &sw1);
                 ASASECModernSwitch("Dark Theme", &sw2);
                 ASASECModernSwitch("Vibration", &sw3);
@@ -1419,24 +1423,24 @@ static void ASASECApplyStyle(void)
             ImGui::EndChild();
         }
 
-        // Sağ Alt Köşe İçin Çok Daha Belirgin ve Net Boyutlandırma (Resize) Simgesi
+        // Sağ Alt Köşe İçin Çok Daha Belirgin, Net ve Sabit Boyutlandırma (Resize) Simgesi
         if (draw && windowSize.x > 300.0f && windowSize.y > 220.0f)
         {
-            float right = windowSize.x - 6.0f;
-            float bottom = windowSize.y - 6.0f;
+            float right = windowSize.x - 4.0f;
+            float bottom = windowSize.y - 4.0f;
 
-            ImVec2 iconCenter = ImVec2(windowPos.x + right - 10.0f, windowPos.y + bottom - 10.0f);
+            ImVec2 iconCenter = ImVec2(windowPos.x + right - 12.0f, windowPos.y + bottom - 12.0f);
             BOOL resizeActive = gResizingMenu;
 
             ImU32 iconColor = resizeActive
                 ? ASASECColor(0.42f, 0.72f, 1.0f, 1.0f)
-                : ASASECColor(0.95f, 0.98f, 1.0f, 0.85f);
+                : ASASECColor(0.98f, 0.99f, 1.0f, 0.95f);
 
-            // Belirgin üçlü köşe çizgileri (Görünürlük artırıldı)
-            draw->AddLine(ImVec2(iconCenter.x - 8.0f, iconCenter.y + 8.0f), ImVec2(iconCenter.x + 8.0f, iconCenter.y + 8.0f), iconColor, 2.5f);
-            draw->AddLine(ImVec2(iconCenter.x + 8.0f, iconCenter.y - 8.0f), ImVec2(iconCenter.x + 8.0f, iconCenter.y + 8.0f), iconColor, 2.5f);
-            draw->AddLine(ImVec2(iconCenter.x - 2.0f, iconCenter.y + 8.0f), ImVec2(iconCenter.x + 8.0f, iconCenter.y - 2.0f), iconColor, 2.0f);
-            draw->AddLine(ImVec2(iconCenter.x - 7.0f, iconCenter.y + 8.0f), ImVec2(iconCenter.x + 8.0f, iconCenter.y - 7.0f), iconColor, 1.5f);
+            // Çok daha belirgin ve kalın üçlü köşe çizgileri (Simgenin net görünmeme sorunu tamamen çözüldü)
+            draw->AddLine(ImVec2(iconCenter.x - 10.0f, iconCenter.y + 10.0f), ImVec2(iconCenter.x + 10.0f, iconCenter.y + 10.0f), iconColor, 3.0f);
+            draw->AddLine(ImVec2(iconCenter.x + 10.0f, iconCenter.y - 10.0f), ImVec2(iconCenter.x + 10.0f, iconCenter.y + 10.0f), iconColor, 3.0f);
+            draw->AddLine(ImVec2(iconCenter.x - 2.0f, iconCenter.y + 10.0f), ImVec2(iconCenter.x + 10.0f, iconCenter.y - 2.0f), iconColor, 2.2f);
+            draw->AddLine(ImVec2(iconCenter.x - 7.0f, iconCenter.y + 10.0f), ImVec2(iconCenter.x + 10.0f, iconCenter.y - 7.0f), iconColor, 1.8f);
         }
 
         ImGui::End();
