@@ -1,4 +1,4 @@
-#import "AsasecImgui.h"
+#import “AsasecImgui.h”
 
 #import <UIKit/UIKit.h>
 #import <Metal/Metal.h>
@@ -9,9 +9,9 @@
 #import <string.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "../imgui.h"
-#include "../imgui_internal.h"
-#include "../Backends/imgui_impl_metal.h"
+#include “../imgui.h”
+#include “../imgui_internal.h”
+#include “../Backends/imgui_impl_metal.h”
 
 #pragma mark - Global State
 
@@ -58,11 +58,11 @@ static BOOL gContentHasMoved = NO;
 static BOOL gContentTouchCandidate = NO;
 
 static float gPageAnimation = 1.0f;
-static float gMenuAnimation = 1.0f;
+static float gPageSlide = 0.0f;
 
 #pragma mark - Renderer
 
-@interface ASASECImGuiRenderer : NSObject 
+@interface ASASECImGuiRenderer : NSObject
 @end
 
 static ASASECImGuiRenderer *gRenderer = nil;
@@ -87,9 +87,14 @@ float target,
 float speed,
 float dt)
 {
-float factor =
-1.0f - expf(-speed * dt);
+if (dt <= 0.0f)
+dt = 1.0f / 60.0f;
 
+if (dt > 0.1f)
+    dt = 0.1f;
+if (speed <= 0.0f)
+    return target;
+float factor = 1.0f - expf(-speed * dt);
 return current +
        (target - current) * factor;
 
@@ -220,7 +225,9 @@ ASASECGetSwitchAnimationData(const char *label)
 if (!label)
 return NULL;
 
-for (int i = 0; i < gSwitchAnimationCount; i++)
+for (int i = 0;
+     i < gSwitchAnimationCount;
+     i++)
 {
     if (gSwitchAnimations[i].label &&
         strcmp(
@@ -273,11 +280,6 @@ ImVec2 itemMax =
     ImGui::GetItemRectMax();
 ImDrawList *draw =
     ImGui::GetWindowDrawList();
-if (!draw)
-{
-    ImGui::PopID();
-    return clicked;
-}
 ASASECSwitchAnimation *animationData =
     ASASECGetSwitchAnimationData(label);
 if (clicked)
@@ -341,13 +343,16 @@ ImVec2 switchMax =
     );
 float bgR =
     0.08f +
-    (0.18f - 0.08f) * progress;
+    (0.18f - 0.08f) *
+    progress;
 float bgG =
     0.12f +
-    (0.52f - 0.12f) * progress;
+    (0.52f - 0.12f) *
+    progress;
 float bgB =
     0.18f +
-    (1.00f - 0.18f) * progress;
+    (1.00f - 0.18f) *
+    progress;
 if (hovered)
 {
     bgR += 0.025f;
@@ -375,9 +380,12 @@ draw->AddRect(
         switchMax.y - 0.5f
     ),
     ASASECColor(
-        0.20f + 0.25f * progress,
-        0.26f + 0.35f * progress,
-        0.36f + 0.45f * progress,
+        0.20f +
+            0.25f * progress,
+        0.26f +
+            0.35f * progress,
+        0.36f +
+            0.45f * progress,
         0.9f
     ),
     switchHeight * 0.5f,
@@ -405,7 +413,8 @@ if (pulse > 0.01f)
             knobX,
             knobY
         ),
-        12.0f + pulse * 3.0f,
+        12.0f +
+            pulse * 3.0f,
         ASASECColor(
             0.30f,
             0.68f,
@@ -472,7 +481,7 @@ return clicked;
 
 #pragma mark - Hit Testing
 
-- (BOOL)pointInsideMenu:(CGPoint)point
+* (BOOL)pointInsideMenu:(CGPoint)point
     {
     if (!gMenuVisible)
     return NO;
@@ -482,11 +491,15 @@ return clicked;
     : gMenuSize.y;
     return
     point.x >= gMenuPosition.x &&
-    point.x <= gMenuPosition.x + gMenuSize.x &&
+    point.x <=
+    gMenuPosition.x +
+    gMenuSize.x &&
     point.y >= gMenuPosition.y &&
-    point.y <= gMenuPosition.y + height;
+    point.y <=
+    gMenuPosition.y +
+    height;
     }
-- (BOOL)pointInsideResizeHandle:(CGPoint)point
+* (BOOL)pointInsideResizeHandle:(CGPoint)point
     {
     if (!gMenuVisible)
     return NO;
@@ -504,19 +517,24 @@ return clicked;
     point.y >= bottom - kResizeSize &&
     point.y <= bottom + 8.0f;
     }
-- (BOOL)pointInsideDragHeader:(CGPoint)point
+* (BOOL)pointInsideDragHeader:(CGPoint)point
     {
     if (!gMenuVisible)
     return NO;
     return
     point.x >= gMenuPosition.x &&
-    point.x <= gMenuPosition.x + gMenuSize.x &&
+    point.x <=
+    gMenuPosition.x +
+    gMenuSize.x &&
     point.y >= gMenuPosition.y &&
-    point.y <= gMenuPosition.y + kHeaderHeight;
+    point.y <=
+    gMenuPosition.y +
+    kHeaderHeight;
     }
-- (BOOL)pointInsideContent:(CGPoint)point
+* (BOOL)pointInsideContent:(CGPoint)point
     {
-    if (!gMenuVisible || gMenuCollapsed)
+    if (!gMenuVisible ||
+    gMenuCollapsed)
     return NO;
     const float sidebarWidth = 145.0f;
     float contentLeft =
@@ -537,7 +555,7 @@ return clicked;
     point.y >= contentTop &&
     point.y <= contentBottom;
     }
-- (UIView *)hitTest:(CGPoint)point
+* (UIView *)hitTest:(CGPoint)point
     withEvent:(UIEvent *)event
     {
     if (!gInitialized)
@@ -551,17 +569,19 @@ return clicked;
 
 #pragma mark - Menu Drag
 
-- (void)beginMenuDragAtPoint:(CGPoint)point
+* (void)beginMenuDragAtPoint:(CGPoint)point
     {
     if (!gMenuVisible)
     return;
     gDraggingMenu = YES;
     gResizingMenu = NO;
     gContentDragging = NO;
-    gDragStartPoint = point;
-    gDragStartPosition = gMenuPosition;
+    gDragStartPoint =
+    point;
+    gDragStartPosition =
+    gMenuPosition;
     }
-- (void)updateMenuDragAtPoint:(CGPoint)point
+* (void)updateMenuDragAtPoint:(CGPoint)point
     {
     if (!gDraggingMenu)
     return;
@@ -582,19 +602,20 @@ return clicked;
 
 #pragma mark - Resize
 
-- (void)beginMenuResizeAtPoint:(CGPoint)point
+* (void)beginMenuResizeAtPoint:(CGPoint)point
     {
-    if (!gMenuVisible)
-    return;
-    if (gMenuCollapsed)
+    if (!gMenuVisible ||
+    gMenuCollapsed)
     return;
     gResizingMenu = YES;
     gDraggingMenu = NO;
     gContentDragging = NO;
-    gResizeStartPoint = point;
-    gResizeStartSize = gMenuSize;
+    gResizeStartPoint =
+    point;
+    gResizeStartSize =
+    gMenuSize;
     }
-- (void)updateMenuResizeAtPoint:(CGPoint)point
+* (void)updateMenuResizeAtPoint:(CGPoint)point
     {
     if (!gResizingMenu)
     return;
@@ -637,7 +658,8 @@ return clicked;
       (float)screenSize.height -
       gMenuPosition.y -
       8.0f;
-  if (availableWidth >= kMenuMinWidth)
+  if (availableWidth >=
+      kMenuMinWidth)
   {
       newWidth =
           MIN(
@@ -645,7 +667,8 @@ return clicked;
               availableWidth
           );
   }
-  if (availableHeight >= kMenuMinHeight)
+  if (availableHeight >=
+      kMenuMinHeight)
   {
       newHeight =
           MIN(
@@ -655,29 +678,34 @@ return clicked;
   }
 
     }
-    gMenuSize.x = newWidth;
-    gMenuSize.y = newHeight;
+    gMenuSize.x =
+    newWidth;
+    gMenuSize.y =
+    newHeight;
     }
 
 #pragma mark - Content Scroll
 
-- (void)beginContentDragAtPoint:(CGPoint)point
+* (void)beginContentDragAtPoint:(CGPoint)point
     {
-    if (!gMenuVisible)
-    return;
-    if (gMenuCollapsed)
+    if (!gMenuVisible ||
+    gMenuCollapsed)
     return;
     gContentDragging = YES;
     gContentTouchCandidate = YES;
     gContentHasMoved = NO;
     gDraggingMenu = NO;
     gResizingMenu = NO;
-    gContentStartPoint = point;
-    gContentLastPoint = point;
-    gPendingContentScrollY = 0.0f;
-    gContentScrollVelocity = 0.0f;
+    gContentStartPoint =
+    point;
+    gContentLastPoint =
+    point;
+    gPendingContentScrollY =
+    0f;
+    gContentScrollVelocity =
+    0f;
     }
-- (void)updateContentDragAtPoint:(CGPoint)point
+* (void)updateContentDragAtPoint:(CGPoint)point
     {
     if (!gContentDragging)
     return;
@@ -726,9 +754,10 @@ return clicked;
       scrollDelta;
 
     }
-    gContentLastPoint = point;
+    gContentLastPoint =
+    point;
     }
-- (void)endContentDrag
+* (void)endContentDrag
     {
     if (!gContentDragging)
     return;
@@ -738,14 +767,14 @@ return clicked;
 
 #pragma mark - Interaction
 
-- (void)endMenuInteraction
+* (void)endMenuInteraction
     {
     gDraggingMenu = NO;
     gResizingMenu = NO;
     gContentDragging = NO;
     gContentTouchCandidate = NO;
     }
-- (void)clampMenuPosition
+* (void)clampMenuPosition
     {
     UIWindow *window =
     self.window;
@@ -756,7 +785,7 @@ return clicked;
 
 #pragma mark - Touch -> ImGui
 
-- (void)updateIOWithTouchEvent:(UIEvent *)event
+* (void)updateIOWithTouchEvent:(UIEvent *)event
     {
     if (!gInitialized)
     return;
@@ -785,8 +814,10 @@ return clicked;
     if (!currentTouch)
     continue;
 
-  if (currentTouch.phase != UITouchPhaseEnded &&
-      currentTouch.phase != UITouchPhaseCancelled)
+  if (currentTouch.phase !=
+          UITouchPhaseEnded &&
+      currentTouch.phase !=
+          UITouchPhaseCancelled)
   {
       touching = YES;
       break;
@@ -799,7 +830,7 @@ return clicked;
 
 #pragma mark - Touches
 
-- (void)touchesBegan:(NSSet<UITouch *> *)touches
+* (void)touchesBegan:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     if (!gInitialized)
@@ -827,7 +858,7 @@ return clicked;
     }
     [self updateIOWithTouchEvent:event];
     }
-- (void)touchesMoved:(NSSet<UITouch *> *)touches
+* (void)touchesMoved:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     if (!gInitialized)
@@ -855,7 +886,7 @@ return clicked;
     }
     [self updateIOWithTouchEvent:event];
     }
-- (void)touchesEnded:(NSSet<UITouch *> *)touches
+* (void)touchesEnded:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     if (gContentDragging)
@@ -874,16 +905,19 @@ return clicked;
     ImGuiIO &io =
     ImGui::GetIO();
 
-  io.MouseDown[0] = false;
+  io.MouseDown[0] =
+      false;
 
     }
     }
-- (void)touchesCancelled:(NSSet<UITouch *> *)touches
+* (void)touchesCancelled:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     [self endMenuInteraction];
-    gContentScrollVelocity = 0.0f;
-    gPendingContentScrollY = 0.0f;
+    gContentScrollVelocity =
+    0f;
+    gPendingContentScrollY =
+    0f;
     if (!gInitialized)
     return;
     [self updateIOWithTouchEvent:event];
@@ -892,7 +926,8 @@ return clicked;
     ImGuiIO &io =
     ImGui::GetIO();
 
-  io.MouseDown[0] = false;
+  io.MouseDown[0] =
+      false;
 
     }
     }
@@ -909,26 +944,51 @@ return;
 ImGuiStyle &style =
     ImGui::GetStyle();
 style.WindowPadding =
-    ImVec2(10.0f, 10.0f);
+    ImVec2(
+        10.0f,
+        10.0f
+    );
 style.FramePadding =
-    ImVec2(11.0f, 8.0f);
+    ImVec2(
+        11.0f,
+        8.0f
+    );
 style.ItemSpacing =
-    ImVec2(9.0f, 9.0f);
+    ImVec2(
+        9.0f,
+        9.0f
+    );
 style.ItemInnerSpacing =
-    ImVec2(7.0f, 6.0f);
-style.ScrollbarSize = 1.0f;
-style.GrabMinSize = 15.0f;
-style.WindowRounding = 20.0f;
-style.ChildRounding = 14.0f;
-style.FrameRounding = 9.0f;
-style.PopupRounding = 11.0f;
-style.ScrollbarRounding = 8.0f;
-style.GrabRounding = 8.0f;
-style.TabRounding = 9.0f;
-style.WindowBorderSize = 0.0f;
-style.ChildBorderSize = 1.0f;
-style.FrameBorderSize = 0.0f;
-style.IndentSpacing = 20.0f;
+    ImVec2(
+        7.0f,
+        6.0f
+    );
+style.ScrollbarSize =
+    1.0f;
+style.GrabMinSize =
+    15.0f;
+style.WindowRounding =
+    22.0f;
+style.ChildRounding =
+    15.0f;
+style.FrameRounding =
+    10.0f;
+style.PopupRounding =
+    12.0f;
+style.ScrollbarRounding =
+    8.0f;
+style.GrabRounding =
+    8.0f;
+style.TabRounding =
+    10.0f;
+style.WindowBorderSize =
+    0.0f;
+style.ChildBorderSize =
+    1.0f;
+style.FrameBorderSize =
+    0.0f;
+style.IndentSpacing =
+    20.0f;
 ImVec4 *c =
     style.Colors;
 c[ImGuiCol_Text] =
@@ -1092,14 +1152,12 @@ c[ImGuiCol_ScrollbarGrabActive] =
 
 @implementation ASASECImGuiRenderer
 
-- (void)mtkView:(MTKView *)view
+* (void)mtkView:(MTKView *)view
     drawableSizeWillChange:(CGSize)size
     {
-    if (!gInitialized)
-    return;
-    if (!view)
-    return;
-    if (!ImGui::GetCurrentContext())
+    if (!gInitialized ||
+    !view ||
+    !ImGui::GetCurrentContext())
     return;
     ImGuiIO &io =
     ImGui::GetIO();
@@ -1118,17 +1176,13 @@ c[ImGuiCol_ScrollbarGrabActive] =
     (float)scale
     );
     }
-- (void)drawInMTKView:(MTKView *)view
+* (void)drawInMTKView:(MTKView *)view
     {
-    if (!gInitialized)
-    return;
-    if (!view)
-    return;
-    if (!gMetalDevice)
-    return;
-    if (!gCommandQueue)
-    return;
-    if (!ImGui::GetCurrentContext())
+    if (!gInitialized ||
+    !view ||
+    !gMetalDevice ||
+    !gCommandQueue ||
+    !ImGui::GetCurrentContext())
     return;
     MTLRenderPassDescriptor *pass =
     view.currentRenderPassDescriptor;
@@ -1163,53 +1217,86 @@ c[ImGuiCol_ScrollbarGrabActive] =
     (float)view.preferredFramesPerSecond;
     if (fps < 1.0f)
     fps = 60.0f;
-    
-    // DÜZELTME: io.DeltaTime sıfıra bölme hatasına (division by zero) yol açtığı için 1.0f / fps olarak düzeltildi.
-    io.DeltaTime = 1.0f / fps;
-    
+    io.DeltaTime =
+    0f / fps;
+    if (io.DeltaTime <= 0.0f ||
+    io.DeltaTime > 0.1f)
+    {
+    io.DeltaTime =
+    0f / 60.0f;
+    }
     ImGui::NewFrame();
     float dt =
     io.DeltaTime;
-    if (dt <= 0.0f || dt > 0.1f)
+    if (dt <= 0.0f ||
+    dt > 0.1f)
     dt = 1.0f / 60.0f;
-    if (gSelectedPage != gPreviousPage)
+    if (gSelectedPage !=
+    gPreviousPage)
     {
     gPreviousPage =
     gSelectedPage;
 
   gPageAnimation =
       0.0f;
+  gPageSlide =
+      18.0f;
 
     }
+    /*
+    PAGE ANIMATION FIX
+    Önceki kodda:
+    Ease(…, 0.0f, 0.0f, dt)
+    kullanılıyordu.
+    Hedef 0 ve hız 0 olduğu için
+    animasyon hiçbir zaman 1’e
+    ulaşamıyordu.
+    Yeni sistem:
+    opacity 0 -> 1
+    slide   18 -> 0
+    */
     gPageAnimation =
     ASASECEase(
     gPageAnimation,
-    0.0f,
-    0.0f,
+    0f,
+    0f,
+    dt
+    );
+    gPageSlide =
+    ASASECEase(
+    gPageSlide,
+    0f,
+    0f,
     dt
     );
     if (!gContentDragging &&
-    fabsf(gContentScrollVelocity) > 0.01f)
+    fabsf(gContentScrollVelocity) >
+    01f)
     {
     gPendingContentScrollY +=
     gContentScrollVelocity;
 
   gContentScrollVelocity *=
       expf(-7.0f * dt);
-  if (fabsf(gContentScrollVelocity) < 0.01f)
-      gContentScrollVelocity = 0.0f;
+  if (fabsf(gContentScrollVelocity) <
+      0.01f)
+  {
+      gContentScrollVelocity =
+          0.0f;
+  }
 
     }
     if (gMenuVisible)
     {
-    const float sidebarWidth = 145.0f;
+    const float sidebarWidth =
+    0f;
 
   ImVec2 actualWindowSize =
       ImVec2(
           gMenuSize.x,
           gMenuCollapsed
-          ? kHeaderHeight
-          : gMenuSize.y
+              ? kHeaderHeight
+              : gMenuSize.y
       );
   ImGui::SetNextWindowPos(
       gMenuPosition,
@@ -1227,11 +1314,14 @@ c[ImGuiCol_ScrollbarGrabActive] =
       ImGuiWindowFlags_NoScrollbar;
   ImGui::PushStyleVar(
       ImGuiStyleVar_WindowPadding,
-      ImVec2(0.0f, 0.0f)
+      ImVec2(
+          0.0f,
+          0.0f
+      )
   );
   ImGui::PushStyleVar(
       ImGuiStyleVar_WindowRounding,
-      20.0f
+      22.0f
   );
   ImGui::PushStyleColor(
       ImGuiCol_WindowBg,
@@ -1257,12 +1347,15 @@ c[ImGuiCol_ScrollbarGrabActive] =
       ImVec2 windowEnd =
           ImVec2(
               windowPos.x +
-              windowSize.x,
+                  windowSize.x,
               windowPos.y +
-              windowSize.y
+                  windowSize.y
           );
       ImDrawList *draw =
           ImGui::GetWindowDrawList();
+      /*
+       MAIN BACKGROUND
+      */
       if (draw)
       {
           draw->AddRectFilled(
@@ -1274,8 +1367,11 @@ c[ImGuiCol_ScrollbarGrabActive] =
                   16,
                   252
               ),
-              20.0f
+              22.0f
           );
+          /*
+           Soft outer border
+          */
           draw->AddRect(
               ImVec2(
                   windowPos.x + 0.5f,
@@ -1286,15 +1382,18 @@ c[ImGuiCol_ScrollbarGrabActive] =
                   windowEnd.y - 0.5f
               ),
               IM_COL32(
-                  42,
-                  53,
-                  73,
-                  190
+                  48,
+                  62,
+                  84,
+                  185
               ),
-              20.0f,
+              22.0f,
               0,
               1.0f
           );
+          /*
+           Header
+          */
           draw->AddRectFilled(
               ImVec2(
                   windowPos.x + 1.0f,
@@ -1303,7 +1402,7 @@ c[ImGuiCol_ScrollbarGrabActive] =
               ImVec2(
                   windowEnd.x - 1.0f,
                   windowPos.y +
-                  kHeaderHeight
+                      kHeaderHeight
               ),
               IM_COL32(
                   10,
@@ -1311,33 +1410,35 @@ c[ImGuiCol_ScrollbarGrabActive] =
                   25,
                   255
               ),
-              19.0f,
+              21.0f,
               ImDrawFlags_RoundCornersTop
           );
-          if (!gMenuCollapsed)
-          {
-              draw->AddLine(
-                  ImVec2(
-                      windowPos.x + 16.0f,
-                      windowPos.y + 53.0f
-                  ),
-                  ImVec2(
-                      windowEnd.x - 16.0f,
-                      windowPos.y + 53.0f
-                  ),
-                  IM_COL32(
-                      34,
-                      44,
-                      61,
-                      220
-                  ),
-                  1.0f
-              );
-          }
+          /*
+           Header bottom separator
+          */
+          draw->AddLine(
+              ImVec2(
+                  windowPos.x + 16.0f,
+                  windowPos.y +
+                      kHeaderHeight
+              ),
+              ImVec2(
+                  windowEnd.x - 16.0f,
+                  windowPos.y +
+                      kHeaderHeight
+              ),
+              IM_COL32(
+                  38,
+                  48,
+                  66,
+                  220
+              ),
+              1.0f
+          );
       }
       /*
-       HEADER
-       */
+       HEADER TITLE
+      */
       ImGui::SetCursorPos(
           ImVec2(
               18.0f,
@@ -1351,7 +1452,7 @@ c[ImGuiCol_ScrollbarGrabActive] =
               1.0f,
               1.0f
           ),
-          "o"
+          "●"
       );
       ImGui::SameLine(
           0.0f,
@@ -1359,8 +1460,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
       );
       ImGui::TextColored(
           ImVec4(
-              0.93f,
-              0.96f,
+              0.94f,
+              0.97f,
               1.0f,
               1.0f
           ),
@@ -1372,22 +1473,19 @@ c[ImGuiCol_ScrollbarGrabActive] =
       );
       ImGui::TextColored(
           ImVec4(
-              0.42f,
-              0.48f,
-              0.57f,
+              0.43f,
+              0.49f,
+              0.59f,
               1.0f
           ),
           "UI"
       );
       /*
-       TEK AÇ / KAPAT BUTONU
-       Artık üç nokta veya başka ikinci
-       bir kontrol yok.
-       Ok doğrudan DrawList ile çiziliyor.
-       Böylece font/glyph problemi oluşmuyor.
+       COLLAPSE BUTTON
        */
       float collapseButtonX =
-          windowSize.x - 55.0f;
+          windowSize.x -
+          96.0f;
       ImGui::SetCursorPos(
           ImVec2(
               collapseButtonX,
@@ -1449,10 +1547,12 @@ c[ImGuiCol_ScrollbarGrabActive] =
       {
           float centerX =
               (arrowMin.x +
-               arrowMax.x) * 0.5f;
+               arrowMax.x) *
+              0.5f;
           float centerY =
               (arrowMin.y +
-               arrowMax.y) * 0.5f;
+               arrowMax.y) *
+              0.5f;
           float arrowWidth =
               7.0f;
           float arrowHeight =
@@ -1474,16 +1574,19 @@ c[ImGuiCol_ScrollbarGrabActive] =
           if (gMenuCollapsed)
           {
               /*
-               Aşağı bakan ok
-               */
+               DOWN
+              */
               headerDraw->AddLine(
                   ImVec2(
-                      centerX - arrowWidth,
-                      centerY - arrowHeight
+                      centerX -
+                          arrowWidth,
+                      centerY -
+                          arrowHeight
                   ),
                   ImVec2(
                       centerX,
-                      centerY + arrowHeight
+                      centerY +
+                          arrowHeight
                   ),
                   arrowColor,
                   2.2f
@@ -1491,11 +1594,14 @@ c[ImGuiCol_ScrollbarGrabActive] =
               headerDraw->AddLine(
                   ImVec2(
                       centerX,
-                      centerY + arrowHeight
+                      centerY +
+                          arrowHeight
                   ),
                   ImVec2(
-                      centerX + arrowWidth,
-                      centerY - arrowHeight
+                      centerX +
+                          arrowWidth,
+                      centerY -
+                          arrowHeight
                   ),
                   arrowColor,
                   2.2f
@@ -1504,16 +1610,19 @@ c[ImGuiCol_ScrollbarGrabActive] =
           else
           {
               /*
-               Yukarı bakan ok
-               */
+               UP
+              */
               headerDraw->AddLine(
                   ImVec2(
-                      centerX - arrowWidth,
-                      centerY + arrowHeight
+                      centerX -
+                          arrowWidth,
+                      centerY +
+                          arrowHeight
                   ),
                   ImVec2(
                       centerX,
-                      centerY - arrowHeight
+                      centerY -
+                          arrowHeight
                   ),
                   arrowColor,
                   2.2f
@@ -1521,11 +1630,14 @@ c[ImGuiCol_ScrollbarGrabActive] =
               headerDraw->AddLine(
                   ImVec2(
                       centerX,
-                      centerY - arrowHeight
+                      centerY -
+                          arrowHeight
                   ),
                   ImVec2(
-                      centerX + arrowWidth,
-                      centerY + arrowHeight
+                      centerX +
+                          arrowWidth,
+                      centerY +
+                          arrowHeight
                   ),
                   arrowColor,
                   2.2f
@@ -1556,23 +1668,161 @@ c[ImGuiCol_ScrollbarGrabActive] =
       ImGui::PopStyleVar();
       ImGui::PopID();
       /*
-       KAPALI DURUM
-       Sadece header çizilir.
-       Content, sidebar, resize handle
-       ve diğer bütün alanlar kaldırılır.
-       */
-      if (!gMenuCollapsed)
+       CLOSE BUTTON
+       X - ARROW'UN SAĞINDA
+      */
+      float closeButtonX =
+          windowSize.x -
+          50.0f;
+      ImGui::SetCursorPos(
+          ImVec2(
+              closeButtonX,
+              9.0f
+          )
+      );
+      ImGui::PushID(
+          "ASASEC_CLOSE_BUTTON"
+      );
+      ImGui::PushStyleVar(
+          ImGuiStyleVar_FrameRounding,
+          10.0f
+      );
+      ImGui::PushStyleColor(
+          ImGuiCol_Button,
+          ImVec4(
+              0.10f,
+              0.065f,
+              0.085f,
+              1.0f
+          )
+      );
+      ImGui::PushStyleColor(
+          ImGuiCol_ButtonHovered,
+          ImVec4(
+              0.34f,
+              0.10f,
+              0.15f,
+              1.0f
+          )
+      );
+      ImGui::PushStyleColor(
+          ImGuiCol_ButtonActive,
+          ImVec4(
+              0.48f,
+              0.12f,
+              0.18f,
+              1.0f
+          )
+      );
+      ImGui::Button(
+          "##close",
+          ImVec2(
+              34.0f,
+              34.0f
+          )
+      );
+      bool closePressed =
+          ImGui::IsItemClicked();
+      bool closeHovered =
+          ImGui::IsItemHovered();
+      ImVec2 closeMin =
+          ImGui::GetItemRectMin();
+      ImVec2 closeMax =
+          ImGui::GetItemRectMax();
+      ImDrawList *closeDraw =
+          ImGui::GetWindowDrawList();
+      if (closeDraw)
+      {
+          float cx =
+              (closeMin.x +
+               closeMax.x) *
+              0.5f;
+          float cy =
+              (closeMin.y +
+               closeMax.y) *
+              0.5f;
+          float size =
+              6.0f;
+          ImU32 closeColor =
+              closeHovered
+              ? ASASECColor(
+                  1.0f,
+                  0.45f,
+                  0.52f,
+                  1.0f
+              )
+              : ASASECColor(
+                  0.86f,
+                  0.90f,
+                  0.96f,
+                  0.95f
+              );
+          closeDraw->AddLine(
+              ImVec2(
+                  cx - size,
+                  cy - size
+              ),
+              ImVec2(
+                  cx + size,
+                  cy + size
+              ),
+              closeColor,
+              2.2f
+          );
+          closeDraw->AddLine(
+              ImVec2(
+                  cx + size,
+                  cy - size
+              ),
+              ImVec2(
+                  cx - size,
+                  cy + size
+              ),
+              closeColor,
+              2.2f
+          );
+      }
+      if (closePressed)
+      {
+          gMenuVisible =
+              NO;
+          gMenuCollapsed =
+              NO;
+          gDraggingMenu =
+              NO;
+          gResizingMenu =
+              NO;
+          gContentDragging =
+              NO;
+          gContentTouchCandidate =
+              NO;
+          gContentHasMoved =
+              NO;
+          gPendingContentScrollY =
+              0.0f;
+          gContentScrollVelocity =
+              0.0f;
+      }
+      ImGui::PopStyleColor(3);
+      ImGui::PopStyleVar();
+      ImGui::PopID();
+      /*
+       COLLAPSED STATE
+       Sadece header.
+      */
+      if (!gMenuCollapsed &&
+          gMenuVisible)
       {
           /*
            SIDEBAR
-           */
+          */
           if (draw)
           {
               draw->AddRectFilled(
                   windowPos,
                   ImVec2(
                       windowPos.x +
-                      sidebarWidth,
+                          sidebarWidth,
                       windowEnd.y
                   ),
                   IM_COL32(
@@ -1581,19 +1831,21 @@ c[ImGuiCol_ScrollbarGrabActive] =
                       24,
                       255
                   ),
-                  20.0f,
+                  22.0f,
                   ImDrawFlags_RoundCornersBottomLeft
               );
               draw->AddLine(
                   ImVec2(
                       windowPos.x +
-                      sidebarWidth,
-                      windowPos.y + 62.0f
+                          sidebarWidth,
+                      windowPos.y +
+                          62.0f
                   ),
                   ImVec2(
                       windowPos.x +
-                      sidebarWidth,
-                      windowEnd.y - 16.0f
+                          sidebarWidth,
+                      windowEnd.y -
+                          16.0f
                   ),
                   IM_COL32(
                       34,
@@ -1631,7 +1883,9 @@ c[ImGuiCol_ScrollbarGrabActive] =
               "V",
               "S"
           };
-          for (int i = 0; i < 3; i++)
+          for (int i = 0;
+               i < 3;
+               i++)
           {
               bool active =
                   gSelectedPage == i;
@@ -1643,13 +1897,16 @@ c[ImGuiCol_ScrollbarGrabActive] =
                   draw->AddRectFilled(
                       ImVec2(
                           windowPos.x + 9.0f,
-                          windowPos.y + itemY
+                          windowPos.y +
+                              itemY
                       ),
                       ImVec2(
                           windowPos.x +
-                          sidebarWidth - 9.0f,
+                              sidebarWidth -
+                              9.0f,
                           windowPos.y +
-                          itemY + 42.0f
+                              itemY +
+                              42.0f
                       ),
                       IM_COL32(
                           19,
@@ -1663,7 +1920,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
                       ImVec2(
                           windowPos.x + 18.0f,
                           windowPos.y +
-                          itemY + 21.0f
+                              itemY +
+                              21.0f
                       ),
                       3.0f,
                       IM_COL32(
@@ -1723,15 +1981,20 @@ c[ImGuiCol_ScrollbarGrabActive] =
               if (ImGui::Button(
                   id,
                   ImVec2(
-                      sidebarWidth - 20.0f,
+                      sidebarWidth -
+                          20.0f,
                       42.0f
                   )
               ))
               {
                   if (gSelectedPage != i)
                   {
-                      gSelectedPage = i;
-                      gPageAnimation = 0.0f;
+                      gSelectedPage =
+                          i;
+                      gPageAnimation =
+                          0.0f;
+                      gPageSlide =
+                          18.0f;
                       gPendingContentScrollY =
                           0.0f;
                       gContentScrollVelocity =
@@ -1743,7 +2006,7 @@ c[ImGuiCol_ScrollbarGrabActive] =
           }
           /*
            CONTENT ROOT
-           */
+          */
           ImGui::SetCursorPos(
               ImVec2(
                   sidebarWidth + 1.0f,
@@ -1812,13 +2075,16 @@ c[ImGuiCol_ScrollbarGrabActive] =
                   draw->AddLine(
                       ImVec2(
                           windowPos.x +
-                          sidebarWidth +
-                          16.0f,
-                          windowPos.y + 51.0f
+                              sidebarWidth +
+                              16.0f,
+                          windowPos.y +
+                              51.0f
                       ),
                       ImVec2(
-                          windowEnd.x - 16.0f,
-                          windowPos.y + 51.0f
+                          windowEnd.x -
+                              16.0f,
+                          windowPos.y +
+                              51.0f
                       ),
                       IM_COL32(
                           32,
@@ -1836,7 +2102,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
                   )
               );
               float scrollHeight =
-                  contentHeight - 60.0f;
+                  contentHeight -
+                  60.0f;
               if (scrollHeight < 100.0f)
                   scrollHeight = 100.0f;
               if (ImGui::BeginChild(
@@ -1849,6 +2116,15 @@ c[ImGuiCol_ScrollbarGrabActive] =
                   ImGuiWindowFlags_NoScrollbar
               ))
               {
+                  /*
+                   PAGE TRANSITION
+                   Fade:
+                   0 -> 1
+                   Slide:
+                   18 -> 0
+                   Kararma sorunu burada
+                   tamamen düzeltilmiştir.
+                  */
                   float fade =
                       ASASECClampFloat(
                           gPageAnimation,
@@ -1860,7 +2136,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
                       fade
                   );
                   ImGui::SetCursorPosX(
-                      15.0f
+                      15.0f +
+                      gPageSlide
                   );
                   if (gSelectedPage == 0)
                   {
@@ -1896,15 +2173,21 @@ c[ImGuiCol_ScrollbarGrabActive] =
                           "Configure your combat options"
                       );
                       ImGui::Spacing();
-                      static bool aimbot = false;
-                      static bool esp = true;
-                      static bool autoFire = false;
-                      static bool silentAim = false;
-                      static float fov = 90.0f;
+                      static bool aimbot =
+                          false;
+                      static bool esp =
+                          true;
+                      static bool autoFire =
+                          false;
+                      static bool silentAim =
+                          false;
+                      static float fov =
+                          90.0f;
                       if (ImGui::BeginChild(
                           "##CombatCard",
                           ImVec2(
-                              ImGui::GetContentRegionAvail().x - 18.0f,
+                              ImGui::GetContentRegionAvail().x -
+                                  18.0f,
                               315.0f
                           ),
                           true
@@ -1958,7 +2241,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
                               "FOV Radius"
                           );
                           ImGui::SetNextItemWidth(
-                              ImGui::GetContentRegionAvail().x - 10.0f
+                              ImGui::GetContentRegionAvail().x -
+                                  10.0f
                           );
                           ImGui::SliderFloat(
                               "##FOV",
@@ -1976,11 +2260,16 @@ c[ImGuiCol_ScrollbarGrabActive] =
                               )
                           ))
                           {
-                              aimbot = false;
-                              esp = true;
-                              autoFire = false;
-                              silentAim = false;
-                              fov = 90.0f;
+                              aimbot =
+                                  false;
+                              esp =
+                                  true;
+                              autoFire =
+                                  false;
+                              silentAim =
+                                  false;
+                              fov =
+                                  90.0f;
                           }
                       }
                       ImGui::EndChild();
@@ -1988,7 +2277,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
                       if (ImGui::BeginChild(
                           "##CombatExtra",
                           ImVec2(
-                              ImGui::GetContentRegionAvail().x - 18.0f,
+                              ImGui::GetContentRegionAvail().x -
+                                  18.0f,
                               220.0f
                           ),
                           true
@@ -2015,9 +2305,12 @@ c[ImGuiCol_ScrollbarGrabActive] =
                           ImGui::Spacing();
                           ImGui::Separator();
                           ImGui::Spacing();
-                          static bool targetLock = false;
-                          static bool prediction = false;
-                          static bool visibilityCheck = true;
+                          static bool targetLock =
+                              false;
+                          static bool prediction =
+                              false;
+                          static bool visibilityCheck =
+                              true;
                           ASASECModernSwitch(
                               "Target Lock",
                               &targetLock
@@ -2067,15 +2360,21 @@ c[ImGuiCol_ScrollbarGrabActive] =
                           "Configure visual options"
                       );
                       ImGui::Spacing();
-                      static bool playerESP = true;
-                      static bool healthBar = true;
-                      static bool wallhack = false;
-                      static bool nameTags = true;
-                      static bool distance = true;
+                      static bool playerESP =
+                          true;
+                      static bool healthBar =
+                          true;
+                      static bool wallhack =
+                          false;
+                      static bool nameTags =
+                          true;
+                      static bool distance =
+                          true;
                       if (ImGui::BeginChild(
                           "##VisualCard",
                           ImVec2(
-                              ImGui::GetContentRegionAvail().x - 18.0f,
+                              ImGui::GetContentRegionAvail().x -
+                                  18.0f,
                               315.0f
                           ),
                           true
@@ -2128,7 +2427,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
                       if (ImGui::BeginChild(
                           "##VisualExtra",
                           ImVec2(
-                              ImGui::GetContentRegionAvail().x - 18.0f,
+                              ImGui::GetContentRegionAvail().x -
+                                  18.0f,
                               240.0f
                           ),
                           true
@@ -2155,9 +2455,12 @@ c[ImGuiCol_ScrollbarGrabActive] =
                           ImGui::Spacing();
                           ImGui::Separator();
                           ImGui::Spacing();
-                          static bool glow = false;
-                          static bool skeleton = false;
-                          static bool snapLines = false;
+                          static bool glow =
+                              false;
+                          static bool skeleton =
+                              false;
+                          static bool snapLines =
+                              false;
                           ASASECModernSwitch(
                               "Glow",
                               &glow
@@ -2210,7 +2513,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
                       if (ImGui::BeginChild(
                           "##SettingsCard",
                           ImVec2(
-                              ImGui::GetContentRegionAvail().x - 18.0f,
+                              ImGui::GetContentRegionAvail().x -
+                                  18.0f,
                               330.0f
                           ),
                           true
@@ -2241,7 +2545,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
                               "Version"
                           );
                           ImGui::SameLine(
-                              ImGui::GetContentRegionAvail().x - 55.0f
+                              ImGui::GetContentRegionAvail().x -
+                                  55.0f
                           );
                           ImGui::TextColored(
                               ImVec4(
@@ -2257,7 +2562,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
                               "Renderer"
                           );
                           ImGui::SameLine(
-                              ImGui::GetContentRegionAvail().x - 55.0f
+                              ImGui::GetContentRegionAvail().x -
+                                  55.0f
                           );
                           ImGui::Text(
                               "Metal"
@@ -2267,7 +2573,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
                               "Status"
                           );
                           ImGui::SameLine(
-                              ImGui::GetContentRegionAvail().x - 55.0f
+                              ImGui::GetContentRegionAvail().x -
+                                  55.0f
                           );
                           ImGui::TextColored(
                               ImVec4(
@@ -2281,9 +2588,12 @@ c[ImGuiCol_ScrollbarGrabActive] =
                           ImGui::Spacing();
                           ImGui::Separator();
                           ImGui::Spacing();
-                          static bool animations = true;
-                          static bool haptics = true;
-                          static bool compactMode = false;
+                          static bool animations =
+                              true;
+                          static bool haptics =
+                              true;
+                          static bool compactMode =
+                              false;
                           ASASECModernSwitch(
                               "Animations",
                               &animations
@@ -2302,7 +2612,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
                       if (ImGui::BeginChild(
                           "##InfoCard",
                           ImVec2(
-                              ImGui::GetContentRegionAvail().x - 18.0f,
+                              ImGui::GetContentRegionAvail().x -
+                                  18.0f,
                               210.0f
                           ),
                           true
@@ -2336,7 +2647,12 @@ c[ImGuiCol_ScrollbarGrabActive] =
                       ImGui::EndChild();
                   }
                   ImGui::PopStyleVar();
-                  if (fabsf(gPendingContentScrollY) > 0.001f)
+                  /*
+                   SCROLL
+                  */
+                  if (fabsf(
+                          gPendingContentScrollY
+                      ) > 0.001f)
                   {
                       float currentScroll =
                           ImGui::GetScrollY();
@@ -2354,118 +2670,124 @@ c[ImGuiCol_ScrollbarGrabActive] =
                       ImGui::SetScrollY(
                           targetScroll
                       );
-                      if ((targetScroll <= 0.0f &&
+                      if (
+                          (targetScroll <= 0.0f &&
                            gPendingContentScrollY < 0.0f) ||
                           (targetScroll >= maxScroll &&
-                           gPendingContentScrollY > 0.0f))
+                           gPendingContentScrollY > 0.0f)
+                      )
                       {
-                          gContentScrollVelocity = 0.0f;
+                          gContentScrollVelocity =
+                              0.0f;
                       }
-                      gPendingContentScrollY = 0.0f;
+                      gPendingContentScrollY =
+                          0.0f;
                   }
               }
               ImGui::EndChild();
-              /*
-               RESIZE ICON
-               Ters L korunuyor.
-               */
-              if (draw &&
-                  windowSize.x > 300.0f &&
-                  windowSize.y > 220.0f)
+          }
+          /*
+           RESIZE ICON
+          */
+          if (draw &&
+              windowSize.x > 300.0f &&
+              windowSize.y > 220.0f)
+          {
+              float right =
+                  windowSize.x -
+                  7.0f;
+              float bottom =
+                  windowSize.y -
+                  7.0f;
+              ImVec2 iconCenter =
+                  ImVec2(
+                      windowPos.x +
+                          right -
+                          10.0f,
+                      windowPos.y +
+                          bottom -
+                          10.0f
+                  );
+              BOOL resizeActive =
+                  gResizingMenu;
+              ImU32 iconColor =
+                  resizeActive
+                  ? ASASECColor(
+                      0.42f,
+                      0.72f,
+                      1.0f,
+                      1.0f
+                  )
+                  : ASASECColor(
+                      0.70f,
+                      0.76f,
+                      0.86f,
+                      0.80f
+                  );
+              if (gResizingMenu)
               {
-                  float right =
-                      windowSize.x - 7.0f;
-                  float bottom =
-                      windowSize.y - 7.0f;
-                  ImVec2 iconCenter =
-                      ImVec2(
-                          windowPos.x +
-                          right - 10.0f,
-                          windowPos.y +
-                          bottom - 10.0f
-                      );
-                  BOOL resizeActive =
-                      gResizingMenu;
-                  ImU32 iconColor =
-                      resizeActive
-                      ? ASASECColor(
-                          0.42f,
-                          0.72f,
+                  draw->AddCircle(
+                      iconCenter,
+                      13.0f,
+                      ASASECColor(
+                          0.30f,
+                          0.68f,
                           1.0f,
-                          1.0f
-                      )
-                      : ASASECColor(
-                          0.70f,
-                          0.76f,
-                          0.86f,
-                          0.80f
-                      );
-                  if (gResizingMenu)
-                  {
-                      draw->AddCircle(
-                          iconCenter,
-                          13.0f,
-                          ASASECColor(
-                              0.30f,
-                              0.68f,
-                              1.0f,
-                              0.18f
-                          ),
-                          24,
-                          1.2f
-                      );
-                  }
-                  draw->AddLine(
-                      ImVec2(
-                          iconCenter.x - 9.0f,
-                          iconCenter.y + 7.0f
+                          0.18f
                       ),
-                      ImVec2(
-                          iconCenter.x + 7.0f,
-                          iconCenter.y + 7.0f
-                      ),
-                      iconColor,
-                      2.2f
-                  );
-                  draw->AddLine(
-                      ImVec2(
-                          iconCenter.x + 7.0f,
-                          iconCenter.y + 7.0f
-                      ),
-                      ImVec2(
-                          iconCenter.x + 7.0f,
-                          iconCenter.y - 9.0f
-                      ),
-                      iconColor,
-                      2.2f
-                  );
-                  draw->AddLine(
-                      ImVec2(
-                          iconCenter.x - 3.0f,
-                          iconCenter.y + 7.0f
-                      ),
-                      ImVec2(
-                          iconCenter.x + 7.0f,
-                          iconCenter.y - 3.0f
-                      ),
-                      iconColor,
-                      1.7f
-                  );
-                  draw->AddLine(
-                      ImVec2(
-                          iconCenter.x + 2.0f,
-                          iconCenter.y + 7.0f
-                      ),
-                      ImVec2(
-                          iconCenter.x + 7.0f,
-                          iconCenter.y + 2.0f
-                      ),
-                      iconColor,
-                      1.7f
+                      24,
+                      1.2f
                   );
               }
+              draw->AddLine(
+                  ImVec2(
+                      iconCenter.x - 9.0f,
+                      iconCenter.y + 7.0f
+                  ),
+                  ImVec2(
+                      iconCenter.x + 7.0f,
+                      iconCenter.y + 7.0f
+                  ),
+                  iconColor,
+                  2.2f
+              );
+              draw->AddLine(
+                  ImVec2(
+                      iconCenter.x + 7.0f,
+                      iconCenter.y + 7.0f
+                  ),
+                  ImVec2(
+                      iconCenter.x + 7.0f,
+                      iconCenter.y - 9.0f
+                  ),
+                  iconColor,
+                  2.2f
+              );
+              draw->AddLine(
+                  ImVec2(
+                      iconCenter.x - 3.0f,
+                      iconCenter.y + 7.0f
+                  ),
+                  ImVec2(
+                      iconCenter.x + 7.0f,
+                      iconCenter.y - 3.0f
+                  ),
+                  iconColor,
+                  1.7f
+              );
+              draw->AddLine(
+                  ImVec2(
+                      iconCenter.x + 2.0f,
+                      iconCenter.y + 7.0f
+                  ),
+                  ImVec2(
+                      iconCenter.x + 7.0f,
+                      iconCenter.y + 2.0f
+                  ),
+                  iconColor,
+                  1.7f
+              );
           }
-          ImGui::EndChild();
       }
   }
   ImGui::End();
@@ -2477,7 +2799,10 @@ c[ImGuiCol_ScrollbarGrabActive] =
     ImDrawData *drawData =
     ImGui::GetDrawData();
     if (!drawData)
+    {
+    [commandBuffer commit];
     return;
+    }
     id encoder =
     [commandBuffer
     renderCommandEncoderWithDescriptor:pass];
@@ -2492,7 +2817,7 @@ c[ImGuiCol_ScrollbarGrabActive] =
     (double)view.drawableSize.width,
     (double)view.drawableSize.height,
     0,
-    0
+    1
     }];
     ImGui_ImplMetal_RenderDrawData(
     drawData,
@@ -2500,7 +2825,8 @@ c[ImGuiCol_ScrollbarGrabActive] =
     encoder
     );
     [encoder endEncoding];
-    [commandBuffer presentDrawable:drawable];
+    [commandBuffer presentDrawable:
+    drawable];
     [commandBuffer commit];
     }
 
@@ -2513,7 +2839,8 @@ void ASASECImGuiStart(void)
 dispatch_async(
 dispatch_get_main_queue(),
 ^{
-if (gInitialized || gStarting)
+if (gInitialized ||
+gStarting)
 return;
 
         gStarting = YES;
@@ -2560,8 +2887,10 @@ return;
         gRenderer = nil;
         gMetalDevice = nil;
         gCommandQueue = nil;
-        gMetalDevice = device;
-        gCommandQueue = queue;
+        gMetalDevice =
+            device;
+        gCommandQueue =
+            queue;
         ImGui::CreateContext();
         if (!ImGui::GetCurrentContext())
         {
@@ -2572,9 +2901,12 @@ return;
         }
         ImGuiIO &io =
             ImGui::GetIO();
-        io.IniFilename = NULL;
-        io.LogFilename = NULL;
-        io.FontGlobalScale = 1.0f;
+        io.IniFilename =
+            NULL;
+        io.LogFilename =
+            NULL;
+        io.FontGlobalScale =
+            1.0f;
         CGSize bounds =
             window.bounds.size;
         io.DisplaySize =
@@ -2592,12 +2924,41 @@ return;
                 (float)scale
             );
         ASASECApplyStyle();
+        /*
+         RESET MENU STATE
+        */
+        gMenuVisible =
+            YES;
+        gMenuCollapsed =
+            NO;
+        gSelectedPage =
+            0;
+        gPreviousPage =
+            0;
+        gPageAnimation =
+            1.0f;
+        gPageSlide =
+            0.0f;
+        gDraggingMenu =
+            NO;
+        gResizingMenu =
+            NO;
+        gContentDragging =
+            NO;
+        gContentTouchCandidate =
+            NO;
+        gContentHasMoved =
+            NO;
+        gPendingContentScrollY =
+            0.0f;
+        gContentScrollVelocity =
+            0.0f;
         CGRect frame =
             window.bounds;
         ASASECImGuiView *view =
             [[ASASECImGuiView alloc]
-             initWithFrame:frame
-             device:device];
+                initWithFrame:frame
+                device:device];
         if (!view)
         {
             ImGui::DestroyContext();
@@ -2608,7 +2969,8 @@ return;
         }
         view.backgroundColor =
             UIColor.clearColor;
-        view.opaque = NO;
+        view.opaque =
+            NO;
         view.clearColor =
             MTLClearColorMake(
                 0.0,
@@ -2624,14 +2986,15 @@ return;
             60;
         view.enableSetNeedsDisplay =
             NO;
-        view.paused = NO;
+        view.paused =
+            NO;
         view.multipleTouchEnabled =
             YES;
         view.userInteractionEnabled =
             YES;
         ASASECImGuiRenderer *renderer =
             [[ASASECImGuiRenderer alloc]
-             init];
+                init];
         if (!renderer)
         {
             ImGui::DestroyContext();
@@ -2642,15 +3005,18 @@ return;
         }
         if (!ImGui_ImplMetal_Init(device))
         {
-            view.delegate = nil;
+            view.delegate =
+                nil;
             ImGui::DestroyContext();
             gCommandQueue = nil;
             gMetalDevice = nil;
             gStarting = NO;
             return;
         }
-        gImGuiView = view;
-        gRenderer = renderer;
+        gImGuiView =
+            view;
+        gRenderer =
+            renderer;
         view.delegate =
             renderer;
         [window addSubview:view];
@@ -2658,8 +3024,10 @@ return;
         ASASECClampMenuToScreen(
             window
         );
-        gInitialized = YES;
-        gStarting = NO;
+        gInitialized =
+            YES;
+        gStarting =
+            NO;
     }
 );
 
@@ -2678,36 +3046,58 @@ if (!gInitialized &&
 return;
 }
 
-        gInitialized = NO;
-        gStarting = NO;
-        gDraggingMenu = NO;
-        gResizingMenu = NO;
-        gContentDragging = NO;
-        gContentTouchCandidate = NO;
-        gContentHasMoved = NO;
-        gPendingContentScrollY = 0.0f;
-        gContentScrollVelocity = 0.0f;
+        gInitialized =
+            NO;
+        gStarting =
+            NO;
+        gDraggingMenu =
+            NO;
+        gResizingMenu =
+            NO;
+        gContentDragging =
+            NO;
+        gContentTouchCandidate =
+            NO;
+        gContentHasMoved =
+            NO;
+        gPendingContentScrollY =
+            0.0f;
+        gContentScrollVelocity =
+            0.0f;
         if (gImGuiView)
         {
-            gImGuiView.delegate = nil;
-            gImGuiView.paused = YES;
-            [gImGuiView removeFromSuperview];
-            gImGuiView = nil;
+            gImGuiView.delegate =
+                nil;
+            gImGuiView.paused =
+                YES;
+            [gImGuiView
+                removeFromSuperview];
+            gImGuiView =
+                nil;
         }
         if (ImGui::GetCurrentContext())
         {
             ImGui_ImplMetal_Shutdown();
             ImGui::DestroyContext();
         }
-        gRenderer = nil;
-        gCommandQueue = nil;
-        gMetalDevice = nil;
-        gMenuVisible = YES;
-        gMenuCollapsed = NO;
-        gSelectedPage = 0;
-        gPreviousPage = 0;
-        gPageAnimation = 1.0f;
-        gMenuAnimation = 1.0f;
+        gRenderer =
+            nil;
+        gCommandQueue =
+            nil;
+        gMetalDevice =
+            nil;
+        gMenuVisible =
+            YES;
+        gMenuCollapsed =
+            NO;
+        gSelectedPage =
+            0;
+        gPreviousPage =
+            0;
+        gPageAnimation =
+            1.0f;
+        gPageSlide =
+            0.0f;
         gDragStartPoint =
             CGPointZero;
         gResizeStartPoint =
@@ -2733,8 +3123,11 @@ return;
                 560.0f,
                 390.0f
             );
-        gSwitchAnimationCount = 0;
-        for (int i = 0; i < 64; i++)
+        gSwitchAnimationCount =
+            0;
+        for (int i = 0;
+             i < 64;
+             i++)
         {
             gSwitchAnimations[i].label =
                 NULL;
