@@ -22,18 +22,9 @@ static ImVec2 gMenuSize = ImVec2(560.0f, 390.0f);
 
 static int gSelectedPage = 0;
 
-static bool gDraggingMenu = false;
+static BOOL gDraggingMenu = NO;
 static ImVec2 gDragStartMouse = ImVec2(0.0f, 0.0f);
 static ImVec2 gDragStartPosition = ImVec2(0.0f, 0.0f);
-
-static bool gAimbot = false;
-static bool gESP = true;
-static bool gAutoFire = false;
-static float gFOV = 90.0f;
-
-static bool gPlayerESP = true;
-static bool gHealthBar = true;
-static bool gWallhack = false;
 
 @interface ASASECImGuiView : MTKView
 @end
@@ -55,8 +46,7 @@ static bool gWallhack = false;
         point.y <= gMenuPosition.y + height;
 }
 
-- (UIView *)hitTest:(CGPoint)point
-           withEvent:(UIEvent *)event
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
 {
     if (!gInitialized || !gMenuVisible)
         return nil;
@@ -72,19 +62,19 @@ static bool gWallhack = false;
     if (!gInitialized)
         return;
 
-    ImGuiIO &io = ImGui::GetIO();
-
     UITouch *touch = event.allTouches.anyObject;
 
-    if (touch)
-    {
-        CGPoint point = [touch locationInView:self];
+    if (!touch)
+        return;
 
-        io.MousePos = ImVec2(
-            (float)point.x,
-            (float)point.y
-        );
-    }
+    CGPoint point = [touch locationInView:self];
+
+    ImGuiIO &io = ImGui::GetIO();
+
+    io.MousePos = ImVec2(
+        (float)point.x,
+        (float)point.y
+    );
 
     BOOL touching = NO;
 
@@ -99,11 +89,6 @@ static bool gWallhack = false;
     }
 
     io.MouseDown[0] = touching;
-
-    if (!touching)
-    {
-        gDraggingMenu = false;
-    }
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches
@@ -155,49 +140,11 @@ drawableSizeWillChange:(CGSize)size
         view.contentScaleFactor,
         view.contentScaleFactor
     );
-
-    /*
-     Clamp menu position when screen size changes.
-    */
-
-    float screenWidth =
-        view.bounds.size.width;
-
-    float screenHeight =
-        view.bounds.size.height;
-
-    float maxX =
-        screenWidth - gMenuSize.x;
-
-    float maxY =
-        screenHeight - 50.0f;
-
-    if (maxX < 5.0f)
-        maxX = 5.0f;
-
-    if (maxY < 5.0f)
-        maxY = 5.0f;
-
-    if (gMenuPosition.x > maxX)
-        gMenuPosition.x = maxX;
-
-    if (gMenuPosition.y > maxY)
-        gMenuPosition.y = maxY;
-
-    if (gMenuPosition.x < 5.0f)
-        gMenuPosition.x = 5.0f;
-
-    if (gMenuPosition.y < 5.0f)
-        gMenuPosition.y = 5.0f;
 }
-
 
 - (void)drawInMTKView:(MTKView *)view
 {
-    if (!gInitialized)
-        return;
-
-    if (!gCommandQueue)
+    if (!gInitialized || !gCommandQueue)
         return;
 
     MTLRenderPassDescriptor *pass =
@@ -229,8 +176,7 @@ drawableSizeWillChange:(CGSize)size
         view.contentScaleFactor
     );
 
-    float fps =
-        view.preferredFramesPerSecond;
+    float fps = view.preferredFramesPerSecond;
 
     if (fps <= 0.0f)
         fps = 60.0f;
@@ -242,6 +188,7 @@ drawableSizeWillChange:(CGSize)size
     if (gMenuVisible)
     {
         const float headerHeight = 50.0f;
+        const float sidebarWidth = 145.0f;
 
         float windowHeight =
             gMenuCollapsed ?
@@ -289,986 +236,1028 @@ drawableSizeWillChange:(CGSize)size
             )
         );
 
-        bool windowOpen = true;
-
-        if (ImGui::Begin(
+        ImGui::Begin(
             "##ASASEC_WINDOW",
-            &windowOpen,
+            NULL,
             flags
-        ))
+        );
+
+        ImVec2 windowPos =
+            ImGui::GetWindowPos();
+
+        ImVec2 windowSize =
+            ImGui::GetWindowSize();
+
+        gMenuPosition = windowPos;
+
+        if (!gMenuCollapsed)
+            gMenuSize = windowSize;
+
+        ImDrawList *draw =
+            ImGui::GetWindowDrawList();
+
+        ImVec2 windowEnd = ImVec2(
+            windowPos.x + windowSize.x,
+            windowPos.y + windowSize.y
+        );
+
+        /*
+         ============================================================
+         MAIN WINDOW
+         ============================================================
+         */
+
+        draw->AddRectFilled(
+            windowPos,
+            windowEnd,
+            IM_COL32(7, 10, 17, 250),
+            18.0f
+        );
+
+        /*
+         ============================================================
+         ACCENT LINE
+         ============================================================
+         */
+
+        draw->AddRectFilled(
+            ImVec2(
+                windowPos.x + 18.0f,
+                windowPos.y + 48.0f
+            ),
+            ImVec2(
+                windowPos.x + windowSize.x - 18.0f,
+                windowPos.y + 50.0f
+            ),
+            IM_COL32(62, 137, 255, 230),
+            1.0f
+        );
+
+        /*
+         ============================================================
+         COLLAPSED HEADER
+         ============================================================
+         */
+
+        if (gMenuCollapsed)
         {
-            ImVec2 windowPos =
-                ImGui::GetWindowPos();
-
-            ImVec2 windowSize =
-                ImGui::GetWindowSize();
-
-            ImDrawList *draw =
-                ImGui::GetWindowDrawList();
-
             /*
-             Main background
-            */
+             * Header background
+             */
 
             draw->AddRectFilled(
                 windowPos,
                 ImVec2(
                     windowPos.x + windowSize.x,
-                    windowPos.y + windowSize.y
+                    windowPos.y + headerHeight
                 ),
-                IM_COL32(7, 10, 17, 250),
+                IM_COL32(10, 14, 23, 252),
                 18.0f
             );
 
             /*
-             Subtle border
-            */
+             * Accent line
+             */
 
-            draw->AddRect(
-                windowPos,
+            draw->AddRectFilled(
                 ImVec2(
-                    windowPos.x + windowSize.x,
-                    windowPos.y + windowSize.y
+                    windowPos.x + 14.0f,
+                    windowPos.y + 47.0f
                 ),
-                IM_COL32(42, 52, 72, 180),
-                18.0f,
-                0,
+                ImVec2(
+                    windowPos.x + windowSize.x - 14.0f,
+                    windowPos.y + 49.0f
+                ),
+                IM_COL32(58, 133, 255, 240),
                 1.0f
             );
 
             /*
-             ========================================
-             COLLAPSED HEADER
-             ========================================
-            */
+             * Drag zone
+             *
+             * Sol taraftaki ASASEC / CONTROL yazısı artık
+             * doğrudan sürükleme alanıdır.
+             */
 
-            if (gMenuCollapsed)
+            ImGui::SetCursorPos(
+                ImVec2(14.0f, 7.0f)
+            );
+
+            ImGui::InvisibleButton(
+                "##CollapsedDragZone",
+                ImVec2(
+                    windowSize.x - 88.0f,
+                    36.0f
+                )
+            );
+
+            if (ImGui::IsItemActive())
             {
-                /*
-                 Header background
-                */
+                ImVec2 delta =
+                    ImGui::GetIO().MouseDelta;
 
-                draw->AddRectFilled(
-                    windowPos,
-                    ImVec2(
-                        windowPos.x + windowSize.x,
-                        windowPos.y + 50.0f
-                    ),
-                    IM_COL32(12, 17, 28, 255),
-                    18.0f
-                );
-
-                /*
-                 Blue accent
-                */
-
-                draw->AddRectFilled(
-                    ImVec2(
-                        windowPos.x,
-                        windowPos.y
-                    ),
-                    ImVec2(
-                        windowPos.x + 4.0f,
-                        windowPos.y + 50.0f
-                    ),
-                    IM_COL32(65, 145, 255, 255),
-                    2.0f
-                );
-
-                ImGui::SetCursorPos(
-                    ImVec2(17.0f, 9.0f)
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.30f,
-                        0.68f,
-                        1.0f,
-                        1.0f
-                    ),
-                    "ASASEC"
-                );
-
-                ImGui::SameLine();
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.48f,
-                        0.53f,
-                        0.63f,
-                        1.0f
-                    ),
-                    "CONTROL"
-                );
-
-                /*
-                 Restore button
-                */
-
-                ImGui::SetCursorPos(
-                    ImVec2(
-                        windowSize.x - 72.0f,
-                        9.0f
-                    )
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_Button,
-                    ImVec4(
-                        0.08f,
-                        0.13f,
-                        0.21f,
-                        1.0f
-                    )
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_ButtonHovered,
-                    ImVec4(
-                        0.12f,
-                        0.22f,
-                        0.35f,
-                        1.0f
-                    )
-                );
-
-                if (ImGui::Button(
-                    "+",
-                    ImVec2(28.0f, 30.0f)
-                ))
-                {
-                    gMenuCollapsed = NO;
-                }
-
-                ImGui::PopStyleColor(2);
-
-                /*
-                 Close button
-                */
-
-                ImGui::SameLine(
-                    0.0f,
-                    6.0f
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_Button,
-                    ImVec4(
-                        0.34f,
-                        0.07f,
-                        0.10f,
-                        1.0f
-                    )
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_ButtonHovered,
-                    ImVec4(
-                        0.55f,
-                        0.10f,
-                        0.14f,
-                        1.0f
-                    )
-                );
-
-                if (ImGui::Button(
-                    "×",
-                    ImVec2(28.0f, 30.0f)
-                ))
-                {
-                    gMenuVisible = NO;
-                }
-
-                ImGui::PopStyleColor(2);
+                gMenuPosition.x += delta.x;
+                gMenuPosition.y += delta.y;
             }
-            else
-            {
-                /*
-                 ========================================
-                 SIDEBAR
-                 ========================================
-                */
 
-                const float sidebarWidth = 145.0f;
+            /*
+             * Logo
+             */
 
-                draw->AddRectFilled(
-                    windowPos,
-                    ImVec2(
-                        windowPos.x + sidebarWidth,
-                        windowPos.y + windowSize.y
-                    ),
-                    IM_COL32(11, 15, 24, 255),
-                    18.0f,
-                    ImDrawFlags_RoundCornersLeft
-                );
+            ImGui::SetCursorPos(
+                ImVec2(18.0f, 10.0f)
+            );
 
-                /*
-                 Sidebar accent line
-                */
-
-                draw->AddRectFilled(
-                    ImVec2(
-                        windowPos.x + sidebarWidth - 1.0f,
-                        windowPos.y + 15.0f
-                    ),
-                    ImVec2(
-                        windowPos.x + sidebarWidth,
-                        windowPos.y + windowSize.y - 15.0f
-                    ),
-                    IM_COL32(28, 36, 52, 180)
-                );
-
-                /*
-                 Logo
-                */
-
-                ImGui::SetCursorPos(
-                    ImVec2(18.0f, 13.0f)
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.30f,
-                        0.68f,
-                        1.0f,
-                        1.0f
-                    ),
-                    "ASASEC"
-                );
-
-                ImGui::SameLine();
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.42f,
-                        0.47f,
-                        0.56f,
-                        1.0f
-                    ),
-                    "UI"
-                );
-
-                /*
-                 Logo separator
-                */
-
-                draw->AddLine(
-                    ImVec2(
-                        windowPos.x + 17.0f,
-                        windowPos.y + 42.0f
-                    ),
-                    ImVec2(
-                        windowPos.x + sidebarWidth - 17.0f,
-                        windowPos.y + 42.0f
-                    ),
-                    IM_COL32(35, 44, 61, 200),
+            ImGui::TextColored(
+                ImVec4(
+                    0.30f,
+                    0.65f,
+                    1.0f,
                     1.0f
-                );
+                ),
+                "ASASEC"
+            );
+
+            ImGui::SameLine();
+
+            ImGui::TextColored(
+                ImVec4(
+                    0.46f,
+                    0.50f,
+                    0.59f,
+                    1.0f
+                ),
+                "CONTROL"
+            );
+
+            /*
+             * Expand button
+             */
+
+            ImGui::SetCursorPos(
+                ImVec2(
+                    windowSize.x - 68.0f,
+                    9.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_Button,
+                ImVec4(
+                    0.07f,
+                    0.11f,
+                    0.18f,
+                    1.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_ButtonHovered,
+                ImVec4(
+                    0.12f,
+                    0.20f,
+                    0.33f,
+                    1.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_ButtonActive,
+                ImVec4(
+                    0.16f,
+                    0.28f,
+                    0.45f,
+                    1.0f
+                )
+            );
+
+            if (ImGui::Button(
+                "+",
+                ImVec2(28.0f, 30.0f)
+            ))
+            {
+                gMenuCollapsed = NO;
+            }
+
+            ImGui::PopStyleColor(3);
+
+            /*
+             * Close button
+             */
+
+            ImGui::SameLine(0.0f, 6.0f);
+
+            ImGui::PushStyleColor(
+                ImGuiCol_Button,
+                ImVec4(
+                    0.28f,
+                    0.06f,
+                    0.09f,
+                    1.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_ButtonHovered,
+                ImVec4(
+                    0.55f,
+                    0.10f,
+                    0.15f,
+                    1.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_ButtonActive,
+                ImVec4(
+                    0.70f,
+                    0.14f,
+                    0.20f,
+                    1.0f
+                )
+            );
+
+            if (ImGui::Button(
+                "×",
+                ImVec2(28.0f, 30.0f)
+            ))
+            {
+                gMenuVisible = NO;
+            }
+
+            ImGui::PopStyleColor(3);
+        }
+
+        /*
+         ============================================================
+         EXPANDED UI
+         ============================================================
+         */
+
+        else
+        {
+            /*
+             * Sidebar
+             */
+
+            draw->AddRectFilled(
+                windowPos,
+                ImVec2(
+                    windowPos.x + sidebarWidth,
+                    windowPos.y + windowSize.y
+                ),
+                IM_COL32(10, 14, 23, 255),
+                18.0f,
+                ImDrawFlags_RoundCornersLeft
+            );
+
+            /*
+             * Sidebar right separator
+             */
+
+            draw->AddLine(
+                ImVec2(
+                    windowPos.x + sidebarWidth,
+                    windowPos.y + 16.0f
+                ),
+                ImVec2(
+                    windowPos.x + sidebarWidth,
+                    windowPos.y + windowSize.y - 16.0f
+                ),
+                IM_COL32(27, 35, 50, 220),
+                1.0f
+            );
+
+            /*
+             * Logo
+             */
+
+            ImGui::SetCursorPos(
+                ImVec2(18.0f, 13.0f)
+            );
+
+            ImGui::TextColored(
+                ImVec4(
+                    0.30f,
+                    0.65f,
+                    1.0f,
+                    1.0f
+                ),
+                "ASASEC"
+            );
+
+            ImGui::SameLine();
+
+            ImGui::TextColored(
+                ImVec4(
+                    0.42f,
+                    0.47f,
+                    0.56f,
+                    1.0f
+                ),
+                "UI"
+            );
+
+            /*
+             * Sidebar subtitle
+             */
+
+            ImGui::SetCursorPos(
+                ImVec2(18.0f, 35.0f)
+            );
+
+            ImGui::TextColored(
+                ImVec4(
+                    0.28f,
+                    0.32f,
+                    0.40f,
+                    1.0f
+                ),
+                "CONTROL CENTER"
+            );
+
+            /*
+             * Navigation
+             */
+
+            const char *pages[] =
+            {
+                "Combat",
+                "Visuals",
+                "Settings"
+            };
+
+            const char *icons[] =
+            {
+                "A",
+                "V",
+                "S"
+            };
+
+            ImGui::SetCursorPos(
+                ImVec2(10.0f, 66.0f)
+            );
+
+            for (int i = 0; i < 3; i++)
+            {
+                bool active =
+                    gSelectedPage == i;
+
+                float itemY =
+                    66.0f + i * 50.0f;
 
                 /*
-                 Navigation
-                */
+                 * Active background
+                 */
 
-                const char *pages[] =
+                if (active)
                 {
-                    "Combat",
-                    "Visuals",
-                    "Settings"
-                };
-
-                const char *icons[] =
-                {
-                    "A",
-                    "V",
-                    "S"
-                };
-
-                for (int i = 0; i < 3; i++)
-                {
-                    float y =
-                        57.0f +
-                        ((float)i * 49.0f);
-
-                    bool active =
-                        gSelectedPage == i;
-
-                    if (active)
-                    {
-                        /*
-                         Active background
-                        */
-
-                        draw->AddRectFilled(
-                            ImVec2(
-                                windowPos.x + 10.0f,
-                                windowPos.y + y
-                            ),
-                            ImVec2(
-                                windowPos.x +
-                                sidebarWidth - 10.0f,
-                                windowPos.y + y + 40.0f
-                            ),
-                            IM_COL32(20, 51, 91, 255),
-                            9.0f
-                        );
-
-                        /*
-                         Active indicator
-                        */
-
-                        draw->AddRectFilled(
-                            ImVec2(
-                                windowPos.x + 10.0f,
-                                windowPos.y + y + 8.0f
-                            ),
-                            ImVec2(
-                                windowPos.x + 13.0f,
-                                windowPos.y + y + 32.0f
-                            ),
-                            IM_COL32(72, 155, 255, 255),
-                            2.0f
-                        );
-                    }
-
-                    ImGui::SetCursorPos(
+                    draw->AddRectFilled(
                         ImVec2(
-                            15.0f,
-                            y
-                        )
-                    );
-
-                    char id[64];
-
-                    snprintf(
-                        id,
-                        sizeof(id),
-                        "%s   %s##NAV_%d",
-                        icons[i],
-                        pages[i],
-                        i
-                    );
-
-                    ImGui::PushStyleColor(
-                        ImGuiCol_Button,
-                        ImVec4(
-                            0.0f,
-                            0.0f,
-                            0.0f,
-                            0.0f
-                        )
-                    );
-
-                    ImGui::PushStyleColor(
-                        ImGuiCol_ButtonHovered,
-                        ImVec4(
-                            0.09f,
-                            0.15f,
-                            0.24f,
-                            0.9f
-                        )
-                    );
-
-                    ImGui::PushStyleColor(
-                        ImGuiCol_ButtonActive,
-                        ImVec4(
-                            0.12f,
-                            0.22f,
-                            0.36f,
-                            1.0f
-                        )
-                    );
-
-                    if (ImGui::Button(
-                        id,
+                            windowPos.x + 10.0f,
+                            windowPos.y + itemY
+                        ),
                         ImVec2(
-                            sidebarWidth - 25.0f,
-                            40.0f
-                        )
-                    ))
-                    {
-                        gSelectedPage = i;
-                    }
+                            windowPos.x +
+                            sidebarWidth - 10.0f,
+                            windowPos.y +
+                            itemY + 40.0f
+                        ),
+                        IM_COL32(20, 54, 99, 255),
+                        10.0f
+                    );
 
-                    ImGui::PopStyleColor(3);
+                    /*
+                     * Active indicator
+                     */
+
+                    draw->AddRectFilled(
+                        ImVec2(
+                            windowPos.x + 10.0f,
+                            windowPos.y + itemY + 9.0f
+                        ),
+                        ImVec2(
+                            windowPos.x + 13.0f,
+                            windowPos.y + itemY + 31.0f
+                        ),
+                        IM_COL32(65, 145, 255, 255),
+                        2.0f
+                    );
                 }
 
-                /*
-                 ========================================
-                 CONTENT
-                 ========================================
-                */
+                char id[64];
 
-                ImGui::SetCursorPos(
-                    ImVec2(
-                        sidebarWidth,
+                snprintf(
+                    id,
+                    sizeof(id),
+                    "%s  %s##page_%d",
+                    icons[i],
+                    pages[i],
+                    i
+                );
+
+                ImGui::PushStyleColor(
+                    ImGuiCol_Button,
+                    ImVec4(
+                        0.0f,
+                        0.0f,
+                        0.0f,
                         0.0f
                     )
                 );
+
+                ImGui::PushStyleColor(
+                    ImGuiCol_ButtonHovered,
+                    ImVec4(
+                        0.10f,
+                        0.17f,
+                        0.28f,
+                        0.75f
+                    )
+                );
+
+                ImGui::PushStyleColor(
+                    ImGuiCol_ButtonActive,
+                    ImVec4(
+                        0.12f,
+                        0.23f,
+                        0.38f,
+                        1.0f
+                    )
+                );
+
+                if (ImGui::Button(
+                    id,
+                    ImVec2(
+                        sidebarWidth - 20.0f,
+                        40.0f
+                    )
+                ))
+                {
+                    gSelectedPage = i;
+                }
+
+                ImGui::PopStyleColor(3);
+
+                ImGui::SetCursorPosY(
+                    ImGui::GetCursorPosY() + 10.0f
+                );
+            }
+
+            /*
+             * Content
+             */
+
+            ImGui::SetCursorPos(
+                ImVec2(
+                    sidebarWidth + 1.0f,
+                    0.0f
+                )
+            );
+
+            ImGui::BeginChild(
+                "##Content",
+                ImVec2(
+                    windowSize.x -
+                    sidebarWidth - 1.0f,
+                    windowSize.y
+                ),
+                false,
+                ImGuiWindowFlags_NoScrollbar
+            );
+
+            /*
+             * Top header drag zone
+             */
+
+            ImGui::SetCursorPos(
+                ImVec2(14.0f, 8.0f)
+            );
+
+            ImGui::InvisibleButton(
+                "##ExpandedDragZone",
+                ImVec2(
+                    windowSize.x -
+                    sidebarWidth -
+                    90.0f,
+                    34.0f
+                )
+            );
+
+            if (ImGui::IsItemActive())
+            {
+                ImVec2 delta =
+                    ImGui::GetIO().MouseDelta;
+
+                gMenuPosition.x += delta.x;
+                gMenuPosition.y += delta.y;
+            }
+
+            /*
+             * Page title
+             */
+
+            ImGui::SetCursorPos(
+                ImVec2(15.0f, 10.0f)
+            );
+
+            ImGui::TextColored(
+                ImVec4(
+                    0.94f,
+                    0.96f,
+                    1.0f,
+                    1.0f
+                ),
+                "%s",
+                pages[gSelectedPage]
+            );
+
+            ImGui::SameLine();
+
+            ImGui::TextColored(
+                ImVec4(
+                    0.30f,
+                    0.35f,
+                    0.44f,
+                    1.0f
+                ),
+                " / ASASEC"
+            );
+
+            /*
+             * Collapse
+             */
+
+            ImGui::SetCursorPos(
+                ImVec2(
+                    windowSize.x -
+                    sidebarWidth -
+                    70.0f,
+                    8.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_Button,
+                ImVec4(
+                    0.07f,
+                    0.10f,
+                    0.16f,
+                    1.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_ButtonHovered,
+                ImVec4(
+                    0.12f,
+                    0.18f,
+                    0.29f,
+                    1.0f
+                )
+            );
+
+            if (ImGui::Button(
+                "—",
+                ImVec2(28.0f, 30.0f)
+            ))
+            {
+                gMenuCollapsed = YES;
+            }
+
+            ImGui::PopStyleColor();
+
+            /*
+             * Close
+             */
+
+            ImGui::SameLine(0.0f, 6.0f);
+
+            ImGui::PushStyleColor(
+                ImGuiCol_Button,
+                ImVec4(
+                    0.28f,
+                    0.06f,
+                    0.09f,
+                    1.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_ButtonHovered,
+                ImVec4(
+                    0.55f,
+                    0.10f,
+                    0.15f,
+                    1.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_ButtonActive,
+                ImVec4(
+                    0.70f,
+                    0.14f,
+                    0.20f,
+                    1.0f
+                )
+            );
+
+            if (ImGui::Button(
+                "×",
+                ImVec2(28.0f, 30.0f)
+            ))
+            {
+                gMenuVisible = NO;
+            }
+
+            ImGui::PopStyleColor(3);
+
+            /*
+             * Divider
+             */
+
+            ImGui::SetCursorPosY(54.0f);
+
+            ImGui::Separator();
+
+            ImGui::SetCursorPosY(72.0f);
+
+            /*
+             ========================================================
+             COMBAT
+             ========================================================
+             */
+
+            if (gSelectedPage == 0)
+            {
+                ImGui::TextColored(
+                    ImVec4(
+                        0.30f,
+                        0.65f,
+                        1.0f,
+                        1.0f
+                    ),
+                    "COMBAT"
+                );
+
+                ImGui::SameLine();
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.32f,
+                        0.37f,
+                        0.45f,
+                        1.0f
+                    ),
+                    "ACTIONS"
+                );
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.40f,
+                        0.44f,
+                        0.52f,
+                        1.0f
+                    ),
+                    "Configure your combat options"
+                );
+
+                ImGui::Spacing();
+
+                static bool aimbot = false;
+                static bool esp = true;
+                static bool autoFire = false;
+                static float fov = 90.0f;
 
                 ImGui::BeginChild(
-                    "##ASASEC_CONTENT",
+                    "##CombatCard",
                     ImVec2(
-                        windowSize.x -
-                        sidebarWidth,
-                        windowSize.y
+                        ImGui::GetContentRegionAvail().x - 18.0f,
+                        265.0f
                     ),
-                    false,
-                    ImGuiWindowFlags_NoScrollbar
-                );
-
-                /*
-                 ========================================
-                 HEADER
-                 ========================================
-                */
-
-                ImGui::SetCursorPos(
-                    ImVec2(17.0f, 10.0f)
+                    true
                 );
 
                 ImGui::TextColored(
                     ImVec4(
-                        0.93f,
+                        0.92f,
                         0.95f,
-                        0.99f,
+                        1.0f,
                         1.0f
                     ),
-                    "%s",
-                    pages[gSelectedPage]
+                    "Combat Features"
                 );
-
-                ImGui::SameLine();
 
                 ImGui::TextColored(
                     ImVec4(
-                        0.34f,
-                        0.39f,
-                        0.48f,
+                        0.35f,
+                        0.40f,
+                        0.49f,
                         1.0f
                     ),
-                    "  /  ASASEC"
+                    "Main configuration"
                 );
 
-                /*
-                 Minimize
-                */
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
 
-                float rightButtons =
-                    ImGui::GetWindowWidth() -
-                    72.0f;
-
-                ImGui::SetCursorPos(
-                    ImVec2(
-                        rightButtons,
-                        8.0f
-                    )
+                ImGui::Checkbox(
+                    "Enable Aimbot",
+                    &aimbot
                 );
 
-                ImGui::PushStyleColor(
-                    ImGuiCol_Button,
-                    ImVec4(
-                        0.07f,
-                        0.10f,
-                        0.16f,
-                        1.0f
-                    )
+                ImGui::Checkbox(
+                    "Box ESP",
+                    &esp
                 );
 
-                ImGui::PushStyleColor(
-                    ImGuiCol_ButtonHovered,
-                    ImVec4(
-                        0.12f,
-                        0.18f,
-                        0.28f,
-                        1.0f
-                    )
+                ImGui::Checkbox(
+                    "Auto Fire",
+                    &autoFire
                 );
+
+                ImGui::Spacing();
+
+                ImGui::Text(
+                    "FOV Radius"
+                );
+
+                ImGui::SetNextItemWidth(
+                    ImGui::GetContentRegionAvail().x - 10.0f
+                );
+
+                ImGui::SliderFloat(
+                    "##FOV",
+                    &fov,
+                    10.0f,
+                    180.0f,
+                    "%.0f"
+                );
+
+                ImGui::Spacing();
 
                 if (ImGui::Button(
-                    "—##MIN",
-                    ImVec2(27.0f, 30.0f)
+                    "Reset Defaults",
+                    ImVec2(125.0f, 34.0f)
                 ))
                 {
-                    gMenuCollapsed = YES;
-                }
-
-                ImGui::PopStyleColor(2);
-
-                /*
-                 Close
-                */
-
-                ImGui::SameLine(
-                    0.0f,
-                    6.0f
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_Button,
-                    ImVec4(
-                        0.34f,
-                        0.07f,
-                        0.10f,
-                        1.0f
-                    )
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_ButtonHovered,
-                    ImVec4(
-                        0.55f,
-                        0.10f,
-                        0.14f,
-                        1.0f
-                    )
-                );
-
-                if (ImGui::Button(
-                    "×##CLOSE",
-                    ImVec2(27.0f, 30.0f)
-                ))
-                {
-                    gMenuVisible = NO;
-                }
-
-                ImGui::PopStyleColor(2);
-
-                /*
-                 ========================================
-                 HEADER DIVIDER
-                 ========================================
-                */
-
-                draw->AddLine(
-                    ImVec2(
-                        windowPos.x + sidebarWidth + 17.0f,
-                        windowPos.y + 48.0f
-                    ),
-                    ImVec2(
-                        windowPos.x + windowSize.x - 17.0f,
-                        windowPos.y + 48.0f
-                    ),
-                    IM_COL32(31, 40, 56, 220),
-                    1.0f
-                );
-
-                /*
-                 ========================================
-                 DRAG AREA
-                 ========================================
-
-                 Important:
-                 Only the empty header region is draggable.
-                */
-
-                ImGui::SetCursorPos(
-                    ImVec2(
-                        135.0f,
-                        0.0f
-                    )
-                );
-
-                float dragWidth =
-                    ImGui::GetWindowWidth() - 225.0f;
-
-                if (dragWidth < 60.0f)
-                    dragWidth = 60.0f;
-
-                ImGui::InvisibleButton(
-                    "##ASASEC_DRAG",
-                    ImVec2(
-                        dragWidth,
-                        48.0f
-                    )
-                );
-
-                if (ImGui::IsItemActivated())
-                {
-                    gDraggingMenu = true;
-
-                    gDragStartMouse =
-                        ImGui::GetIO().MousePos;
-
-                    gDragStartPosition =
-                        gMenuPosition;
-                }
-
-                if (gDraggingMenu)
-                {
-                    ImGuiIO &dragIO =
-                        ImGui::GetIO();
-
-                    if (dragIO.MouseDown[0])
-                    {
-                        ImVec2 delta =
-                            dragIO.MousePos -
-                            gDragStartMouse;
-
-                        gMenuPosition =
-                            gDragStartPosition +
-                            delta;
-
-                        /*
-                         Keep menu on screen
-                        */
-
-                        float screenWidth =
-                            view.bounds.size.width;
-
-                        float screenHeight =
-                            view.bounds.size.height;
-
-                        float maxX =
-                            screenWidth -
-                            gMenuSize.x;
-
-                        float maxY =
-                            screenHeight -
-                            50.0f;
-
-                        if (maxX < 5.0f)
-                            maxX = 5.0f;
-
-                        if (maxY < 5.0f)
-                            maxY = 5.0f;
-
-                        if (gMenuPosition.x < 5.0f)
-                            gMenuPosition.x = 5.0f;
-
-                        if (gMenuPosition.y < 5.0f)
-                            gMenuPosition.y = 5.0f;
-
-                        if (gMenuPosition.x > maxX)
-                            gMenuPosition.x = maxX;
-
-                        if (gMenuPosition.y > maxY)
-                            gMenuPosition.y = maxY;
-                    }
-                    else
-                    {
-                        gDraggingMenu = false;
-                    }
-                }
-
-                /*
-                 ========================================
-                 PAGE CONTENT
-                 ========================================
-                */
-
-                ImGui::SetCursorPos(
-                    ImVec2(
-                        17.0f,
-                        65.0f
-                    )
-                );
-
-                if (gSelectedPage == 0)
-                {
-                    /*
-                     COMBAT
-                    */
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.30f,
-                            0.68f,
-                            1.0f,
-                            1.0f
-                        ),
-                        "COMBAT"
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.40f,
-                            0.45f,
-                            0.54f,
-                            1.0f
-                        ),
-                        "Combat configuration"
-                    );
-
-                    ImGui::Spacing();
-
-                    ImGui::BeginChild(
-                        "##COMBAT_CARD",
-                        ImVec2(
-                            ImGui::GetContentRegionAvail().x - 18.0f,
-                            270.0f
-                        ),
-                        true,
-                        ImGuiWindowFlags_NoScrollbar
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.90f,
-                            0.93f,
-                            0.98f,
-                            1.0f
-                        ),
-                        "Aimbot"
-                    );
-
-                    ImGui::SameLine();
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.38f,
-                            0.43f,
-                            0.52f,
-                            1.0f
-                        ),
-                        "  SETTINGS"
-                    );
-
-                    ImGui::Separator();
-
-                    ImGui::Spacing();
-
-                    ImGui::Checkbox(
-                        "Enable Aimbot",
-                        &gAimbot
-                    );
-
-                    ImGui::Checkbox(
-                        "Box ESP",
-                        &gESP
-                    );
-
-                    ImGui::Checkbox(
-                        "Auto Fire",
-                        &gAutoFire
-                    );
-
-                    ImGui::Spacing();
-
-                    ImGui::Text(
-                        "FOV Radius"
-                    );
-
-                    ImGui::SetNextItemWidth(
-                        ImGui::GetContentRegionAvail().x - 8.0f
-                    );
-
-                    ImGui::SliderFloat(
-                        "##FOV_RADIUS",
-                        &gFOV,
-                        10.0f,
-                        180.0f,
-                        "%.0f"
-                    );
-
-                    ImGui::Spacing();
-
-                    if (ImGui::Button(
-                        "Reset Defaults",
-                        ImVec2(125.0f, 34.0f)
-                    ))
-                    {
-                        gAimbot = false;
-                        gESP = true;
-                        gAutoFire = false;
-                        gFOV = 90.0f;
-                    }
-
-                    ImGui::EndChild();
-                }
-                else if (gSelectedPage == 1)
-                {
-                    /*
-                     VISUALS
-                    */
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.25f,
-                            0.86f,
-                            0.58f,
-                            1.0f
-                        ),
-                        "VISUALS"
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.40f,
-                            0.45f,
-                            0.54f,
-                            1.0f
-                        ),
-                        "Visual configuration"
-                    );
-
-                    ImGui::Spacing();
-
-                    ImGui::BeginChild(
-                        "##VISUAL_CARD",
-                        ImVec2(
-                            ImGui::GetContentRegionAvail().x - 18.0f,
-                            235.0f
-                        ),
-                        true,
-                        ImGuiWindowFlags_NoScrollbar
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.90f,
-                            0.93f,
-                            0.98f,
-                            1.0f
-                        ),
-                        "ESP"
-                    );
-
-                    ImGui::Separator();
-
-                    ImGui::Spacing();
-
-                    ImGui::Checkbox(
-                        "Player ESP",
-                        &gPlayerESP
-                    );
-
-                    ImGui::Checkbox(
-                        "Health Bar",
-                        &gHealthBar
-                    );
-
-                    ImGui::Checkbox(
-                        "Wallhack",
-                        &gWallhack
-                    );
-
-                    ImGui::EndChild();
-                }
-                else
-                {
-                    /*
-                     SETTINGS
-                    */
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            1.0f,
-                            0.67f,
-                            0.30f,
-                            1.0f
-                        ),
-                        "SETTINGS"
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.40f,
-                            0.45f,
-                            0.54f,
-                            1.0f
-                        ),
-                        "ASASEC configuration"
-                    );
-
-                    ImGui::Spacing();
-
-                    ImGui::BeginChild(
-                        "##SETTINGS_CARD",
-                        ImVec2(
-                            ImGui::GetContentRegionAvail().x - 18.0f,
-                            235.0f
-                        ),
-                        true,
-                        ImGuiWindowFlags_NoScrollbar
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.90f,
-                            0.93f,
-                            0.98f,
-                            1.0f
-                        ),
-                        "Application"
-                    );
-
-                    ImGui::Separator();
-
-                    ImGui::Spacing();
-
-                    ImGui::Text(
-                        "Version"
-                    );
-
-                    ImGui::SameLine();
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.30f,
-                            0.68f,
-                            1.0f,
-                            1.0f
-                        ),
-                        "3.0"
-                    );
-
-                    ImGui::Spacing();
-
-                    ImGui::Text(
-                        "Renderer"
-                    );
-
-                    ImGui::SameLine();
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.65f,
-                            0.68f,
-                            0.75f,
-                            1.0f
-                        ),
-                        "Metal"
-                    );
-
-                    ImGui::Spacing();
-
-                    ImGui::Text(
-                        "Interface"
-                    );
-
-                    ImGui::SameLine();
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.30f,
-                            0.85f,
-                            0.55f,
-                            1.0f
-                        ),
-                        "ACTIVE"
-                    );
-
-                    ImGui::EndChild();
+                    aimbot = false;
+                    esp = true;
+                    autoFire = false;
+                    fov = 90.0f;
                 }
 
                 ImGui::EndChild();
             }
+
+            /*
+             ========================================================
+             VISUALS
+             ========================================================
+             */
+
+            else if (gSelectedPage == 1)
+            {
+                ImGui::TextColored(
+                    ImVec4(
+                        0.30f,
+                        0.85f,
+                        0.58f,
+                        1.0f
+                    ),
+                    "VISUALS"
+                );
+
+                ImGui::SameLine();
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.32f,
+                        0.37f,
+                        0.45f,
+                        1.0f
+                    ),
+                    "ESP"
+                );
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.40f,
+                        0.44f,
+                        0.52f,
+                        1.0f
+                    ),
+                    "Configure visual options"
+                );
+
+                ImGui::Spacing();
+
+                static bool playerESP = true;
+                static bool healthBar = true;
+                static bool wallhack = false;
+
+                ImGui::BeginChild(
+                    "##VisualCard",
+                    ImVec2(
+                        ImGui::GetContentRegionAvail().x - 18.0f,
+                        220.0f
+                    ),
+                    true
+                );
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.92f,
+                        0.95f,
+                        1.0f,
+                        1.0f
+                    ),
+                    "ESP Features"
+                );
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.35f,
+                        0.40f,
+                        0.49f,
+                        1.0f
+                    ),
+                    "Visual configuration"
+                );
+
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                ImGui::Checkbox(
+                    "Player ESP",
+                    &playerESP
+                );
+
+                ImGui::Checkbox(
+                    "Health Bar",
+                    &healthBar
+                );
+
+                ImGui::Checkbox(
+                    "Wallhack",
+                    &wallhack
+                );
+
+                ImGui::EndChild();
+            }
+
+            /*
+             ========================================================
+             SETTINGS
+             ========================================================
+             */
+
+            else
+            {
+                ImGui::TextColored(
+                    ImVec4(
+                        1.0f,
+                        0.65f,
+                        0.28f,
+                        1.0f
+                    ),
+                    "SETTINGS"
+                );
+
+                ImGui::SameLine();
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.32f,
+                        0.37f,
+                        0.45f,
+                        1.0f
+                    ),
+                    "SYSTEM"
+                );
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.40f,
+                        0.44f,
+                        0.52f,
+                        1.0f
+                    ),
+                    "ASASEC configuration"
+                );
+
+                ImGui::Spacing();
+
+                ImGui::BeginChild(
+                    "##SettingsCard",
+                    ImVec2(
+                        ImGui::GetContentRegionAvail().x - 18.0f,
+                        220.0f
+                    ),
+                    true
+                );
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.92f,
+                        0.95f,
+                        1.0f,
+                        1.0f
+                    ),
+                    "Application"
+                );
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.35f,
+                        0.40f,
+                        0.49f,
+                        1.0f
+                    ),
+                    "Runtime information"
+                );
+
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+
+                ImGui::Text(
+                    "Version"
+                );
+
+                ImGui::SameLine(
+                    ImGui::GetContentRegionAvail().x - 55.0f
+                );
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.30f,
+                        0.65f,
+                        1.0f,
+                        1.0f
+                    ),
+                    "3.0"
+                );
+
+                ImGui::Spacing();
+
+                ImGui::Text(
+                    "Renderer"
+                );
+
+                ImGui::SameLine(
+                    ImGui::GetContentRegionAvail().x - 55.0f
+                );
+
+                ImGui::Text(
+                    "Metal"
+                );
+
+                ImGui::Spacing();
+
+                ImGui::Text(
+                    "Status"
+                );
+
+                ImGui::SameLine(
+                    ImGui::GetContentRegionAvail().x - 55.0f
+                );
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.30f,
+                        0.85f,
+                        0.55f,
+                        1.0f
+                    ),
+                    "ACTIVE"
+                );
+
+                ImGui::EndChild();
+            }
+
+            ImGui::EndChild();
         }
 
         ImGui::End();
 
         ImGui::PopStyleColor();
         ImGui::PopStyleVar(2);
-
-        if (!windowOpen)
-            gMenuVisible = NO;
     }
+
+    /*
+     ================================================================
+     RENDER
+     ================================================================
+     */
 
     ImGui::Render();
 
     id<MTLRenderCommandEncoder> encoder =
-        [commandBuffer
-         renderCommandEncoderWithDescriptor:pass];
+        [commandBuffer renderCommandEncoderWithDescriptor:pass];
 
     if (!encoder)
         return;
@@ -1310,13 +1299,13 @@ static void ASASECApplyStyle(void)
         ImVec2(10.0f, 10.0f);
 
     style.FramePadding =
-        ImVec2(9.0f, 7.0f);
+        ImVec2(10.0f, 7.0f);
 
     style.ItemSpacing =
-        ImVec2(8.0f, 9.0f);
+        ImVec2(8.0f, 8.0f);
 
     style.ItemInnerSpacing =
-        ImVec2(6.0f, 6.0f);
+        ImVec2(7.0f, 6.0f);
 
     style.ScrollbarSize =
         7.0f;
@@ -1354,22 +1343,25 @@ static void ASASECApplyStyle(void)
     style.FrameBorderSize =
         0.0f;
 
+    style.WindowTitleAlign =
+        ImVec2(0.5f, 0.5f);
+
     ImVec4 *c =
         style.Colors;
 
     c[ImGuiCol_Text] =
         ImVec4(
             0.92f,
-            0.94f,
-            0.98f,
+            0.95f,
+            1.0f,
             1.0f
         );
 
     c[ImGuiCol_TextDisabled] =
         ImVec4(
-            0.42f,
-            0.46f,
-            0.54f,
+            0.40f,
+            0.44f,
+            0.52f,
             1.0f
         );
 
@@ -1384,32 +1376,32 @@ static void ASASECApplyStyle(void)
     c[ImGuiCol_ChildBg] =
         ImVec4(
             0.045f,
-            0.057f,
+            0.056f,
             0.080f,
             0.98f
         );
 
     c[ImGuiCol_Border] =
         ImVec4(
-            0.13f,
-            0.16f,
-            0.22f,
-            0.8f
+            0.12f,
+            0.15f,
+            0.21f,
+            0.75f
         );
 
     c[ImGuiCol_FrameBg] =
         ImVec4(
-            0.070f,
-            0.085f,
-            0.120f,
+            0.065f,
+            0.080f,
+            0.115f,
             1.0f
         );
 
     c[ImGuiCol_FrameBgHovered] =
         ImVec4(
-            0.105f,
-            0.135f,
-            0.190f,
+            0.10f,
+            0.13f,
+            0.19f,
             1.0f
         );
 
@@ -1423,17 +1415,17 @@ static void ASASECApplyStyle(void)
 
     c[ImGuiCol_Button] =
         ImVec4(
-            0.070f,
-            0.090f,
-            0.130f,
+            0.065f,
+            0.085f,
+            0.125f,
             1.0f
         );
 
     c[ImGuiCol_ButtonHovered] =
         ImVec4(
             0.105f,
-            0.155f,
-            0.235f,
+            0.15f,
+            0.23f,
             1.0f
         );
 
@@ -1447,8 +1439,8 @@ static void ASASECApplyStyle(void)
 
     c[ImGuiCol_CheckMark] =
         ImVec4(
-            0.30f,
-            0.68f,
+            0.28f,
+            0.65f,
             1.0f,
             1.0f
         );
@@ -1463,8 +1455,8 @@ static void ASASECApplyStyle(void)
 
     c[ImGuiCol_SliderGrabActive] =
         ImVec4(
-            0.36f,
-            0.70f,
+            0.35f,
+            0.68f,
             1.0f,
             1.0f
         );
@@ -1479,7 +1471,7 @@ static void ASASECApplyStyle(void)
 
     c[ImGuiCol_HeaderHovered] =
         ImVec4(
-            0.13f,
+            0.14f,
             0.22f,
             0.35f,
             1.0f
@@ -1495,9 +1487,9 @@ static void ASASECApplyStyle(void)
 
     c[ImGuiCol_Separator] =
         ImVec4(
-            0.13f,
-            0.16f,
-            0.22f,
+            0.12f,
+            0.15f,
+            0.21f,
             0.75f
         );
 
@@ -1506,30 +1498,30 @@ static void ASASECApplyStyle(void)
             0.025f,
             0.032f,
             0.050f,
-            0.7f
+            0.8f
         );
 
     c[ImGuiCol_ScrollbarGrab] =
         ImVec4(
-            0.14f,
-            0.19f,
-            0.27f,
+            0.12f,
+            0.16f,
+            0.23f,
             1.0f
         );
 
     c[ImGuiCol_ScrollbarGrabHovered] =
         ImVec4(
-            0.19f,
-            0.28f,
-            0.40f,
+            0.18f,
+            0.25f,
+            0.36f,
             1.0f
         );
 
     c[ImGuiCol_ScrollbarGrabActive] =
         ImVec4(
-            0.23f,
-            0.36f,
-            0.53f,
+            0.22f,
+            0.34f,
+            0.50f,
             1.0f
         );
 }
@@ -1619,41 +1611,6 @@ void ASASECImGuiStart(void)
 
             ASASECApplyStyle();
 
-            /*
-             Adapt initial menu size
-             to smaller displays.
-            */
-
-            CGFloat screenWidth =
-                window.bounds.size.width;
-
-            CGFloat screenHeight =
-                window.bounds.size.height;
-
-            if (screenWidth < 600.0f)
-            {
-                gMenuSize.x =
-                    screenWidth - 20.0f;
-
-                if (gMenuSize.x < 320.0f)
-                    gMenuSize.x = 320.0f;
-            }
-
-            if (screenHeight < 450.0f)
-            {
-                gMenuSize.y =
-                    screenHeight - 40.0f;
-
-                if (gMenuSize.y < 300.0f)
-                    gMenuSize.y = 300.0f;
-            }
-
-            gMenuPosition =
-                ImVec2(
-                    15.0f,
-                    65.0f
-                );
-
             gImGuiView =
                 [[ASASECImGuiView alloc]
                  initWithFrame:window.bounds
@@ -1681,8 +1638,7 @@ void ASASECImGuiStart(void)
             gImGuiView.enableSetNeedsDisplay =
                 NO;
 
-            gImGuiView.paused =
-                NO;
+            gImGuiView.paused = NO;
 
             gImGuiView.multipleTouchEnabled =
                 YES;
@@ -1715,8 +1671,6 @@ void ASASECImGuiStop(void)
 
             gInitialized = NO;
 
-            gDraggingMenu = false;
-
             if (gImGuiView)
             {
                 gImGuiView.delegate = nil;
@@ -1737,15 +1691,6 @@ void ASASECImGuiStop(void)
             gMenuCollapsed = NO;
 
             gSelectedPage = 0;
-
-            gAimbot = false;
-            gESP = true;
-            gAutoFire = false;
-            gFOV = 90.0f;
-
-            gPlayerESP = true;
-            gHealthBar = true;
-            gWallhack = false;
 
             gMenuPosition =
                 ImVec2(
