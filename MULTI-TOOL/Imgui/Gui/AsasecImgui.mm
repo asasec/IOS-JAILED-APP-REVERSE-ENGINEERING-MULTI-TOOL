@@ -1163,8 +1163,10 @@ c[ImGuiCol_ScrollbarGrabActive] =
     (float)view.preferredFramesPerSecond;
     if (fps < 1.0f)
     fps = 60.0f;
-    io.DeltaTime =
-    0.0f / fps;
+    
+    // DÜZELTME: io.DeltaTime sıfıra bölme hatasına (division by zero) yol açtığı için 1.0f / fps olarak düzeltildi.
+    io.DeltaTime = 1.0f / fps;
+    
     ImGui::NewFrame();
     float dt =
     io.DeltaTime;
