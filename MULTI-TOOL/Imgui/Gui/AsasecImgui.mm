@@ -481,7 +481,7 @@ return clicked;
 
 #pragma mark - Hit Testing
 
-* (BOOL)pointInsideMenu:(CGPoint)point
+- (BOOL)pointInsideMenu:(CGPoint)point
     {
     if (!gMenuVisible)
     return NO;
@@ -499,7 +499,7 @@ return clicked;
     gMenuPosition.y +
     height;
     }
-* (BOOL)pointInsideResizeHandle:(CGPoint)point
+- (BOOL)pointInsideResizeHandle:(CGPoint)point
     {
     if (!gMenuVisible)
     return NO;
@@ -517,7 +517,7 @@ return clicked;
     point.y >= bottom - kResizeSize &&
     point.y <= bottom + 8.0f;
     }
-* (BOOL)pointInsideDragHeader:(CGPoint)point
+- (BOOL)pointInsideDragHeader:(CGPoint)point
     {
     if (!gMenuVisible)
     return NO;
@@ -531,7 +531,7 @@ return clicked;
     gMenuPosition.y +
     kHeaderHeight;
     }
-* (BOOL)pointInsideContent:(CGPoint)point
+- (BOOL)pointInsideContent:(CGPoint)point
     {
     if (!gMenuVisible ||
     gMenuCollapsed)
@@ -555,7 +555,7 @@ return clicked;
     point.y >= contentTop &&
     point.y <= contentBottom;
     }
-* (UIView *)hitTest:(CGPoint)point
+- (UIView *)hitTest:(CGPoint)point
     withEvent:(UIEvent *)event
     {
     if (!gInitialized)
@@ -569,7 +569,7 @@ return clicked;
 
 #pragma mark - Menu Drag
 
-* (void)beginMenuDragAtPoint:(CGPoint)point
+- (void)beginMenuDragAtPoint:(CGPoint)point
     {
     if (!gMenuVisible)
     return;
@@ -581,7 +581,7 @@ return clicked;
     gDragStartPosition =
     gMenuPosition;
     }
-* (void)updateMenuDragAtPoint:(CGPoint)point
+- (void)updateMenuDragAtPoint:(CGPoint)point
     {
     if (!gDraggingMenu)
     return;
@@ -602,7 +602,7 @@ return clicked;
 
 #pragma mark - Resize
 
-* (void)beginMenuResizeAtPoint:(CGPoint)point
+- (void)beginMenuResizeAtPoint:(CGPoint)point
     {
     if (!gMenuVisible ||
     gMenuCollapsed)
@@ -615,7 +615,7 @@ return clicked;
     gResizeStartSize =
     gMenuSize;
     }
-* (void)updateMenuResizeAtPoint:(CGPoint)point
+- (void)updateMenuResizeAtPoint:(CGPoint)point
     {
     if (!gResizingMenu)
     return;
@@ -686,7 +686,7 @@ return clicked;
 
 #pragma mark - Content Scroll
 
-* (void)beginContentDragAtPoint:(CGPoint)point
+- (void)beginContentDragAtPoint:(CGPoint)point
     {
     if (!gMenuVisible ||
     gMenuCollapsed)
@@ -701,11 +701,11 @@ return clicked;
     gContentLastPoint =
     point;
     gPendingContentScrollY =
-    0f;
+    0.0f;
     gContentScrollVelocity =
-    0f;
+    0.0f;
     }
-* (void)updateContentDragAtPoint:(CGPoint)point
+- (void)updateContentDragAtPoint:(CGPoint)point
     {
     if (!gContentDragging)
     return;
@@ -757,7 +757,7 @@ return clicked;
     gContentLastPoint =
     point;
     }
-* (void)endContentDrag
+- (void)endContentDrag
     {
     if (!gContentDragging)
     return;
@@ -767,14 +767,14 @@ return clicked;
 
 #pragma mark - Interaction
 
-* (void)endMenuInteraction
+- (void)endMenuInteraction
     {
     gDraggingMenu = NO;
     gResizingMenu = NO;
     gContentDragging = NO;
     gContentTouchCandidate = NO;
     }
-* (void)clampMenuPosition
+- (void)clampMenuPosition
     {
     UIWindow *window =
     self.window;
@@ -785,7 +785,7 @@ return clicked;
 
 #pragma mark - Touch -> ImGui
 
-* (void)updateIOWithTouchEvent:(UIEvent *)event
+- (void)updateIOWithTouchEvent:(UIEvent *)event
     {
     if (!gInitialized)
     return;
@@ -830,7 +830,7 @@ return clicked;
 
 #pragma mark - Touches
 
-* (void)touchesBegan:(NSSet<UITouch *> *)touches
+- (void)touchesBegan:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     if (!gInitialized)
@@ -858,7 +858,7 @@ return clicked;
     }
     [self updateIOWithTouchEvent:event];
     }
-* (void)touchesMoved:(NSSet<UITouch *> *)touches
+- (void)touchesMoved:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     if (!gInitialized)
@@ -886,7 +886,7 @@ return clicked;
     }
     [self updateIOWithTouchEvent:event];
     }
-* (void)touchesEnded:(NSSet<UITouch *> *)touches
+- (void)touchesEnded:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     if (gContentDragging)
@@ -910,14 +910,14 @@ return clicked;
 
     }
     }
-* (void)touchesCancelled:(NSSet<UITouch *> *)touches
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches
     withEvent:(UIEvent *)event
     {
     [self endMenuInteraction];
     gContentScrollVelocity =
-    0f;
+    0.0f;
     gPendingContentScrollY =
-    0f;
+    0.0f;
     if (!gInitialized)
     return;
     [self updateIOWithTouchEvent:event];
@@ -1152,7 +1152,7 @@ c[ImGuiCol_ScrollbarGrabActive] =
 
 @implementation ASASECImGuiRenderer
 
-* (void)mtkView:(MTKView *)view
+- (void)mtkView:(MTKView *)view
     drawableSizeWillChange:(CGSize)size
     {
     if (!gInitialized ||
@@ -1176,7 +1176,7 @@ c[ImGuiCol_ScrollbarGrabActive] =
     (float)scale
     );
     }
-* (void)drawInMTKView:(MTKView *)view
+- (void)drawInMTKView:(MTKView *)view
     {
     if (!gInitialized ||
     !view ||
@@ -1218,12 +1218,12 @@ c[ImGuiCol_ScrollbarGrabActive] =
     if (fps < 1.0f)
     fps = 60.0f;
     io.DeltaTime =
-    0f / fps;
+    1.0f / fps;
     if (io.DeltaTime <= 0.0f ||
     io.DeltaTime > 0.1f)
     {
     io.DeltaTime =
-    0f / 60.0f;
+    1.0f / 60.0f;
     }
     ImGui::NewFrame();
     float dt =
@@ -1243,35 +1243,23 @@ c[ImGuiCol_ScrollbarGrabActive] =
       18.0f;
 
     }
-    /*
-    PAGE ANIMATION FIX
-    Önceki kodda:
-    Ease(…, 0.0f, 0.0f, dt)
-    kullanılıyordu.
-    Hedef 0 ve hız 0 olduğu için
-    animasyon hiçbir zaman 1’e
-    ulaşamıyordu.
-    Yeni sistem:
-    opacity 0 -> 1
-    slide   18 -> 0
-    */
     gPageAnimation =
     ASASECEase(
     gPageAnimation,
-    0f,
-    0f,
+    1.0f,
+    14.0f,
     dt
     );
     gPageSlide =
     ASASECEase(
     gPageSlide,
-    0f,
-    0f,
+    0.0f,
+    14.0f,
     dt
     );
     if (!gContentDragging &&
     fabsf(gContentScrollVelocity) >
-    01f)
+    0.01f)
     {
     gPendingContentScrollY +=
     gContentScrollVelocity;
@@ -1289,7 +1277,7 @@ c[ImGuiCol_ScrollbarGrabActive] =
     if (gMenuVisible)
     {
     const float sidebarWidth =
-    0f;
+    145.0f;
 
   ImVec2 actualWindowSize =
       ImVec2(
@@ -1353,9 +1341,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
           );
       ImDrawList *draw =
           ImGui::GetWindowDrawList();
-      /*
-       MAIN BACKGROUND
-      */
       if (draw)
       {
           draw->AddRectFilled(
@@ -1369,9 +1354,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
               ),
               22.0f
           );
-          /*
-           Soft outer border
-          */
           draw->AddRect(
               ImVec2(
                   windowPos.x + 0.5f,
@@ -1391,9 +1373,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
               0,
               1.0f
           );
-          /*
-           Header
-          */
           draw->AddRectFilled(
               ImVec2(
                   windowPos.x + 1.0f,
@@ -1413,9 +1392,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
               21.0f,
               ImDrawFlags_RoundCornersTop
           );
-          /*
-           Header bottom separator
-          */
           draw->AddLine(
               ImVec2(
                   windowPos.x + 16.0f,
@@ -1436,9 +1412,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
               1.0f
           );
       }
-      /*
-       HEADER TITLE
-      */
       ImGui::SetCursorPos(
           ImVec2(
               18.0f,
@@ -1480,9 +1453,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
           ),
           "UI"
       );
-      /*
-       COLLAPSE BUTTON
-       */
       float collapseButtonX =
           windowSize.x -
           96.0f;
@@ -1573,9 +1543,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
               );
           if (gMenuCollapsed)
           {
-              /*
-               DOWN
-              */
               headerDraw->AddLine(
                   ImVec2(
                       centerX -
@@ -1609,9 +1576,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
           }
           else
           {
-              /*
-               UP
-              */
               headerDraw->AddLine(
                   ImVec2(
                       centerX -
@@ -1667,10 +1631,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
       ImGui::PopStyleColor(3);
       ImGui::PopStyleVar();
       ImGui::PopID();
-      /*
-       CLOSE BUTTON
-       X - ARROW'UN SAĞINDA
-      */
       float closeButtonX =
           windowSize.x -
           50.0f;
@@ -1806,16 +1766,9 @@ c[ImGuiCol_ScrollbarGrabActive] =
       ImGui::PopStyleColor(3);
       ImGui::PopStyleVar();
       ImGui::PopID();
-      /*
-       COLLAPSED STATE
-       Sadece header.
-      */
       if (!gMenuCollapsed &&
           gMenuVisible)
       {
-          /*
-           SIDEBAR
-          */
           if (draw)
           {
               draw->AddRectFilled(
@@ -2004,9 +1957,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
               ImGui::PopStyleColor(3);
               ImGui::PopStyleVar();
           }
-          /*
-           CONTENT ROOT
-          */
           ImGui::SetCursorPos(
               ImVec2(
                   sidebarWidth + 1.0f,
@@ -2116,15 +2066,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
                   ImGuiWindowFlags_NoScrollbar
               ))
               {
-                  /*
-                   PAGE TRANSITION
-                   Fade:
-                   0 -> 1
-                   Slide:
-                   18 -> 0
-                   Kararma sorunu burada
-                   tamamen düzeltilmiştir.
-                  */
                   float fade =
                       ASASECClampFloat(
                           gPageAnimation,
@@ -2647,9 +2588,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
                       ImGui::EndChild();
                   }
                   ImGui::PopStyleVar();
-                  /*
-                   SCROLL
-                  */
                   if (fabsf(
                           gPendingContentScrollY
                       ) > 0.001f)
@@ -2686,9 +2624,6 @@ c[ImGuiCol_ScrollbarGrabActive] =
               }
               ImGui::EndChild();
           }
-          /*
-           RESIZE ICON
-          */
           if (draw &&
               windowSize.x > 300.0f &&
               windowSize.y > 220.0f)
@@ -2924,9 +2859,6 @@ return;
                 (float)scale
             );
         ASASECApplyStyle();
-        /*
-         RESET MENU STATE
-        */
         gMenuVisible =
             YES;
         gMenuCollapsed =
