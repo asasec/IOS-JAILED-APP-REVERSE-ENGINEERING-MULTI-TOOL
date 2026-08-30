@@ -4,7 +4,7 @@
 #import "../Imgui/Gui/AsasecImgui.h"
 #include "../Imgui/imgui.h"
 
-// Dışarıdan gelen kayıt fonksiyonlarının prototipleri
+// Dışarıdan gelen kayıt fonksiyonlarının prototipleri (Yeni dinamik yapı ile birebir uyumlu)
 extern void ASASECRegisterFeature(const char *category, const char *title, bool *valuePointer, void (*callback)(bool));
 extern void ASASECRegisterButton(const char *category, const char *title, void (*callback)(void));
 
@@ -23,7 +23,7 @@ void Button1Clicked(void) {
     NSLog(@"Butona tıklandı!");
 }
 
-// 3. Otomatik Kayıt Yapısı
+// 3. Otomatik Kayıt Yapısı (İstediğiniz kategori isimlerini buraya yazabilirsiniz, menüde otomatik sekme olarak belirecektir)
 __attribute__((constructor)) void RegisterItems() {
     // Combat kategorisinin altına Switch ekler
     ASASECRegisterFeature("Combat", "Swicht 1", &gSwitch1Val, Switch1Toggled);
