@@ -1,5 +1,3 @@
-Bu kodda animasyonları injekte et ve dokunma desteğide getir ama hiçbir yapıyı bozma düzelt ve full ver
-
 #import "AsasecImgui.h"
 
 #import <UIKit/UIKit.h>
