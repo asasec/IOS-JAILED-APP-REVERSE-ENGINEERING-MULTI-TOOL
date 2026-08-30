@@ -7,6 +7,7 @@
 #import <dispatch/dispatch.h>
 #import <math.h>
 #import <string.h>
+#import <stdio.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "../imgui.h"
@@ -19,9 +20,10 @@ static MTKView *gImGuiView = nil;
 static id gMetalDevice = nil;
 static id gCommandQueue = nil;
 
+static ImGuiContext *gImGuiContext = NULL;
+
 static BOOL gInitialized = NO;
 static BOOL gStarting = NO;
-static BOOL gMetalBackendInitialized = NO;
 
 static BOOL gMenuVisible = YES;
 static BOOL gMenuCollapsed = NO;
@@ -60,6 +62,8 @@ static BOOL gContentTouchCandidate = NO;
 
 static float gPageAnimation = 1.0f;
 static float gPageSlide = 0.0f;
+
+static CFTimeInterval gLastFrameTime = 0.0;
 
 #pragma mark - Renderer
 
@@ -193,23 +197,12 @@ static void ASASECClampMenuToScreen(UIWindow *window)
         window.bounds.size;
 
     float width =
-        ASASECClampFloat(
-            gMenuSize.x,
-            kMenuMinWidth,
-            kMenuMaxWidth
-        );
+        gMenuSize.x;
 
     float height =
         gMenuCollapsed
         ? kHeaderHeight
-        : ASASECClampFloat(
-            gMenuSize.y,
-            kMenuMinHeight,
-            kMenuMaxHeight
-        );
-
-    gMenuSize.x = width;
-    gMenuSize.y = height;
+        : gMenuSize.y;
 
     const float margin = 8.0f;
 
@@ -629,7 +622,7 @@ static bool ASASECModernSwitch(const char *label,
 
 - (BOOL)pointInsideMenu:(CGPoint)point
 {
-    if (!gMenuVisible)
+    if (!gInitialized || !gMenuVisible)
         return NO;
 
     float height =
@@ -638,9 +631,11 @@ static bool ASASECModernSwitch(const char *label,
         : gMenuSize.y;
 
     return point.x >= gMenuPosition.x &&
-           point.x <= gMenuPosition.x + gMenuSize.x &&
+           point.x <=
+               gMenuPosition.x + gMenuSize.x &&
            point.y >= gMenuPosition.y &&
-           point.y <= gMenuPosition.y + height;
+           point.y <=
+               gMenuPosition.y + height;
 }
 
 - (UIView *)hitTest:(CGPoint)point
@@ -653,18 +648,18 @@ static bool ASASECModernSwitch(const char *label,
     }
 
     if ([self pointInsideMenu:point])
-        return self;
+    {
+        return [super hitTest:point
+                    withEvent:event];
+    }
 
     return nil;
 }
 
 - (void)updateIOWithTouchEvent:(UIEvent *)event
 {
-    if (!gInitialized ||
-        !event)
-    {
+    if (!gInitialized)
         return;
-    }
 
     ImGuiContext *ctx =
         ImGui::GetCurrentContext();
@@ -675,19 +670,26 @@ static bool ASASECModernSwitch(const char *label,
     ImGuiIO &io =
         ImGui::GetIO();
 
-    UITouch *touch =
-        event.allTouches.anyObject;
+    UITouch *activeTouch = nil;
 
-    if (touch)
+    for (UITouch *currentTouch in event.allTouches)
+    {
+        if (!currentTouch)
+            continue;
+
+        activeTouch = currentTouch;
+        break;
+    }
+
+    if (activeTouch)
     {
         CGPoint point =
-            [touch locationInView:self];
+            [activeTouch locationInView:self];
 
-        io.MousePos =
-            ImVec2(
-                (float)point.x,
-                (float)point.y
-            );
+        io.AddMousePosEvent(
+            (float)point.x,
+            (float)point.y
+        );
     }
 
     BOOL touching = NO;
@@ -697,18 +699,22 @@ static bool ASASECModernSwitch(const char *label,
         if (!currentTouch)
             continue;
 
-        if (currentTouch.phase !=
-                UITouchPhaseEnded &&
-            currentTouch.phase !=
-                UITouchPhaseCancelled)
+        UITouchPhase phase =
+            currentTouch.phase;
+
+        if (phase == UITouchPhaseBegan ||
+            phase == UITouchPhaseMoved ||
+            phase == UITouchPhaseStationary)
         {
             touching = YES;
             break;
         }
     }
 
-    io.MouseDown[0] =
-        touching;
+    io.AddMouseButtonEvent(
+        0,
+        touching
+    );
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches
@@ -735,19 +741,33 @@ static bool ASASECModernSwitch(const char *label,
     if (!gInitialized)
         return;
 
-    [self updateIOWithTouchEvent:event];
-
     ImGuiContext *ctx =
         ImGui::GetCurrentContext();
 
-    if (ctx)
-    {
-        ImGuiIO &io =
-            ImGui::GetIO();
+    if (!ctx)
+        return;
 
-        io.MouseDown[0] =
-            false;
+    ImGuiIO &io =
+        ImGui::GetIO();
+
+    UITouch *touch =
+        touches.anyObject;
+
+    if (touch)
+    {
+        CGPoint point =
+            [touch locationInView:self];
+
+        io.AddMousePosEvent(
+            (float)point.x,
+            (float)point.y
+        );
     }
+
+    io.AddMouseButtonEvent(
+        0,
+        false
+    );
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches
@@ -756,19 +776,19 @@ static bool ASASECModernSwitch(const char *label,
     if (!gInitialized)
         return;
 
-    [self updateIOWithTouchEvent:event];
-
     ImGuiContext *ctx =
         ImGui::GetCurrentContext();
 
-    if (ctx)
-    {
-        ImGuiIO &io =
-            ImGui::GetIO();
+    if (!ctx)
+        return;
 
-        io.MouseDown[0] =
-            false;
-    }
+    ImGuiIO &io =
+        ImGui::GetIO();
+
+    io.AddMouseButtonEvent(
+        0,
+        false
+    );
 }
 
 @end
@@ -966,9 +986,6 @@ static void ASASECSectionHeader(const char *title,
                                 const char *subtitle,
                                 ImU32 accent)
 {
-    if (!title)
-        return;
-
     ImGui::PushStyleVar(
         ImGuiStyleVar_ItemSpacing,
         ImVec2(5.0f, 4.0f)
@@ -1004,9 +1021,6 @@ static void ASASECSectionHeader(const char *title,
 
 static void ASASECPageDescription(const char *text)
 {
-    if (!text)
-        return;
-
     ImGui::TextColored(
         ImVec4(
             0.42f,
@@ -1024,13 +1038,8 @@ static void ASASECFeatureCard(const char *id,
                               const char *description,
                               bool *value)
 {
-    if (!id ||
-        !title ||
-        !description ||
-        !value)
-    {
+    if (!id || !title || !description || !value)
         return;
-    }
 
     float width =
         ImGui::GetContentRegionAvail().x;
@@ -1038,8 +1047,7 @@ static void ASASECFeatureCard(const char *id,
     if (width < 260.0f)
         width = 260.0f;
 
-    const float cardHeight =
-        68.0f;
+    const float cardHeight = 68.0f;
 
     ImGui::PushID(id);
 
@@ -1069,38 +1077,38 @@ static void ASASECFeatureCard(const char *id,
     ImDrawList *draw =
         ImGui::GetWindowDrawList();
 
-    ImU32 bg =
-        hovered
-        ? ASASECColor(
-            0.075f,
-            0.105f,
-            0.155f,
-            0.98f
-        )
-        : ASASECColor(
-            0.045f,
-            0.062f,
-            0.092f,
-            0.98f
-        );
-
-    ImU32 border =
-        hovered
-        ? ASASECColor(
-            0.18f,
-            0.30f,
-            0.46f,
-            0.90f
-        )
-        : ASASECColor(
-            0.12f,
-            0.17f,
-            0.25f,
-            0.78f
-        );
-
     if (draw)
     {
+        ImU32 bg =
+            hovered
+            ? ASASECColor(
+                0.075f,
+                0.105f,
+                0.155f,
+                0.98f
+            )
+            : ASASECColor(
+                0.045f,
+                0.062f,
+                0.092f,
+                0.98f
+            );
+
+        ImU32 border =
+            hovered
+            ? ASASECColor(
+                0.18f,
+                0.30f,
+                0.46f,
+                0.90f
+            )
+            : ASASECColor(
+                0.12f,
+                0.17f,
+                0.25f,
+                0.78f
+            );
+
         draw->AddRectFilled(
             start,
             end,
@@ -1143,6 +1151,70 @@ static void ASASECFeatureCard(const char *id,
                 1.0f
             )
         );
+
+        float switchWidth = 46.0f;
+        float switchHeight = 24.0f;
+
+        float sx =
+            end.x -
+            switchWidth -
+            14.0f;
+
+        float sy =
+            start.y +
+            (cardHeight -
+             switchHeight) *
+            0.5f;
+
+        ImVec2 sMin =
+            ImVec2(
+                sx,
+                sy
+            );
+
+        ImVec2 sMax =
+            ImVec2(
+                sx + switchWidth,
+                sy + switchHeight
+            );
+
+        draw->AddRectFilled(
+            sMin,
+            sMax,
+            *value
+            ? ASASECColor(
+                0.16f,
+                0.48f,
+                0.86f,
+                1.0f
+            )
+            : ASASECColor(
+                0.12f,
+                0.16f,
+                0.23f,
+                1.0f
+            ),
+            switchHeight * 0.5f
+        );
+
+        float knobX =
+            *value
+            ? sMax.x - 12.0f
+            : sMin.x + 12.0f;
+
+        draw->AddCircleFilled(
+            ImVec2(
+                knobX,
+                sy + switchHeight * 0.5f
+            ),
+            8.0f,
+            ASASECColor(
+                0.94f,
+                0.97f,
+                1.0f,
+                1.0f
+            )
+        );
     }
 
     ImGui::SetCursorScreenPos(
@@ -1181,109 +1253,14 @@ static void ASASECFeatureCard(const char *id,
         description
     );
 
-    float switchWidth =
-        46.0f;
-
-    float switchHeight =
-        24.0f;
-
-    float sx =
-        end.x -
-        switchWidth -
-        14.0f;
-
-    float sy =
-        start.y +
-        (cardHeight -
-         switchHeight) *
-        0.5f;
-
-    ImVec2 sMin =
-        ImVec2(
-            sx,
-            sy
-        );
-
-    ImVec2 sMax =
-        ImVec2(
-            sx + switchWidth,
-            sy + switchHeight
-        );
-
-    if (draw)
-    {
-        draw->AddRectFilled(
-            sMin,
-            sMax,
-            *value
-            ? ASASECColor(
-                0.16f,
-                0.48f,
-                0.86f,
-                1.0f
-            )
-            : ASASECColor(
-                0.12f,
-                0.16f,
-                0.23f,
-                1.0f
-            ),
-            switchHeight * 0.5f
-        );
-
-        float knobX =
-            *value
-            ? sMax.x - 12.0f
-            : sMin.x + 12.0f;
-
-        draw->AddCircleFilled(
-            ImVec2(
-                knobX,
-                sy +
-                    switchHeight *
-                    0.5f
-            ),
-            8.0f,
-            ASASECColor(
-                0.94f,
-                0.97f,
-                1.0f,
-                1.0f
-            )
-        );
-    }
-
-    /*
-     IMPORTANT CRASH FIX
-
-     Do NOT finish the child with a naked
-     SetCursorScreenPos() that extends the
-     parent content boundary.
-
-     Dear ImGui's newer layout checks detect
-     this during EndChild() and may abort with:
-
-     ErrorCheckUsingSetCursorPosToExtendParentBoundaries()
-
-     We explicitly validate the extra spacing
-     with a real ImGui item (Dummy).
-    */
+    ImGui::PopID();
 
     ImGui::SetCursorScreenPos(
         ImVec2(
             start.x,
-            end.y
+            end.y + 8.0f
         )
     );
-
-    ImGui::Dummy(
-        ImVec2(
-            width,
-            8.0f
-        )
-    );
-
-    ImGui::PopID();
 }
 
 #pragma mark - Renderer
@@ -1293,11 +1270,8 @@ static void ASASECFeatureCard(const char *id,
 - (void)mtkView:(MTKView *)view
 drawableSizeWillChange:(CGSize)size
 {
-    if (!gInitialized ||
-        !view)
-    {
+    if (!gInitialized || !view)
         return;
-    }
 
     ImGuiContext *ctx =
         ImGui::GetCurrentContext();
@@ -1332,8 +1306,7 @@ drawableSizeWillChange:(CGSize)size
     if (!gInitialized ||
         !view ||
         !gMetalDevice ||
-        !gCommandQueue ||
-        !gMetalBackendInitialized)
+        !gCommandQueue)
     {
         return;
     }
@@ -1350,7 +1323,7 @@ drawableSizeWillChange:(CGSize)size
     if (!pass)
         return;
 
-    id drawable =
+    id<CAMetalDrawable> drawable =
         view.currentDrawable;
 
     if (!drawable)
@@ -1385,21 +1358,43 @@ drawableSizeWillChange:(CGSize)size
             (float)scale
         );
 
-    float fps =
-        (float)view.preferredFramesPerSecond;
+    /*
+     * Gerçek frame süresini kullanıyoruz.
+     * Bu, page/switch animasyonlarının FPS'e
+     * bağlı olarak kaybolmasını engeller.
+     */
+    CFTimeInterval currentTime =
+        CACurrentMediaTime();
 
-    if (fps < 1.0f)
-        fps = 60.0f;
+    float frameDelta =
+        1.0f / 60.0f;
 
-    io.DeltaTime =
-        1.0f / fps;
-
-    if (io.DeltaTime <= 0.0f ||
-        io.DeltaTime > 0.1f)
+    if (gLastFrameTime > 0.0)
     {
-        io.DeltaTime =
+        CFTimeInterval elapsed =
+            currentTime -
+            gLastFrameTime;
+
+        if (elapsed > 0.0 &&
+            elapsed <= 0.1)
+        {
+            frameDelta =
+                (float)elapsed;
+        }
+    }
+
+    gLastFrameTime =
+        currentTime;
+
+    if (frameDelta <= 0.0f ||
+        frameDelta > 0.1f)
+    {
+        frameDelta =
             1.0f / 60.0f;
     }
+
+    io.DeltaTime =
+        frameDelta;
 
     ImGui::NewFrame();
 
@@ -1409,7 +1404,8 @@ drawableSizeWillChange:(CGSize)size
     if (dt <= 0.0f ||
         dt > 0.1f)
     {
-        dt = 1.0f / 60.0f;
+        dt =
+            1.0f / 60.0f;
     }
 
     if (gSelectedPage !=
@@ -1631,16 +1627,17 @@ drawableSizeWillChange:(CGSize)size
                 7.0f
             );
 
-            ImGuiIO &currentIO =
-                ImGui::GetIO();
+            ImFont *defaultFont = NULL;
 
-            if (currentIO.Fonts &&
-                currentIO.Fonts->Fonts.Size > 0)
+            if (ImGui::GetIO().Fonts &&
+                ImGui::GetIO().Fonts->Fonts.Size > 0)
             {
-                ImGui::PushFont(
-                    currentIO.Fonts->Fonts[0]
-                );
+                defaultFont =
+                    ImGui::GetIO().Fonts->Fonts[0];
             }
+
+            if (defaultFont)
+                ImGui::PushFont(defaultFont);
 
             ImGui::SetWindowFontScale(
                 1.15f
@@ -1675,11 +1672,8 @@ drawableSizeWillChange:(CGSize)size
                 1.0f
             );
 
-            if (currentIO.Fonts &&
-                currentIO.Fonts->Fonts.Size > 0)
-            {
+            if (defaultFont)
                 ImGui::PopFont();
-            }
 
             #pragma mark Control Panel Title
 
@@ -1715,9 +1709,6 @@ drawableSizeWillChange:(CGSize)size
             float collapseButtonX =
                 windowSize.x -
                 96.0f;
-
-            if (collapseButtonX < 0.0f)
-                collapseButtonX = 0.0f;
 
             ImGui::SetCursorPos(
                 ImVec2(
@@ -1925,9 +1916,6 @@ drawableSizeWillChange:(CGSize)size
                 windowSize.x -
                 50.0f;
 
-            if (closeButtonX < 0.0f)
-                closeButtonX = 0.0f;
-
             ImGui::SetCursorPos(
                 ImVec2(
                     closeButtonX,
@@ -2062,6 +2050,9 @@ drawableSizeWillChange:(CGSize)size
                 gDraggingMenu = NO;
                 gResizingMenu = NO;
                 gContentDragging = NO;
+
+                gContentScrollVelocity = 0.0f;
+                gPendingContentScrollY = 0.0f;
             }
 
             ImGui::PopStyleColor(3);
@@ -2353,19 +2344,16 @@ drawableSizeWillChange:(CGSize)size
                 if (contentHeight < 100.0f)
                     contentHeight = 100.0f;
 
-                bool contentRootOpened =
-                    ImGui::BeginChild(
-                        "##ContentRoot",
-                        ImVec2(
-                            contentWidth,
-                            contentHeight
-                        ),
-                        false,
-                        ImGuiWindowFlags_NoBackground |
-                        ImGuiWindowFlags_NoScrollbar
-                    );
-
-                if (contentRootOpened)
+                if (ImGui::BeginChild(
+                    "##ContentRoot",
+                    ImVec2(
+                        contentWidth,
+                        contentHeight
+                    ),
+                    false,
+                    ImGuiWindowFlags_NoBackground |
+                    ImGuiWindowFlags_NoScrollbar
+                ))
                 {
                     ImGui::SetCursorPos(
                         ImVec2(
@@ -2447,18 +2435,15 @@ drawableSizeWillChange:(CGSize)size
                     if (scrollHeight < 100.0f)
                         scrollHeight = 100.0f;
 
-                    bool scrollableOpened =
-                        ImGui::BeginChild(
-                            "##ScrollableContent",
-                            ImVec2(
-                                contentWidth,
-                                scrollHeight
-                            ),
-                            false,
-                            ImGuiWindowFlags_NoScrollbar
-                        );
-
-                    if (scrollableOpened)
+                    if (ImGui::BeginChild(
+                        "##ScrollableContent",
+                        ImVec2(
+                            contentWidth,
+                            scrollHeight
+                        ),
+                        false,
+                        ImGuiWindowFlags_NoScrollbar
+                    ))
                     {
                         float fade =
                             ASASECClampFloat(
@@ -2515,18 +2500,15 @@ drawableSizeWillChange:(CGSize)size
                             if (cardWidth < 280.0f)
                                 cardWidth = 280.0f;
 
-                            bool combatCardOpened =
-                                ImGui::BeginChild(
-                                    "##CombatCard",
-                                    ImVec2(
-                                        cardWidth,
-                                        294.0f
-                                    ),
-                                    false,
-                                    ImGuiWindowFlags_NoBackground
-                                );
-
-                            if (combatCardOpened)
+                            if (ImGui::BeginChild(
+                                "##CombatCard",
+                                ImVec2(
+                                    cardWidth,
+                                    294.0f
+                                ),
+                                false,
+                                ImGuiWindowFlags_NoBackground
+                            ))
                             {
                                 ASASECFeatureCard(
                                     "aimbot",
@@ -2598,18 +2580,15 @@ drawableSizeWillChange:(CGSize)size
                             if (cardWidth < 280.0f)
                                 cardWidth = 280.0f;
 
-                            bool visualCardOpened =
-                                ImGui::BeginChild(
-                                    "##VisualCard",
-                                    ImVec2(
-                                        cardWidth,
-                                        294.0f
-                                    ),
-                                    false,
-                                    ImGuiWindowFlags_NoBackground
-                                );
-
-                            if (visualCardOpened)
+                            if (ImGui::BeginChild(
+                                "##VisualCard",
+                                ImVec2(
+                                    cardWidth,
+                                    294.0f
+                                ),
+                                false,
+                                ImGuiWindowFlags_NoBackground
+                            ))
                             {
                                 ASASECFeatureCard(
                                     "player",
@@ -2681,18 +2660,15 @@ drawableSizeWillChange:(CGSize)size
                             if (cardWidth < 280.0f)
                                 cardWidth = 280.0f;
 
-                            bool settingsCardOpened =
-                                ImGui::BeginChild(
-                                    "##SettingsCard",
-                                    ImVec2(
-                                        cardWidth,
-                                        294.0f
-                                    ),
-                                    false,
-                                    ImGuiWindowFlags_NoBackground
-                                );
-
-                            if (settingsCardOpened)
+                            if (ImGui::BeginChild(
+                                "##SettingsCard",
+                                ImVec2(
+                                    cardWidth,
+                                    294.0f
+                                ),
+                                false,
+                                ImGuiWindowFlags_NoBackground
+                            ))
                             {
                                 ASASECFeatureCard(
                                     "save",
@@ -2869,9 +2845,8 @@ drawableSizeWillChange:(CGSize)size
         }
 
         /*
-         IMPORTANT:
-         ImGui::End() must always match ImGui::Begin().
-        */
+         * Begin() false döndürse bile End() mutlaka çağrılır.
+         */
         ImGui::End();
 
         ImGui::PopStyleColor();
@@ -2981,42 +2956,22 @@ void ASASECImGuiStart(void)
             }
 
             /*
-             Safely clean an old ImGui context if one exists.
-            */
-            ImGuiContext *oldContext =
-                ImGui::GetCurrentContext();
-
-            if (oldContext)
-            {
-                ImGui::SetCurrentContext(
-                    oldContext
-                );
-
-                if (gMetalBackendInitialized)
-                {
-                    ImGui_ImplMetal_Shutdown();
-                    gMetalBackendInitialized =
-                        NO;
-                }
-
-                ImGui::DestroyContext(
-                    oldContext
-                );
-            }
+             * Sadece ASASEC'in oluşturduğu context
+             * tutulur ve kapatılır.
+             *
+             * Başka bir sistemin aktif ImGui context'i
+             * artık yanlışlıkla DestroyContext edilmez.
+             */
 
             gImGuiView = nil;
             gRenderer = nil;
+            gImGuiContext = NULL;
 
-            gMetalDevice =
-                device;
-
-            gCommandQueue =
-                queue;
-
-            ImGui::CreateContext();
+            gMetalDevice = device;
+            gCommandQueue = queue;
 
             ImGuiContext *ctx =
-                ImGui::GetCurrentContext();
+                ImGui::CreateContext();
 
             if (!ctx)
             {
@@ -3026,8 +2981,10 @@ void ASASECImGuiStart(void)
                 return;
             }
 
+            gImGuiContext = ctx;
+
             ImGui::SetCurrentContext(
-                ctx
+                gImGuiContext
             );
 
             ImGuiIO &io =
@@ -3057,6 +3014,12 @@ void ASASECImGuiStart(void)
                     (float)scale
                 );
 
+            /*
+             * Yeni ImGui input event API.
+             */
+            io.BackendFlags |=
+                ImGuiBackendFlags_HasMouseCursors;
+
             ASASECApplyStyle();
 
             gMenuVisible = YES;
@@ -3065,27 +3028,23 @@ void ASASECImGuiStart(void)
             gSelectedPage = 0;
             gPreviousPage = 0;
 
-            gPageAnimation =
-                1.0f;
-
-            gPageSlide =
-                0.0f;
+            gPageAnimation = 1.0f;
+            gPageSlide = 0.0f;
 
             gDraggingMenu = NO;
             gResizingMenu = NO;
             gContentDragging = NO;
 
-            gContentTouchCandidate =
-                NO;
-
-            gContentHasMoved =
-                NO;
+            gContentTouchCandidate = NO;
+            gContentHasMoved = NO;
 
             gPendingContentScrollY =
                 0.0f;
 
             gContentScrollVelocity =
                 0.0f;
+
+            gLastFrameTime = 0.0;
 
             CGRect frame =
                 window.bounds;
@@ -3097,7 +3056,18 @@ void ASASECImGuiStart(void)
 
             if (!view)
             {
-                ImGui::DestroyContext();
+                if (gImGuiContext)
+                {
+                    ImGui::SetCurrentContext(
+                        gImGuiContext
+                    );
+
+                    ImGui::DestroyContext(
+                        gImGuiContext
+                    );
+
+                    gImGuiContext = NULL;
+                }
 
                 gCommandQueue = nil;
                 gMetalDevice = nil;
@@ -3109,8 +3079,7 @@ void ASASECImGuiStart(void)
             view.backgroundColor =
                 UIColor.clearColor;
 
-            view.opaque =
-                NO;
+            view.opaque = NO;
 
             view.clearColor =
                 MTLClearColorMake(
@@ -3132,8 +3101,7 @@ void ASASECImGuiStart(void)
             view.enableSetNeedsDisplay =
                 NO;
 
-            view.paused =
-                NO;
+            view.paused = NO;
 
             view.multipleTouchEnabled =
                 YES;
@@ -3147,7 +3115,20 @@ void ASASECImGuiStart(void)
 
             if (!renderer)
             {
-                ImGui::DestroyContext();
+                [view removeFromSuperview];
+
+                if (gImGuiContext)
+                {
+                    ImGui::SetCurrentContext(
+                        gImGuiContext
+                    );
+
+                    ImGui::DestroyContext(
+                        gImGuiContext
+                    );
+
+                    gImGuiContext = NULL;
+                }
 
                 gCommandQueue = nil;
                 gMetalDevice = nil;
@@ -3158,10 +3139,23 @@ void ASASECImGuiStart(void)
 
             if (!ImGui_ImplMetal_Init(device))
             {
-                view.delegate =
-                    nil;
+                view.delegate = nil;
+                view.paused = YES;
 
-                ImGui::DestroyContext();
+                [view removeFromSuperview];
+
+                if (gImGuiContext)
+                {
+                    ImGui::SetCurrentContext(
+                        gImGuiContext
+                    );
+
+                    ImGui::DestroyContext(
+                        gImGuiContext
+                    );
+
+                    gImGuiContext = NULL;
+                }
 
                 gCommandQueue = nil;
                 gMetalDevice = nil;
@@ -3170,14 +3164,8 @@ void ASASECImGuiStart(void)
                 return;
             }
 
-            gMetalBackendInitialized =
-                YES;
-
-            gImGuiView =
-                view;
-
-            gRenderer =
-                renderer;
+            gImGuiView = view;
+            gRenderer = renderer;
 
             view.delegate =
                 renderer;
@@ -3190,11 +3178,13 @@ void ASASECImGuiStart(void)
                 window
             );
 
-            gInitialized =
-                YES;
-
-            gStarting =
-                NO;
+            /*
+             * View eklenip delegate ayarlandıktan sonra
+             * initialized yapılır. Böylece erken touch/frame
+             * çağrılarında yarım initialize durumuna düşülmez.
+             */
+            gInitialized = YES;
+            gStarting = NO;
         }
     );
 }
@@ -3210,52 +3200,55 @@ void ASASECImGuiStop(void)
                 return;
             }
 
-            gInitialized =
-                NO;
+            /*
+             * Önce yeni frame/touch girişlerini kapat.
+             */
+            gInitialized = NO;
+            gStarting = NO;
 
-            gStarting =
-                NO;
+            gLastFrameTime = 0.0;
 
+            /*
+             * Önce MTKView delegate'i kapatılır.
+             * Böylece view temizlenirken yeni Metal frame
+             * oluşturulması engellenir.
+             */
             if (gImGuiView)
             {
-                gImGuiView.delegate =
-                    nil;
-
-                gImGuiView.paused =
-                    YES;
+                gImGuiView.delegate = nil;
+                gImGuiView.paused = YES;
+                gImGuiView.userInteractionEnabled = NO;
 
                 [gImGuiView removeFromSuperview];
 
-                gImGuiView =
-                    nil;
+                gImGuiView = nil;
             }
 
+            /*
+             * Sadece ASASEC'in kendi context'i kapatılır.
+             */
             ImGuiContext *ctx =
-                ImGui::GetCurrentContext();
+                gImGuiContext;
+
+            gImGuiContext = NULL;
 
             if (ctx)
             {
-                if (gMetalBackendInitialized)
-                {
-                    ImGui_ImplMetal_Shutdown();
+                ImGui::SetCurrentContext(
+                    ctx
+                );
 
-                    gMetalBackendInitialized =
-                        NO;
-                }
+                ImGui_ImplMetal_Shutdown();
 
                 ImGui::DestroyContext(
                     ctx
                 );
             }
 
-            gRenderer =
-                nil;
+            gRenderer = nil;
 
-            gCommandQueue =
-                nil;
-
-            gMetalDevice =
-                nil;
+            gCommandQueue = nil;
+            gMetalDevice = nil;
 
             gSwitchAnimationCount =
                 0;
@@ -3266,20 +3259,12 @@ void ASASECImGuiStop(void)
             gContentScrollVelocity =
                 0.0f;
 
-            gDraggingMenu =
-                NO;
+            gDraggingMenu = NO;
+            gResizingMenu = NO;
+            gContentDragging = NO;
 
-            gResizingMenu =
-                NO;
-
-            gContentDragging =
-                NO;
-
-            gContentTouchCandidate =
-                NO;
-
-            gContentHasMoved =
-                NO;
+            gContentTouchCandidate = NO;
+            gContentHasMoved = NO;
         }
     );
 }
