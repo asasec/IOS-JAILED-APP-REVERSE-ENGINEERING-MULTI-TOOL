@@ -593,94 +593,17 @@ static bool ASASECModernSwitch(const char *label,
     if (!gMenuVisible)
         return NO;
 
-    float height =
-        gMenuCollapsed
-        ? kHeaderHeight
-        : gMenuSize.y;
+    float height = gMenuCollapsed ? kHeaderHeight : gMenuSize.y;
 
-    return
-        point.x >= gMenuPosition.x &&
-        point.x <=
-            gMenuPosition.x +
-            gMenuSize.x &&
-        point.y >= gMenuPosition.y &&
-        point.y <=
-            gMenuPosition.y +
-            height;
+    return point.x >= gMenuPosition.x &&
+           point.x <= gMenuPosition.x + gMenuSize.x &&
+           point.y >= gMenuPosition.y &&
+           point.y <= gMenuPosition.y + height;
 }
 
-- (BOOL)pointInsideResizeHandle:(CGPoint)point
-{
-    if (!gMenuVisible)
-        return NO;
-
-    if (gMenuCollapsed)
-        return NO;
-
-    float right =
-        gMenuPosition.x +
-        gMenuSize.x;
-
-    float bottom =
-        gMenuPosition.y +
-        gMenuSize.y;
-
-    return
-        point.x >= right - kResizeSize &&
-        point.x <= right + 12.0f &&
-        point.y >= bottom - kResizeSize &&
-        point.y <= bottom + 12.0f;
-}
-
-- (BOOL)pointInsideDragHeader:(CGPoint)point
-{
-    if (!gMenuVisible)
-        return NO;
-
-    return
-        point.x >= gMenuPosition.x &&
-        point.x <=
-            gMenuPosition.x +
-            gMenuSize.x &&
-        point.y >= gMenuPosition.y &&
-        point.y <=
-            gMenuPosition.y +
-            kHeaderHeight;
-}
-
-- (BOOL)pointInsideContent:(CGPoint)point
-{
-    if (!gMenuVisible ||
-        gMenuCollapsed)
-        return NO;
-
-    const float sidebarWidth = 145.0f;
-
-    float contentLeft =
-        gMenuPosition.x +
-        sidebarWidth;
-
-    float contentTop =
-        gMenuPosition.y +
-        kHeaderHeight;
-
-    float contentRight =
-        gMenuPosition.x +
-        gMenuSize.x;
-
-    float contentBottom =
-        gMenuPosition.y +
-        gMenuSize.y;
-
-    return
-        point.x >= contentLeft &&
-        point.x <= contentRight &&
-        point.y >= contentTop &&
-        point.y <= contentBottom;
-}
-
-- (UIView *)hitTest:(CGPoint)point
-          withEvent:(UIEvent *)event
+// KRİTİK DÜZELTME: Menü açıkken sadece menü sınırları içindeki dokunmalar yakalanır, 
+// dışındakiler alt katmandaki oyuna/uygulamaya doğrudan iletilir.
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
 {
     if (!gInitialized || !gMenuVisible)
         return nil;
@@ -691,405 +614,87 @@ static bool ASASECModernSwitch(const char *label,
     return nil;
 }
 
-- (void)beginMenuDragAtPoint:(CGPoint)point
-{
-    if (!gMenuVisible)
-        return;
-
-    gDraggingMenu = YES;
-    gResizingMenu = NO;
-    gContentDragging = NO;
-
-    gDragStartPoint = point;
-    gDragStartPosition = gMenuPosition;
-}
-
-- (void)updateMenuDragAtPoint:(CGPoint)point
-{
-    if (!gDraggingMenu)
-        return;
-
-    CGFloat dx =
-        point.x -
-        gDragStartPoint.x;
-
-    CGFloat dy =
-        point.y -
-        gDragStartPoint.y;
-
-    gMenuPosition.x =
-        gDragStartPosition.x +
-        (float)dx;
-
-    gMenuPosition.y =
-        gDragStartPosition.y +
-        (float)dy;
-
-    [self clampMenuPosition];
-}
-
-- (void)beginMenuResizeAtPoint:(CGPoint)point
-{
-    if (!gMenuVisible ||
-        gMenuCollapsed)
-        return;
-
-    gResizingMenu = YES;
-    gDraggingMenu = NO;
-    gContentDragging = NO;
-
-    gResizeStartPoint = point;
-    gResizeStartSize = gMenuSize;
-}
-
-- (void)updateMenuResizeAtPoint:(CGPoint)point
-{
-    if (!gResizingMenu)
-        return;
-
-    CGFloat dx =
-        point.x -
-        gResizeStartPoint.x;
-
-    CGFloat dy =
-        point.y -
-        gResizeStartPoint.y;
-
-    float newWidth =
-        gResizeStartSize.x +
-        (float)dx;
-
-    float newHeight =
-        gResizeStartSize.y +
-        (float)dy;
-
-    newWidth =
-        ASASECClampFloat(
-            newWidth,
-            kMenuMinWidth,
-            kMenuMaxWidth
-        );
-
-    newHeight =
-        ASASECClampFloat(
-            newHeight,
-            kMenuMinHeight,
-            kMenuMaxHeight
-        );
-
-    UIWindow *window =
-        self.window;
-
-    if (window)
-    {
-        CGSize screenSize =
-            window.bounds.size;
-
-        float availableWidth =
-            (float)screenSize.width -
-            gMenuPosition.x -
-            8.0f;
-
-        float availableHeight =
-            (float)screenSize.height -
-            gMenuPosition.y -
-            8.0f;
-
-        if (availableWidth >= kMenuMinWidth)
-        {
-            newWidth =
-                MIN(
-                    newWidth,
-                    availableWidth
-                );
-        }
-
-        if (availableHeight >= kMenuMinHeight)
-        {
-            newHeight =
-                MIN(
-                    newHeight,
-                    availableHeight
-                );
-        }
-    }
-
-    gMenuSize.x = newWidth;
-    gMenuSize.y = newHeight;
-}
-
-- (void)beginContentDragAtPoint:(CGPoint)point
-{
-    if (!gMenuVisible ||
-        gMenuCollapsed)
-        return;
-
-    gContentDragging = YES;
-    gContentTouchCandidate = YES;
-    gContentHasMoved = NO;
-
-    gDraggingMenu = NO;
-    gResizingMenu = NO;
-
-    gContentStartPoint = point;
-    gContentLastPoint = point;
-
-    gPendingContentScrollY = 0.0f;
-    gContentScrollVelocity = 0.0f;
-}
-
-- (void)updateContentDragAtPoint:(CGPoint)point
-{
-    if (!gContentDragging)
-        return;
-
-    float dy =
-        (float)(
-            point.y -
-            gContentLastPoint.y
-        );
-
-    float dx =
-        (float)(
-            point.x -
-            gContentLastPoint.x
-        );
-
-    if (fabsf(dy) < 0.05f)
-        dy = 0.0f;
-
-    float totalDX =
-        fabsf(
-            (float)(
-                point.x -
-                gContentStartPoint.x
-            )
-        );
-
-    float totalDY =
-        fabsf(
-            (float)(
-                point.y -
-                gContentStartPoint.y
-            )
-        );
-
-    if (!gContentHasMoved)
-    {
-        if (totalDY > 5.0f &&
-            totalDY >= totalDX)
-        {
-            gContentHasMoved = YES;
-        }
-    }
-
-    if (gContentHasMoved)
-    {
-        float scrollDelta =
-            -dy;
-
-        gPendingContentScrollY +=
-            scrollDelta;
-
-        gContentScrollVelocity =
-            scrollDelta;
-    }
-
-    gContentLastPoint = point;
-}
-
-- (void)endContentDrag
-{
-    if (!gContentDragging)
-        return;
-
-    gContentDragging = NO;
-    gContentTouchCandidate = NO;
-}
-
-- (void)endMenuInteraction
-{
-    gDraggingMenu = NO;
-    gResizingMenu = NO;
-    gContentDragging = NO;
-    gContentTouchCandidate = NO;
-}
-
-- (void)clampMenuPosition
-{
-    UIWindow *window =
-        self.window;
-
-    if (!window)
-        return;
-
-    ASASECClampMenuToScreen(window);
-}
-
 - (void)updateIOWithTouchEvent:(UIEvent *)event
 {
     if (!gInitialized)
         return;
 
-    ImGuiContext *ctx =
-        ImGui::GetCurrentContext();
-
+    ImGuiContext *ctx = ImGui::GetCurrentContext();
     if (!ctx)
         return;
 
-    ImGuiIO &io =
-        ImGui::GetIO();
-
-    UITouch *touch =
-        event.allTouches.anyObject;
+    ImGuiIO &io = ImGui::GetIO();
+    UITouch *touch = event.allTouches.anyObject;
 
     if (touch)
     {
-        CGPoint point =
-            [touch locationInView:self];
-
-        io.MousePos =
-            ImVec2(
-                (float)point.x,
-                (float)point.y
-            );
+        CGPoint point = [touch locationInView:self];
+        io.MousePos = ImVec2((float)point.x, (float)point.y);
     }
 
     BOOL touching = NO;
-
-    for (UITouch *currentTouch
-         in event.allTouches)
+    for (UITouch *currentTouch in event.allTouches)
     {
         if (!currentTouch)
             continue;
 
-        if (currentTouch.phase !=
-                UITouchPhaseEnded &&
-            currentTouch.phase !=
-                UITouchPhaseCancelled)
+        if (currentTouch.phase != UITouchPhaseEnded &&
+            currentTouch.phase != UITouchPhaseCancelled)
         {
             touching = YES;
             break;
         }
     }
 
-    io.MouseDown[0] =
-        touching;
+    io.MouseDown[0] = touching;
 }
 
-- (void)touchesBegan:(NSSet<UITouch *> *)touches
-          withEvent:(UIEvent *)event
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     if (!gInitialized)
         return;
-
-    UITouch *touch =
-        touches.anyObject;
-
-    if (touch)
-    {
-        CGPoint point =
-            [touch locationInView:self];
-
-        if ([self pointInsideResizeHandle:point])
-        {
-            [self beginMenuResizeAtPoint:point];
-        }
-        else if ([self pointInsideDragHeader:point])
-        {
-            [self beginMenuDragAtPoint:point];
-        }
-        else if ([self pointInsideContent:point])
-        {
-            [self beginContentDragAtPoint:point];
-        }
-    }
-
     [self updateIOWithTouchEvent:event];
 }
 
-- (void)touchesMoved:(NSSet<UITouch *> *)touches
-          withEvent:(UIEvent *)event
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
     if (!gInitialized)
         return;
-
-    UITouch *touch =
-        touches.anyObject;
-
-    if (touch)
-    {
-        CGPoint point =
-            [touch locationInView:self];
-
-        if (gResizingMenu)
-        {
-            [self updateMenuResizeAtPoint:point];
-        }
-        else if (gDraggingMenu)
-        {
-            [self updateMenuDragAtPoint:point];
-        }
-        else if (gContentDragging)
-        {
-            [self updateContentDragAtPoint:point];
-        }
-    }
-
     [self updateIOWithTouchEvent:event];
 }
 
-- (void)touchesEnded:(NSSet<UITouch *> *)touches
-          withEvent:(UIEvent *)event
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
-    if (gContentDragging)
-        [self endContentDrag];
-    else
-        [self endMenuInteraction];
-
     if (!gInitialized)
         return;
 
     [self updateIOWithTouchEvent:event];
 
-    ImGuiContext *ctx =
-        ImGui::GetCurrentContext();
-
+    ImGuiContext *ctx = ImGui::GetCurrentContext();
     if (ctx)
     {
-        ImGuiIO &io =
-            ImGui::GetIO();
-
+        ImGuiIO &io = ImGui::GetIO();
         io.MouseDown[0] = false;
     }
 }
 
-- (void)touchesCancelled:(NSSet<UITouch *> *)touches
-              withEvent:(UIEvent *)event
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
 {
-    [self endMenuInteraction];
-
-    gContentScrollVelocity = 0.0f;
-    gPendingContentScrollY = 0.0f;
-
     if (!gInitialized)
         return;
 
     [self updateIOWithTouchEvent:event];
 
-    ImGuiContext *ctx =
-        ImGui::GetCurrentContext();
-
+    ImGuiContext *ctx = ImGui::GetCurrentContext();
     if (ctx)
     {
-        ImGuiIO &io =
-            ImGui::GetIO();
-
+        ImGuiIO &io = ImGui::GetIO();
         io.MouseDown[0] = false;
     }
 }
 
 @end
+
 
 #pragma mark - Style
 
