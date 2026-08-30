@@ -678,17 +678,17 @@ static bool ASASECModernSwitch(const char *label,
     UITouch *touch =
         event.allTouches.anyObject;
 
-    if (touch)
-    {
-        CGPoint point =
-            [touch locationInView:self];
+    if (!touch)
+        return;
 
-        io.MousePos =
-            ImVec2(
-                (float)point.x,
-                (float)point.y
-            );
-    }
+    CGPoint point =
+        [touch locationInView:self];
+
+    io.MousePos =
+        ImVec2(
+            (float)point.x,
+            (float)point.y
+        );
 
     BOOL touching = NO;
 
@@ -718,6 +718,70 @@ static bool ASASECModernSwitch(const char *label,
         return;
 
     [self updateIOWithTouchEvent:event];
+
+    UITouch *touch = touches.anyObject;
+    if (!touch)
+        return;
+
+    CGPoint point = [touch locationInView:self];
+
+    if (!gMenuCollapsed && gMenuVisible)
+    {
+        float resizeIconX = gMenuPosition.x + gMenuSize.x - kResizeSize;
+        float resizeIconY = gMenuPosition.y + gMenuSize.y - kResizeSize;
+
+        if (point.x >= resizeIconX && point.y >= resizeIconY &&
+            point.x <= gMenuPosition.x + gMenuSize.x &&
+            point.y <= gMenuPosition.y + gMenuSize.y)
+        {
+            gResizingMenu = YES;
+            gResizeStartPoint = point;
+            gResizeStartSize = gMenuSize;
+            return;
+        }
+
+        float sidebarWidth = 145.0f;
+        float contentStartX = gMenuPosition.x + sidebarWidth;
+        float contentStartY = gMenuPosition.y + 62.0f;
+        float contentEndX = gMenuPosition.x + gMenuSize.x;
+        float contentEndY = gMenuPosition.y + gMenuSize.y;
+
+        if (point.x >= contentStartX && point.x <= contentEndX &&
+            point.y >= contentStartY && point.y <= contentEndY)
+        {
+            gContentTouchCandidate = YES;
+            gContentHasMoved = NO;
+            gContentStartPoint = point;
+            gContentLastPoint = point;
+            gContentDragging = NO;
+            gContentScrollVelocity = 0.0f;
+            return;
+        }
+
+        if (point.x >= gMenuPosition.x &&
+            point.x <= gMenuPosition.x + gMenuSize.x &&
+            point.y >= gMenuPosition.y &&
+            point.y <= gMenuPosition.y + kHeaderHeight)
+        {
+            gDraggingMenu = YES;
+            gDragStartPoint = point;
+            gDragStartPosition = gMenuPosition;
+            return;
+        }
+    }
+    else if (gMenuCollapsed && gMenuVisible)
+    {
+        if (point.x >= gMenuPosition.x &&
+            point.x <= gMenuPosition.x + gMenuSize.x &&
+            point.y >= gMenuPosition.y &&
+            point.y <= gMenuPosition.y + kHeaderHeight)
+        {
+            gDraggingMenu = YES;
+            gDragStartPoint = point;
+            gDragStartPosition = gMenuPosition;
+            return;
+        }
+    }
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches
@@ -727,6 +791,69 @@ static bool ASASECModernSwitch(const char *label,
         return;
 
     [self updateIOWithTouchEvent:event];
+
+    UITouch *touch = touches.anyObject;
+    if (!touch)
+        return;
+
+    CGPoint point = [touch locationInView:self];
+
+    if (gResizingMenu)
+    {
+        float deltaX = point.x - gResizeStartPoint.x;
+        float deltaY = point.y - gResizeStartPoint.y;
+
+        gMenuSize.x = ASASECClampFloat(gResizeStartSize.x + deltaX, kMenuMinWidth, kMenuMaxWidth);
+        gMenuSize.y = ASASECClampFloat(gResizeStartSize.y + deltaY, kMenuMinHeight, kMenuMaxHeight);
+
+        UIWindow *window = self.window;
+        if (window)
+            ASASECClampMenuToScreen(window);
+
+        ImGuiIO &io = ImGui::GetIO();
+        io.MouseDown[0] = false;
+        return;
+    }
+
+    if (gDraggingMenu)
+    {
+        float deltaX = point.x - gDragStartPoint.x;
+        float deltaY = point.y - gDragStartPoint.y;
+
+        gMenuPosition.x = gDragStartPosition.x + deltaX;
+        gMenuPosition.y = gDragStartPosition.y + deltaY;
+
+        UIWindow *window = self.window;
+        if (window)
+            ASASECClampMenuToScreen(window);
+
+        ImGuiIO &io = ImGui::GetIO();
+        io.MouseDown[0] = false;
+        return;
+    }
+
+    if (gContentTouchCandidate)
+    {
+        float moveX = point.x - gContentStartPoint.x;
+        float moveY = point.y - gContentStartPoint.y;
+
+        if (!gContentDragging && (fabsf(moveX) > 6.0f || fabsf(moveY) > 6.0f))
+        {
+            gContentDragging = YES;
+            gContentHasMoved = YES;
+        }
+
+        if (gContentDragging)
+        {
+            float deltaY = point.y - gContentLastPoint.y;
+            gPendingContentScrollY -= deltaY;
+            gContentScrollVelocity = -deltaY * 0.6f;
+            gContentLastPoint = point;
+
+            ImGuiIO &io = ImGui::GetIO();
+            io.MouseDown[0] = false;
+        }
+    }
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches
@@ -748,6 +875,11 @@ static bool ASASECModernSwitch(const char *label,
         io.MouseDown[0] =
             false;
     }
+
+    gDraggingMenu = NO;
+    gResizingMenu = NO;
+    gContentDragging = NO;
+    gContentTouchCandidate = NO;
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches
@@ -769,6 +901,11 @@ static bool ASASECModernSwitch(const char *label,
         io.MouseDown[0] =
             false;
     }
+
+    gDraggingMenu = NO;
+    gResizingMenu = NO;
+    gContentDragging = NO;
+    gContentTouchCandidate = NO;
 }
 
 @end
@@ -1252,22 +1389,6 @@ static void ASASECFeatureCard(const char *id,
             )
         );
     }
-
-    /*
-     IMPORTANT CRASH FIX
-
-     Do NOT finish the child with a naked
-     SetCursorScreenPos() that extends the
-     parent content boundary.
-
-     Dear ImGui's newer layout checks detect
-     this during EndChild() and may abort with:
-
-     ErrorCheckUsingSetCursorPosToExtendParentBoundaries()
-
-     We explicitly validate the extra spacing
-     with a real ImGui item (Dummy).
-    */
 
     ImGui::SetCursorScreenPos(
         ImVec2(
@@ -2528,33 +2649,10 @@ drawableSizeWillChange:(CGSize)size
 
                             if (combatCardOpened)
                             {
-                                ASASECFeatureCard(
-                                    "aimbot",
-                                    "swicht 1",
-                                    "Automatic target assistance",
-                                    &sw1
-                                );
-
-                                ASASECFeatureCard(
-                                    "silent",
-                                    "swicht 2",
-                                    "Hidden targeting correction",
-                                    &sw2
-                                );
-
-                                ASASECFeatureCard(
-                                    "recoil",
-                                    "swicht 3",
-                                    "Reduce weapon recoil",
-                                    &sw3
-                                );
-
-                                ASASECFeatureCard(
-                                    "rapid",
-                                    "swicht 4",
-                                    "Increase firing response",
-                                    &sw4
-                                );
+                                ASASECModernSwitch("swicht 1", &sw1);
+                                ASASECModernSwitch("swicht 2", &sw2);
+                                ASASECModernSwitch("swicht 3", &sw3);
+                                ASASECModernSwitch("swicht 4", &sw4);
                             }
 
                             ImGui::EndChild();
@@ -2611,33 +2709,10 @@ drawableSizeWillChange:(CGSize)size
 
                             if (visualCardOpened)
                             {
-                                ASASECFeatureCard(
-                                    "player",
-                                    "swicht 1",
-                                    "Display nearby players",
-                                    &sw1
-                                );
-
-                                ASASECFeatureCard(
-                                    "box",
-                                    "swicht 2",
-                                    "Draw player bounding boxes",
-                                    &sw2
-                                );
-
-                                ASASECFeatureCard(
-                                    "distance",
-                                    "swicht 3",
-                                    "Show player distance",
-                                    &sw3
-                                );
-
-                                ASASECFeatureCard(
-                                    "skeleton",
-                                    "swicht 4",
-                                    "Display player skeleton",
-                                    &sw4
-                                );
+                                ASASECModernSwitch("swicht 1", &sw1);
+                                ASASECModernSwitch("swicht 2", &sw2);
+                                ASASECModernSwitch("swicht 3", &sw3);
+                                ASASECModernSwitch("swicht 4", &sw4);
                             }
 
                             ImGui::EndChild();
@@ -2694,33 +2769,10 @@ drawableSizeWillChange:(CGSize)size
 
                             if (settingsCardOpened)
                             {
-                                ASASECFeatureCard(
-                                    "save",
-                                    "swicht 1",
-                                    "Keep your interface settings",
-                                    &sw1
-                                );
-
-                                ASASECFeatureCard(
-                                    "theme",
-                                    "swicht 2",
-                                    "Use the ASASEC dark interface",
-                                    &sw2
-                                );
-
-                                ASASECFeatureCard(
-                                    "vibration",
-                                    "swicht 3",
-                                    "Enable touch feedback",
-                                    &sw3
-                                );
-
-                                ASASECFeatureCard(
-                                    "developer",
-                                    "swicht 4",
-                                    "Enable developer options",
-                                    &sw4
-                                );
+                                ASASECModernSwitch("swicht 1", &sw1);
+                                ASASECModernSwitch("swicht 2", &sw2);
+                                ASASECModernSwitch("swicht 3", &sw3);
+                                ASASECModernSwitch("swicht 4", &sw4);
                             }
 
                             ImGui::EndChild();
@@ -2868,10 +2920,6 @@ drawableSizeWillChange:(CGSize)size
             }
         }
 
-        /*
-         IMPORTANT:
-         ImGui::End() must always match ImGui::Begin().
-        */
         ImGui::End();
 
         ImGui::PopStyleColor();
@@ -2980,9 +3028,6 @@ void ASASECImGuiStart(void)
                 return;
             }
 
-            /*
-             Safely clean an old ImGui context if one exists.
-            */
             ImGuiContext *oldContext =
                 ImGui::GetCurrentContext();
 
