@@ -1777,7 +1777,8 @@ drawableSizeWillChange:(CGSize)size
             flags
         );
 
-        // GÜNCELLENEN KISIM: windowOpened false olsa bile ImGui::End() çağrılması zorunludur!
+        // KRİTİK DÜZELTME: Crash sorununu önlemek için pencere state'i ne olursa olsun (true/false) 
+        // ImGui::End() çağrısı garantilendi.
         if (windowOpened)
         {
             ImVec2 windowPos =
@@ -2769,28 +2770,28 @@ drawableSizeWillChange:(CGSize)size
                             {
                                 ASASECFeatureCard(
                                     "aimbot",
-                                    "Aimbot Enable",
+                                    "swicht 1",
                                     "Automatic target assistance",
                                     &sw1
                                 );
 
                                 ASASECFeatureCard(
                                     "silent",
-                                    "Silent Aim",
+                                    "swicht 2",
                                     "Hidden targeting correction",
                                     &sw2
                                 );
 
                                 ASASECFeatureCard(
                                     "recoil",
-                                    "Recoil Control",
+                                    "swicht 3",
                                     "Reduce weapon recoil",
                                     &sw3
                                 );
 
                                 ASASECFeatureCard(
                                     "rapid",
-                                    "Rapid Fire",
+                                    "swicht 4",
                                     "Increase firing response",
                                     &sw4
                                 );
@@ -2848,28 +2849,28 @@ drawableSizeWillChange:(CGSize)size
                             {
                                 ASASECFeatureCard(
                                     "player",
-                                    "Player ESP",
+                                    "swicht 1",
                                     "Display nearby players",
                                     &sw1
                                 );
 
                                 ASASECFeatureCard(
                                     "box",
-                                    "Box ESP",
+                                    "swicht 2",
                                     "Draw player bounding boxes",
                                     &sw2
                                 );
 
                                 ASASECFeatureCard(
                                     "distance",
-                                    "Distance ESP",
+                                    "swicht 3",
                                     "Show player distance",
                                     &sw3
                                 );
 
                                 ASASECFeatureCard(
                                     "skeleton",
-                                    "Skeleton ESP",
+                                    "swicht 4",
                                     "Display player skeleton",
                                     &sw4
                                 );
@@ -2927,28 +2928,28 @@ drawableSizeWillChange:(CGSize)size
                             {
                                 ASASECFeatureCard(
                                     "save",
-                                    "Save Config",
+                                    "swicht 1",
                                     "Keep your interface settings",
                                     &sw1
                                 );
 
                                 ASASECFeatureCard(
                                     "theme",
-                                    "Dark Theme",
+                                    "swicht 2",
                                     "Use the ASASEC dark interface",
                                     &sw2
                                 );
 
                                 ASASECFeatureCard(
                                     "vibration",
-                                    "Vibration",
+                                    "swicht 3",
                                     "Enable touch feedback",
                                     &sw3
                                 );
 
                                 ASASECFeatureCard(
                                     "developer",
-                                    "Developer Mode",
+                                    "swicht 4",
                                     "Enable developer options",
                                     &sw4
                                 );
@@ -3096,7 +3097,7 @@ drawableSizeWillChange:(CGSize)size
             }
         }
         
-        // KRİTİK DÜZELTME: ImGui::End her koşulda (windowOpened false olsa bile) çağrılıyor.
+        // ImGui::End() her senaryoda çağrılacak şekilde koruma altına alındı.
         ImGui::End();
 
         ImGui::PopStyleColor();
