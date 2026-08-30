@@ -8,6 +8,7 @@
 #import <math.h>
 #import <float.h>
 #import <string.h>
+#import <stdint.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "../imgui.h"
@@ -189,9 +190,6 @@ static UIWindow *ASASECFindActiveWindow(void)
         }
     }
 
-    /*
-     * Last fallback for older environments.
-     */
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
@@ -224,10 +222,6 @@ static void ASASECClampMenuToScreen(UIWindow *window)
         return;
     }
 
-    /*
-     * Ekran çok küçükse menu boyutunu ekranı
-     * aşmayacak şekilde küçült.
-     */
     float maximumWidth =
         MAX(100.0f, (float)size.width - 16.0f);
 
@@ -367,14 +361,9 @@ static bool ASASECModernSwitch(const char *label,
 
     ImGui::PushID(label);
 
-    const float switchWidth =
-        48.0f;
-
-    const float switchHeight =
-        26.0f;
-
-    const float rowHeight =
-        52.0f;
+    const float switchWidth = 48.0f;
+    const float switchHeight = 26.0f;
+    const float rowHeight = 52.0f;
 
     float available =
         ImGui::GetContentRegionAvail().x;
@@ -405,8 +394,7 @@ static bool ASASECModernSwitch(const char *label,
 
     if (clicked)
     {
-        *value =
-            !(*value);
+        *value = !(*value);
 
         if (animation)
             animation->pulse = 1.0f;
@@ -621,9 +609,6 @@ static bool ASASECModernSwitch(const char *label,
             )
         );
 
-        /*
-         * Text.
-         */
         ImVec2 cursor =
             ImGui::GetCursorPos();
 
@@ -660,9 +645,7 @@ static bool ASASECModernSwitch(const char *label,
                 1.0f
             ),
             "%s",
-            *value
-            ? "Enabled"
-            : "Disabled"
+            *value ? "Enabled" : "Disabled"
         );
 
         ImGui::SetCursorPos(
@@ -699,8 +682,7 @@ static void ASASECFeatureCard(const char *id,
     if (width < 260.0f)
         width = 260.0f;
 
-    const float cardHeight =
-        68.0f;
+    const float cardHeight = 68.0f;
 
     ImGui::PushID(id);
 
@@ -803,11 +785,8 @@ static void ASASECFeatureCard(const char *id,
             )
         );
 
-        float switchWidth =
-            46.0f;
-
-        float switchHeight =
-            24.0f;
+        float switchWidth = 46.0f;
+        float switchHeight = 24.0f;
 
         float sx =
             end.x -
@@ -871,9 +850,6 @@ static void ASASECFeatureCard(const char *id,
             )
         );
 
-        /*
-         * Text position.
-         */
         ImVec2 afterButton =
             ImGui::GetCursorPos();
 
@@ -917,9 +893,6 @@ static void ASASECFeatureCard(const char *id,
             description
         );
 
-        /*
-         * Bir sonraki item için cursor.
-         */
         ImGui::SetCursorPos(
             ImVec2(
                 afterButton.x,
@@ -944,203 +917,80 @@ static void ASASECApplyStyle(void)
     ImGuiStyle &style =
         ImGui::GetStyle();
 
-    style.WindowPadding =
-        ImVec2(10.0f, 10.0f);
-
-    style.FramePadding =
-        ImVec2(11.0f, 8.0f);
-
-    style.ItemSpacing =
-        ImVec2(9.0f, 10.0f);
-
-    style.ItemInnerSpacing =
-        ImVec2(7.0f, 6.0f);
-
-    style.ScrollbarSize =
-        1.0f;
-
-    style.GrabMinSize =
-        15.0f;
-
-    style.WindowRounding =
-        22.0f;
-
-    style.ChildRounding =
-        14.0f;
-
-    style.FrameRounding =
-        10.0f;
-
-    style.PopupRounding =
-        12.0f;
-
-    style.ScrollbarRounding =
-        8.0f;
-
-    style.GrabRounding =
-        8.0f;
-
-    style.TabRounding =
-        10.0f;
-
-    style.WindowBorderSize =
-        0.0f;
-
-    style.ChildBorderSize =
-        1.0f;
-
-    style.FrameBorderSize =
-        0.0f;
-
-    style.IndentSpacing =
-        20.0f;
+    style.WindowPadding = ImVec2(10.0f, 10.0f);
+    style.FramePadding = ImVec2(11.0f, 8.0f);
+    style.ItemSpacing = ImVec2(9.0f, 10.0f);
+    style.ItemInnerSpacing = ImVec2(7.0f, 6.0f);
+    style.ScrollbarSize = 1.0f;
+    style.GrabMinSize = 15.0f;
+    style.WindowRounding = 22.0f;
+    style.ChildRounding = 14.0f;
+    style.FrameRounding = 10.0f;
+    style.PopupRounding = 12.0f;
+    style.ScrollbarRounding = 8.0f;
+    style.GrabRounding = 8.0f;
+    style.TabRounding = 10.0f;
+    style.WindowBorderSize = 0.0f;
+    style.ChildBorderSize = 1.0f;
+    style.FrameBorderSize = 0.0f;
+    style.IndentSpacing = 20.0f;
 
     ImVec4 *c =
         style.Colors;
 
     c[ImGuiCol_Text] =
-        ImVec4(
-            0.93f,
-            0.96f,
-            1.0f,
-            1.0f
-        );
+        ImVec4(0.93f, 0.96f, 1.0f, 1.0f);
 
     c[ImGuiCol_TextDisabled] =
-        ImVec4(
-            0.40f,
-            0.45f,
-            0.54f,
-            1.0f
-        );
+        ImVec4(0.40f, 0.45f, 0.54f, 1.0f);
 
     c[ImGuiCol_WindowBg] =
-        ImVec4(
-            0.018f,
-            0.024f,
-            0.038f,
-            0.985f
-        );
+        ImVec4(0.018f, 0.024f, 0.038f, 0.985f);
 
     c[ImGuiCol_ChildBg] =
-        ImVec4(
-            0.040f,
-            0.052f,
-            0.074f,
-            0.98f
-        );
+        ImVec4(0.040f, 0.052f, 0.074f, 0.98f);
 
     c[ImGuiCol_Border] =
-        ImVec4(
-            0.13f,
-            0.17f,
-            0.24f,
-            0.75f
-        );
+        ImVec4(0.13f, 0.17f, 0.24f, 0.75f);
 
     c[ImGuiCol_FrameBg] =
-        ImVec4(
-            0.060f,
-            0.076f,
-            0.108f,
-            1.0f
-        );
+        ImVec4(0.060f, 0.076f, 0.108f, 1.0f);
 
     c[ImGuiCol_FrameBgHovered] =
-        ImVec4(
-            0.095f,
-            0.125f,
-            0.18f,
-            1.0f
-        );
+        ImVec4(0.095f, 0.125f, 0.18f, 1.0f);
 
     c[ImGuiCol_FrameBgActive] =
-        ImVec4(
-            0.12f,
-            0.18f,
-            0.27f,
-            1.0f
-        );
+        ImVec4(0.12f, 0.18f, 0.27f, 1.0f);
 
     c[ImGuiCol_Button] =
-        ImVec4(
-            0.060f,
-            0.080f,
-            0.12f,
-            1.0f
-        );
+        ImVec4(0.060f, 0.080f, 0.12f, 1.0f);
 
     c[ImGuiCol_ButtonHovered] =
-        ImVec4(
-            0.105f,
-            0.15f,
-            0.23f,
-            1.0f
-        );
+        ImVec4(0.105f, 0.15f, 0.23f, 1.0f);
 
     c[ImGuiCol_ButtonActive] =
-        ImVec4(
-            0.14f,
-            0.24f,
-            0.39f,
-            1.0f
-        );
+        ImVec4(0.14f, 0.24f, 0.39f, 1.0f);
 
     c[ImGuiCol_CheckMark] =
-        ImVec4(
-            0.30f,
-            0.68f,
-            1.0f,
-            1.0f
-        );
+        ImVec4(0.30f, 0.68f, 1.0f, 1.0f);
 
     c[ImGuiCol_SliderGrab] =
-        ImVec4(
-            0.22f,
-            0.56f,
-            1.0f,
-            1.0f
-        );
+        ImVec4(0.22f, 0.56f, 1.0f, 1.0f);
 
     c[ImGuiCol_SliderGrabActive] =
-        ImVec4(
-            0.38f,
-            0.70f,
-            1.0f,
-            1.0f
-        );
+        ImVec4(0.38f, 0.70f, 1.0f, 1.0f);
 
     c[ImGuiCol_Header] =
-        ImVec4(
-            0.10f,
-            0.17f,
-            0.27f,
-            1.0f
-        );
+        ImVec4(0.10f, 0.17f, 0.27f, 1.0f);
 
     c[ImGuiCol_HeaderHovered] =
-        ImVec4(
-            0.14f,
-            0.23f,
-            0.36f,
-            1.0f
-        );
+        ImVec4(0.14f, 0.23f, 0.36f, 1.0f);
 
     c[ImGuiCol_HeaderActive] =
-        ImVec4(
-            0.17f,
-            0.30f,
-            0.47f,
-            1.0f
-        );
+        ImVec4(0.17f, 0.30f, 0.47f, 1.0f);
 
     c[ImGuiCol_Separator] =
-        ImVec4(
-            0.13f,
-            0.17f,
-            0.23f,
-            0.80f
-        );
+        ImVec4(0.13f, 0.17f, 0.23f, 0.80f);
 }
 
 #pragma mark - Content
@@ -1165,10 +1015,7 @@ static void ASASECSectionHeader(const char *title,
 
     if (subtitle)
     {
-        ImGui::SameLine(
-            0.0f,
-            7.0f
-        );
+        ImGui::SameLine(0.0f, 7.0f);
 
         ImGui::TextColored(
             ImVec4(
@@ -1239,10 +1086,6 @@ static void ASASECPageDescription(const char *text)
         return nil;
     }
 
-    /*
-     * Sadece menu alanı touch intercept eder.
-     * Oyun alanının geri kalanı oyuna gider.
-     */
     if ([self pointInsideMenu:point])
         return self;
 
@@ -1259,6 +1102,12 @@ static void ASASECPageDescription(const char *text)
     if (!gInitialized)
         return;
 
+    if (!touches ||
+        touches.count == 0)
+    {
+        return;
+    }
+
     ImGuiContext *ctx =
         ImGui::GetCurrentContext();
 
@@ -1274,8 +1123,17 @@ static void ASASECPageDescription(const char *text)
     if (!touch)
         return;
 
+    if (!self.window)
+        return;
+
     CGPoint point =
         [touch locationInView:self];
+
+    if (!isfinite(point.x) ||
+        !isfinite(point.y))
+    {
+        return;
+    }
 
     io.MousePos =
         ImVec2(
@@ -1286,6 +1144,9 @@ static void ASASECPageDescription(const char *text)
 
 - (void)updateMouseButtonState
 {
+    if (!gInitialized)
+        return;
+
     ImGuiContext *ctx =
         ImGui::GetCurrentContext();
 
@@ -1307,11 +1168,23 @@ static void ASASECPageDescription(const char *text)
     if (!gInitialized)
         return;
 
-    gActiveTouchCount +=
+    NSUInteger count =
         touches.count;
 
-    [self updateMousePositionFromTouches:touches];
+    if (count >
+        NSUIntegerMax -
+        gActiveTouchCount)
+    {
+        gActiveTouchCount =
+            NSUIntegerMax;
+    }
+    else
+    {
+        gActiveTouchCount +=
+            count;
+    }
 
+    [self updateMousePositionFromTouches:touches];
     [self updateMouseButtonState];
 }
 
@@ -1322,7 +1195,6 @@ static void ASASECPageDescription(const char *text)
         return;
 
     [self updateMousePositionFromTouches:touches];
-
     [self updateMouseButtonState];
 }
 
@@ -1341,7 +1213,6 @@ static void ASASECPageDescription(const char *text)
         gActiveTouchCount -= count;
 
     [self updateMousePositionFromTouches:touches];
-
     [self updateMouseButtonState];
 }
 
@@ -1360,7 +1231,6 @@ static void ASASECPageDescription(const char *text)
         gActiveTouchCount -= count;
 
     [self updateMousePositionFromTouches:touches];
-
     [self updateMouseButtonState];
 }
 
@@ -1373,9 +1243,11 @@ static void ASASECPageDescription(const char *text)
 - (void)mtkView:(MTKView *)view
 drawableSizeWillChange:(CGSize)size
 {
+    if (!view)
+        return;
+
     if (!gInitialized ||
-        !gMetalInitialized ||
-        !view)
+        !gMetalInitialized)
     {
         return;
     }
@@ -1428,11 +1300,14 @@ drawableSizeWillChange:(CGSize)size
 - (void)drawInMTKView:(MTKView *)view
 {
     /*
-     * Tüm kritik state kontrolleri.
+     * =========================================================
+     * CRITICAL LIFECYCLE CHECK
+     * =========================================================
      */
-    if (!gInitialized ||
+
+    if (!view ||
+        !gInitialized ||
         !gMetalInitialized ||
-        !view ||
         !gMetalDevice ||
         !gCommandQueue)
     {
@@ -1448,16 +1323,17 @@ drawableSizeWillChange:(CGSize)size
     ImGuiIO &io =
         ImGui::GetIO();
 
-    /*
-     * Backend gerçekten mevcut mu?
-     */
     if (io.BackendRendererUserData == NULL)
         return;
 
-    MTLRenderPassDescriptor *pass =
+    /*
+     * currentRenderPassDescriptor ve currentDrawable
+     * AYNI FRAME için sadece bir kere alınır.
+     */
+    MTLRenderPassDescriptor *renderPass =
         view.currentRenderPassDescriptor;
 
-    if (!pass)
+    if (!renderPass)
         return;
 
     id<CAMetalDrawable> drawable =
@@ -1466,15 +1342,25 @@ drawableSizeWillChange:(CGSize)size
     if (!drawable)
         return;
 
+    CGSize bounds =
+        view.bounds.size;
+
     CGSize drawableSize =
         view.drawableSize;
 
-    if (drawableSize.width <= 0.0 ||
+    if (bounds.width <= 0.0 ||
+        bounds.height <= 0.0 ||
+        drawableSize.width <= 0.0 ||
         drawableSize.height <= 0.0)
     {
         return;
     }
 
+    /*
+     * =========================================================
+     * TEK COMMAND BUFFER
+     * =========================================================
+     */
     id<MTLCommandBuffer> commandBuffer =
         [gCommandQueue commandBuffer];
 
@@ -1482,11 +1368,11 @@ drawableSizeWillChange:(CGSize)size
         return;
 
     /*
-     * Backend state callback sırasında değişmiş olabilir.
+     * Context/renderer lifecycle tekrar kontrol.
      */
     if (!gInitialized ||
         !gMetalInitialized ||
-        ImGui::GetCurrentContext() == NULL)
+        ImGui::GetCurrentContext() != ctx)
     {
         [commandBuffer commit];
         return;
@@ -1499,22 +1385,10 @@ drawableSizeWillChange:(CGSize)size
     }
 
     /*
-     * Metal backend frame.
+     * =========================================================
+     * DISPLAY
+     * =========================================================
      */
-    ImGui_ImplMetal_NewFrame(pass);
-
-    /*
-     * Display size.
-     */
-    CGSize bounds =
-        view.bounds.size;
-
-    if (bounds.width <= 0.0 ||
-        bounds.height <= 0.0)
-    {
-        [commandBuffer commit];
-        return;
-    }
 
     io.DisplaySize =
         ImVec2(
@@ -1535,30 +1409,46 @@ drawableSizeWillChange:(CGSize)size
         );
 
     /*
-     * Delta time.
+     * =========================================================
+     * DELTA TIME
+     * =========================================================
      */
+
     float fps =
         (float)view.preferredFramesPerSecond;
 
     if (fps < 1.0f)
         fps = 60.0f;
 
-    io.DeltaTime =
+    float dt =
         1.0f / fps;
 
-    if (io.DeltaTime <= 0.0f ||
-        io.DeltaTime > 0.1f)
+    if (dt <= 0.0f ||
+        dt > 0.1f)
     {
-        io.DeltaTime =
+        dt =
             1.0f / 60.0f;
     }
 
-    float dt =
-        io.DeltaTime;
+    io.DeltaTime =
+        dt;
 
     /*
-     * New Frame.
+     * =========================================================
+     * METAL NEW FRAME
+     * =========================================================
+     *
+     * ÖNEMLİ:
+     * Burada aynı frame'in renderPass'i kullanılıyor.
      */
+    ImGui_ImplMetal_NewFrame(renderPass);
+
+    /*
+     * =========================================================
+     * IMGUI NEW FRAME
+     * =========================================================
+     */
+
     ImGui::NewFrame();
 
     #pragma mark Animation
@@ -1612,6 +1502,14 @@ drawableSizeWillChange:(CGSize)size
     }
 
     #pragma mark Main Window
+
+    /*
+     * =========================================================
+     * UI BLOĞU
+     * =========================================================
+     *
+     * Buradaki yapı senin gönderdiğin yapı ile aynıdır.
+     */
 
     if (gMenuVisible)
     {
@@ -1670,9 +1568,6 @@ drawableSizeWillChange:(CGSize)size
                 flags
             );
 
-        /*
-         * Begin false olsa bile End gerekiyor.
-         */
         if (windowOpen)
         {
             ImVec2 windowPos =
@@ -2188,9 +2083,6 @@ drawableSizeWillChange:(CGSize)size
             if (!gMenuCollapsed &&
                 gMenuVisible)
             {
-                /*
-                 * Sidebar.
-                 */
                 if (draw)
                 {
                     draw->AddRectFilled(
@@ -2703,9 +2595,6 @@ drawableSizeWillChange:(CGSize)size
                     ImGui::PopStyleVar();
                 }
 
-                /*
-                 * Her durumda EndChild.
-                 */
                 ImGui::EndChild();
 
                 ImGui::PopStyleVar();
@@ -2713,7 +2602,7 @@ drawableSizeWillChange:(CGSize)size
         }
 
         /*
-         * Her durumda End.
+         * Begin() hangi sonucu döndürürse döndürsün End().
          */
         ImGui::End();
 
@@ -2723,15 +2612,28 @@ drawableSizeWillChange:(CGSize)size
 
     #pragma mark Render
 
+    /*
+     * =========================================================
+     * IMGUI RENDER
+     * =========================================================
+     */
+
     ImGui::Render();
 
     /*
-     * Context/backend tekrar kontrol.
+     * Render sonrası lifecycle kontrolü.
      */
     if (!gInitialized ||
         !gMetalInitialized ||
-        !ImGui::GetCurrentContext())
+        ImGui::GetCurrentContext() != ctx)
     {
+        [commandBuffer commit];
+        return;
+    }
+
+    if (ImGui::GetIO().BackendRendererUserData == NULL)
+    {
+        [commandBuffer commit];
         return;
     }
 
@@ -2739,79 +2641,70 @@ drawableSizeWillChange:(CGSize)size
         ImGui::GetDrawData();
 
     if (!drawData)
+    {
+        [commandBuffer commit];
         return;
+    }
 
     if (drawData->DisplaySize.x <= 0.0f ||
         drawData->DisplaySize.y <= 0.0f)
     {
+        [commandBuffer commit];
         return;
     }
 
     /*
-     * Command buffer yeniden oluşturuyoruz.
+     * =========================================================
+     * TEK RENDER ENCODER
+     * =========================================================
      */
-    id<MTLCommandBuffer> renderCommandBuffer =
-        [gCommandQueue commandBuffer];
-
-    if (!renderCommandBuffer)
-        return;
-
-    MTLRenderPassDescriptor *renderPass =
-        view.currentRenderPassDescriptor;
-
-    id<CAMetalDrawable> renderDrawable =
-        view.currentDrawable;
-
-    if (!renderPass ||
-        !renderDrawable)
-    {
-        [renderCommandBuffer commit];
-        return;
-    }
-
     id<MTLRenderCommandEncoder> encoder =
-        [renderCommandBuffer
+        [commandBuffer
             renderCommandEncoderWithDescriptor:
                 renderPass];
 
     if (!encoder)
     {
-        [renderCommandBuffer commit];
+        [commandBuffer commit];
         return;
     }
-
-    CGSize finalDrawableSize =
-        view.drawableSize;
 
     [encoder setViewport:(MTLViewport){
         0.0,
         0.0,
-        (double)finalDrawableSize.width,
-        (double)finalDrawableSize.height,
+        (double)drawableSize.width,
+        (double)drawableSize.height,
         0.0,
         1.0
     }];
 
     /*
-     * Backend hala aktif.
+     * Backend hâlâ geçerliyse render et.
      */
-    if (gMetalInitialized &&
-        ImGui::GetCurrentContext() &&
+    if (gInitialized &&
+        gMetalInitialized &&
+        ImGui::GetCurrentContext() == ctx &&
         ImGui::GetIO().BackendRendererUserData != NULL)
     {
         ImGui_ImplMetal_RenderDrawData(
             drawData,
-            renderCommandBuffer,
+            commandBuffer,
             encoder
         );
     }
 
     [encoder endEncoding];
 
-    [renderCommandBuffer
-        presentDrawable:renderDrawable];
+    /*
+     * Aynı drawable.
+     */
+    [commandBuffer
+        presentDrawable:drawable];
 
-    [renderCommandBuffer commit];
+    /*
+     * SADECE BİR commit.
+     */
+    [commandBuffer commit];
 }
 
 @end
@@ -2825,7 +2718,8 @@ static void ASASECSafeShutdownMetalBackend(void)
 
     if (!ctx)
     {
-        gMetalInitialized = NO;
+        gMetalInitialized =
+            NO;
         return;
     }
 
@@ -2836,7 +2730,28 @@ static void ASASECSafeShutdownMetalBackend(void)
         ImGui::GetIO();
 
     /*
-     * Backend userdata varsa Shutdown güvenlidir.
+     * =========================================================
+     * GPU SYNCHRONIZATION
+     * =========================================================
+     *
+     * Metal backend kaynaklarını yok etmeden önce GPU'nun
+     * daha önce gönderilmiş command buffer'ları tamamlamasını
+     * bekliyoruz.
+     */
+    if (gCommandQueue)
+    {
+        id<MTLCommandBuffer> syncBuffer =
+            [gCommandQueue commandBuffer];
+
+        if (syncBuffer)
+        {
+            [syncBuffer commit];
+            [syncBuffer waitUntilCompleted];
+        }
+    }
+
+    /*
+     * Backend gerçekten initialize edilmişse shutdown.
      */
     if (io.BackendRendererUserData != NULL)
     {
@@ -2858,7 +2773,7 @@ static void ASASECSafeDestroyImGuiContext(void)
     ASASECSafeShutdownMetalBackend();
 
     /*
-     * Current context hala aynıysa destroy.
+     * Current context hâlâ aynı context ise destroy et.
      */
     if (ImGui::GetCurrentContext() == ctx)
     {
@@ -2882,14 +2797,16 @@ void ASASECImGuiStart(void)
                 return;
             }
 
-            gStarting = YES;
+            gStarting =
+                YES;
 
             UIWindow *window =
                 ASASECFindActiveWindow();
 
             if (!window)
             {
-                gStarting = NO;
+                gStarting =
+                    NO;
 
                 dispatch_after(
                     dispatch_time(
@@ -2914,7 +2831,8 @@ void ASASECImGuiStart(void)
             if (windowSize.width <= 0.0 ||
                 windowSize.height <= 0.0)
             {
-                gStarting = NO;
+                gStarting =
+                    NO;
 
                 dispatch_after(
                     dispatch_time(
@@ -2940,7 +2858,8 @@ void ASASECImGuiStart(void)
 
             if (!device)
             {
-                gStarting = NO;
+                gStarting =
+                    NO;
                 return;
             }
 
@@ -2949,30 +2868,41 @@ void ASASECImGuiStart(void)
 
             if (!queue)
             {
-                gStarting = NO;
+                gStarting =
+                    NO;
                 return;
             }
 
             #pragma mark Remove Previous View
 
             /*
-             * Önce eski MTKView'i tamamen durdur.
+             * Eski view'in callback'ini tamamen kes.
              */
             if (gImGuiView)
             {
-                gImGuiView.delegate = nil;
-                gImGuiView.paused = YES;
+                gImGuiView.delegate =
+                    nil;
+
+                gImGuiView.paused =
+                    YES;
+
+                gImGuiView.userInteractionEnabled =
+                    NO;
 
                 [gImGuiView removeFromSuperview];
 
-                gImGuiView = nil;
+                gImGuiView =
+                    nil;
             }
 
-            gRenderer = nil;
+            /*
+             * Eski renderer referansı.
+             */
+            gRenderer =
+                nil;
 
             /*
-             * Eski context varsa yalnızca güvenli şekilde
-             * temizle.
+             * Eski context varsa güvenli temizle.
              */
             if (ImGui::GetCurrentContext())
             {
@@ -2997,9 +2927,15 @@ void ASASECImGuiStart(void)
 
             if (!ctx)
             {
-                gMetalDevice = nil;
-                gCommandQueue = nil;
-                gStarting = NO;
+                gMetalDevice =
+                    nil;
+
+                gCommandQueue =
+                    nil;
+
+                gStarting =
+                    NO;
+
                 return;
             }
 
@@ -3050,9 +2986,6 @@ void ASASECImGuiStart(void)
                     (float)scale
                 );
 
-            /*
-             * Touch input backend.
-             */
             io.BackendPlatformName =
                 "ASASEC-iOS-Touch";
 
@@ -3119,9 +3052,14 @@ void ASASECImGuiStart(void)
             {
                 ASASECSafeDestroyImGuiContext();
 
-                gMetalDevice = nil;
-                gCommandQueue = nil;
-                gStarting = NO;
+                gMetalDevice =
+                    nil;
+
+                gCommandQueue =
+                    nil;
+
+                gStarting =
+                    NO;
 
                 return;
             }
@@ -3153,7 +3091,7 @@ void ASASECImGuiStart(void)
                 60;
 
             view.paused =
-                NO;
+                YES;
 
             view.enableSetNeedsDisplay =
                 NO;
@@ -3164,9 +3102,6 @@ void ASASECImGuiStart(void)
             view.multipleTouchEnabled =
                 YES;
 
-            /*
-             * Doğrudan window bounds.
-             */
             view.frame =
                 window.bounds;
 
@@ -3178,13 +3113,19 @@ void ASASECImGuiStart(void)
 
             if (!renderer)
             {
-                view.delegate = nil;
+                view.delegate =
+                    nil;
 
                 ASASECSafeDestroyImGuiContext();
 
-                gMetalDevice = nil;
-                gCommandQueue = nil;
-                gStarting = NO;
+                gMetalDevice =
+                    nil;
+
+                gCommandQueue =
+                    nil;
+
+                gStarting =
+                    NO;
 
                 return;
             }
@@ -3192,28 +3133,30 @@ void ASASECImGuiStart(void)
             #pragma mark Metal Backend Init
 
             /*
-             * Backend initialization yalnızca context
-             * oluşturulduktan sonra.
+             * Context hazır.
              */
             BOOL backendOK =
                 ImGui_ImplMetal_Init(device);
 
             if (!backendOK)
             {
-                view.delegate = nil;
+                view.delegate =
+                    nil;
 
                 ASASECSafeDestroyImGuiContext();
 
-                gMetalDevice = nil;
-                gCommandQueue = nil;
-                gStarting = NO;
+                gMetalDevice =
+                    nil;
+
+                gCommandQueue =
+                    nil;
+
+                gStarting =
+                    NO;
 
                 return;
             }
 
-            /*
-             * Bundan sonra NewFrame kullanılabilir.
-             */
             gMetalInitialized =
                 YES;
 
@@ -3226,46 +3169,43 @@ void ASASECImGuiStart(void)
                 view;
 
             /*
-             * Delegate'i view eklenmeden önce ayarla.
+             * Delegate'i view hierarchy'ye eklemeden önce bağla.
              */
             view.delegate =
                 renderer;
 
             /*
-             * View'i ekle.
+             * İlk frame'de callback gelmesini engelle.
              */
+            view.paused =
+                YES;
+
             [window addSubview:view];
 
-            /*
-             * Oyunun üzerinde görünmesini sağla.
-             */
             [window bringSubviewToFront:view];
 
-            /*
-             * Frame tekrar kesinleştir.
-             */
             view.frame =
                 window.bounds;
 
             [view setNeedsLayout];
 
-            /*
-             * Menu pozisyonunu ekran sınırına al.
-             */
             ASASECClampMenuToScreen(
                 window
             );
 
             /*
-             * Kritik nokta:
+             * Her şey hazır.
              *
-             * gInitialized en son YES.
-             *
-             * Böylece MTKView callback'i initialization
-             * bitmeden gelirse drawInMTKView return eder.
+             * Bundan sonra callback çalışabilir.
              */
             gInitialized =
                 YES;
+
+            /*
+             * Son olarak MTKView'i başlat.
+             */
+            view.paused =
+                NO;
 
             gStarting =
                 NO;
@@ -3281,7 +3221,9 @@ void ASASECImGuiStop(void)
         dispatch_get_main_queue(),
         ^{
             /*
-             * Önce yeni frame'leri durdur.
+             * =================================================
+             * 1. RENDER CALLBACK'LERİNİ HEMEN KES
+             * =================================================
              */
             gInitialized =
                 NO;
@@ -3296,7 +3238,9 @@ void ASASECImGuiStop(void)
                 0;
 
             /*
-             * MTKView'i tamamen durdur.
+             * =================================================
+             * 2. VIEW'İ GLOBAL REFERANSTAN AYIR
+             * =================================================
              */
             ASASECImGuiView *view =
                 gImGuiView;
@@ -3306,29 +3250,50 @@ void ASASECImGuiStop(void)
 
             if (view)
             {
+                /*
+                 * Önce pause.
+                 */
                 view.paused =
                     YES;
 
+                /*
+                 * Yeni frame isteği kapat.
+                 */
                 view.enableSetNeedsDisplay =
                     NO;
 
+                /*
+                 * Callback'i tamamen kopar.
+                 */
                 view.delegate =
                     nil;
 
+                /*
+                 * Touch'u kapat.
+                 */
                 view.userInteractionEnabled =
                     NO;
 
+                /*
+                 * Hierarchy'den çıkar.
+                 */
                 [view removeFromSuperview];
             }
 
             /*
-             * Renderer referansını bırak.
+             * =================================================
+             * 3. RENDERER REFERANSINI BIRAK
+             * =================================================
              */
             gRenderer =
                 nil;
 
             /*
-             * ImGui context/backend.
+             * =================================================
+             * 4. IMGUI + METAL BACKEND
+             * =================================================
+             *
+             * Bu fonksiyon GPU synchronization yapıyor.
              */
             if (ImGui::GetCurrentContext())
             {
@@ -3336,7 +3301,9 @@ void ASASECImGuiStop(void)
             }
 
             /*
-             * Metal state.
+             * =================================================
+             * 5. METAL STATE
+             * =================================================
              */
             gMetalInitialized =
                 NO;
@@ -3348,7 +3315,9 @@ void ASASECImGuiStop(void)
                 nil;
 
             /*
-             * UI state.
+             * =================================================
+             * 6. UI STATE
+             * =================================================
              */
             gDraggingMenu =
                 NO;
