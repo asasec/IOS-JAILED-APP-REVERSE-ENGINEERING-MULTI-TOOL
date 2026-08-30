@@ -78,9 +78,9 @@ static BOOL gMenuCollapsed = NO;
 static ImVec2 gMenuPosition = ImVec2(25.0f, 75.0f);
 static ImVec2 gMenuSize = ImVec2(560.0f, 390.0f);
 
-static const float kMenuMinWidth = 430.0f;
+static const float kMenuMinWidth = 320.0f; // Dikey ekranlar için esnetildi
 static const float kMenuMaxWidth = 760.0f;
-static const float kMenuMinHeight = 300.0f;
+static const float kMenuMinHeight = 260.0f;
 static const float kMenuMaxHeight = 620.0f;
 
 static const float kHeaderHeight = 54.0f;
@@ -238,14 +238,23 @@ static void ASASECClampMenuToScreen(UIWindow *window)
     if (!window)
         return;
 
-    CGSize size =
-        window.bounds.size;
+    CGSize size = window.bounds.size;
+    const float margin = 12.0f;
+
+    // Dikey ekranda genişlik taşmasını önlemek için ekran boyutuna göre dinamik sınırla
+    float maxAllowedWidth = (float)size.width - (margin * 2.0f);
+    float targetMaxWidth = (kMenuMaxWidth < maxAllowedWidth) ? kMenuMaxWidth : maxAllowedWidth;
+    if (targetMaxWidth < kMenuMinWidth) targetMaxWidth = kMenuMinWidth;
+
+    float maxAllowedHeight = (float)size.height - (margin * 2.0f);
+    float targetMaxHeight = (kMenuMaxHeight < maxAllowedHeight) ? kMenuMaxHeight : maxAllowedHeight;
+    if (targetMaxHeight < kMenuMinHeight) targetMaxHeight = kMenuMinHeight;
 
     float width =
         ASASECClampFloat(
             gMenuSize.x,
             kMenuMinWidth,
-            kMenuMaxWidth
+            targetMaxWidth
         );
 
     float height =
@@ -254,13 +263,11 @@ static void ASASECClampMenuToScreen(UIWindow *window)
         : ASASECClampFloat(
             gMenuSize.y,
             kMenuMinHeight,
-            kMenuMaxHeight
+            targetMaxHeight
         );
 
     gMenuSize.x = width;
     gMenuSize.y = height;
-
-    const float margin = 8.0f;
 
     float maxX =
         (float)size.width -
@@ -360,8 +367,8 @@ static bool ASASECModernSwitch(const char *label,
     float available =
         ImGui::GetContentRegionAvail().x;
 
-    if (available < 200.0f)
-        available = 200.0f;
+    if (available < 150.0f)
+        available = 150.0f;
 
     bool clicked =
         ImGui::InvisibleButton(
@@ -852,10 +859,14 @@ static bool ASASECModernSwitch(const char *label,
         float deltaX = point.x - gResizeStartPoint.x;
         float deltaY = point.y - gResizeStartPoint.y;
 
-        gMenuSize.x = ASASECClampFloat(gResizeStartSize.x + deltaX, kMenuMinWidth, kMenuMaxWidth);
-        gMenuSize.y = ASASECClampFloat(gResizeStartSize.y + deltaY, kMenuMinHeight, kMenuMaxHeight);
-
         UIWindow *window = self.window;
+        CGSize screenSize = window ? window.bounds.size : CGSizeMake(800, 600);
+        float maxAllowedWidth = screenSize.width - 24.0f - gMenuPosition.x;
+        float maxAllowedHeight = screenSize.height - 24.0f - gMenuPosition.y;
+
+        gMenuSize.x = ASASECClampFloat(gResizeStartSize.x + deltaX, kMenuMinWidth, (kMenuMaxWidth < maxAllowedWidth ? kMenuMaxWidth : maxAllowedWidth));
+        gMenuSize.y = ASASECClampFloat(gResizeStartSize.y + deltaY, kMenuMinHeight, (kMenuMaxHeight < maxAllowedHeight ? kMenuMaxHeight : maxAllowedHeight));
+
         if (window)
             ASASECClampMenuToScreen(window);
 
@@ -976,7 +987,7 @@ static void ASASECApplyStyle(void)
         ImVec2(11.0f, 8.0f);
 
     style.ItemSpacing =
-        ImVec2(9.0f, 12.0f); // Buton ve switchler arasına bir miktar daha boşluk eklendi
+        ImVec2(9.0f, 12.0f);
 
     style.ItemInnerSpacing =
         ImVec2(7.0f, 6.0f);
@@ -1244,6 +1255,12 @@ drawableSizeWillChange:(CGSize)size
             (float)scale,
             (float)scale
         );
+        
+    UIWindow *window = view.window;
+    if (window)
+    {
+        ASASECClampMenuToScreen(window);
+    }
 }
 
 - (void)drawInMTKView:(MTKView *)view
@@ -1377,6 +1394,12 @@ drawableSizeWillChange:(CGSize)size
 
     if (gMenuVisible)
     {
+        UIWindow *win = view.window;
+        if (win)
+        {
+            ASASECClampMenuToScreen(win);
+        }
+
         const float sidebarWidth =
             145.0f;
 
@@ -2423,8 +2446,8 @@ drawableSizeWillChange:(CGSize)size
                             ImGui::GetContentRegionAvail().x -
                             22.0f;
 
-                        if (cardWidth < 280.0f)
-                            cardWidth = 280.0f;
+                        if (cardWidth < 200.0f)
+                            cardWidth = 200.0f;
 
                         char childID[64];
                         snprintf(childID, sizeof(childID), "##Card_%s", currentCategoryName);
@@ -2442,7 +2465,6 @@ drawableSizeWillChange:(CGSize)size
 
                         if (cardOpened)
                         {
-                            // Kaydedilen switch ve butonları kategorisine göre ekrana çizdiriyoruz
                             for (int i = 0; i < gRegisteredFeatureCount; i++)
                             {
                                 if (strcmp(gRegisteredFeatures[i].category, currentCategoryName) == 0)
@@ -2464,14 +2486,13 @@ drawableSizeWillChange:(CGSize)size
                                                 }
                                             }
                                         }
-                                        // Switch'ler arasına boşluk bırakmak için dummy ekliyoruz
                                         ImGui::Dummy(ImVec2(0.0f, 6.0f));
                                     }
                                     else if (gRegisteredFeatures[i].type == ASASECFeatureTypeButton)
                                     {
                                         ImGui::PushID(gRegisteredFeatures[i].title);
                                         float available = ImGui::GetContentRegionAvail().x;
-                                        if (available < 200.0f) available = 200.0f;
+                                        if (available < 150.0f) available = 150.0f;
                                         
                                         if (ImGui::Button(gRegisteredFeatures[i].title, ImVec2(available, 44.0f)))
                                         {
