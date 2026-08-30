@@ -13,29 +13,51 @@
 #include "../imgui_internal.h"
 #include "../Backends/imgui_impl_metal.h"
 
-#pragma mark - External Feature Registration System
+#pragma mark - External Feature Registration System (Switch & Button)
+
+typedef enum {
+    ASASECFeatureTypeSwitch = 0,
+    ASASECFeatureTypeButton = 1
+} ASASECFeatureType;
 
 typedef void (*ASASECSwitchCallback)(bool isOn);
+typedef void (*ASASECButtonCallback)(void);
 
 typedef struct {
+    ASASECFeatureType type;
     const char *category;          // "Combat", "Visuals", "Settings"
-    const char *title;             // Switch İsmi (Örn: "Swicht 1")
-    bool *valuePointer;            // Değerin tutulduğu değişken adresi
-    ASASECSwitchCallback callback; // Açılıp kapatılınca çalışacak fonksiyon
+    const char *title;             // Switch veya Buton İsmi
+    bool *valuePointer;            // Switch için değer adresi
+    ASASECSwitchCallback switchCallback;
+    ASASECButtonCallback buttonCallback;
 } ASASECCustomFeature;
 
-// Maksimum kayıt edilebilir switch limiti
 #define MAX_CUSTOM_FEATURES 64
 static ASASECCustomFeature gRegisteredFeatures[MAX_CUSTOM_FEATURES];
 static int gRegisteredFeatureCount = 0;
 
-// Başka dosyadan (Tweak.swift / C++ / Obj-C dosyalarından) çağrılarak kategoriye switch ekleyen fonksiyon
+// Harici dosyalardan kategoriye Switch eklemek için
 void ASASECRegisterFeature(const char *category, const char *title, bool *valuePointer, ASASECSwitchCallback callback) {
     if (gRegisteredFeatureCount < MAX_CUSTOM_FEATURES) {
+        gRegisteredFeatures[gRegisteredFeatureCount].type = ASASECFeatureTypeSwitch;
         gRegisteredFeatures[gRegisteredFeatureCount].category = category;
         gRegisteredFeatures[gRegisteredFeatureCount].title = title;
         gRegisteredFeatures[gRegisteredFeatureCount].valuePointer = valuePointer;
-        gRegisteredFeatures[gRegisteredFeatureCount].callback = callback;
+        gRegisteredFeatures[gRegisteredFeatureCount].switchCallback = callback;
+        gRegisteredFeatures[gRegisteredFeatureCount].buttonCallback = NULL;
+        gRegisteredFeatureCount++;
+    }
+}
+
+// Harici dosyalardan kategoriye Buton eklemek için
+void ASASECRegisterButton(const char *category, const char *title, ASASECButtonCallback callback) {
+    if (gRegisteredFeatureCount < MAX_CUSTOM_FEATURES) {
+        gRegisteredFeatures[gRegisteredFeatureCount].type = ASASECFeatureTypeButton;
+        gRegisteredFeatures[gRegisteredFeatureCount].category = category;
+        gRegisteredFeatures[gRegisteredFeatureCount].title = title;
+        gRegisteredFeatures[gRegisteredFeatureCount].valuePointer = NULL;
+        gRegisteredFeatures[gRegisteredFeatureCount].switchCallback = NULL;
+        gRegisteredFeatures[gRegisteredFeatureCount].buttonCallback = callback;
         gRegisteredFeatureCount++;
     }
 }
@@ -2420,24 +2442,44 @@ drawableSizeWillChange:(CGSize)size
 
                         if (cardOpened)
                         {
+                            // Kaydedilen switch ve butonları kategorisine göre ekrana çizdiriyoruz
                             for (int i = 0; i < gRegisteredFeatureCount; i++)
                             {
                                 if (strcmp(gRegisteredFeatures[i].category, currentCategoryName) == 0)
                                 {
-                                    bool *valPtr = gRegisteredFeatures[i].valuePointer;
-                                    if (valPtr)
+                                    if (gRegisteredFeatures[i].type == ASASECFeatureTypeSwitch)
                                     {
-                                        bool oldVal = *valPtr;
-                                        if (ASASECModernSwitch(gRegisteredFeatures[i].title, valPtr))
+                                        bool *valPtr = gRegisteredFeatures[i].valuePointer;
+                                        if (valPtr)
                                         {
-                                            if (oldVal != *valPtr)
+                                            bool oldVal = *valPtr;
+                                            if (ASASECModernSwitch(gRegisteredFeatures[i].title, valPtr))
                                             {
-                                                if (gRegisteredFeatures[i].callback != NULL)
+                                                if (oldVal != *valPtr)
                                                 {
-                                                    gRegisteredFeatures[i].callback(*valPtr);
+                                                    if (gRegisteredFeatures[i].switchCallback != NULL)
+                                                    {
+                                                        gRegisteredFeatures[i].switchCallback(*valPtr);
+                                                    }
                                                 }
                                             }
                                         }
+                                    }
+                                    else if (gRegisteredFeatures[i].type == ASASECFeatureTypeButton)
+                                    {
+                                        ImGui::PushID(gRegisteredFeatures[i].title);
+                                        float available = ImGui::GetContentRegionAvail().x;
+                                        if (available < 200.0f) available = 200.0f;
+                                        
+                                        if (ImGui::Button(gRegisteredFeatures[i].title, ImVec2(available, 44.0f)))
+                                        {
+                                            if (gRegisteredFeatures[i].buttonCallback != NULL)
+                                            {
+                                                gRegisteredFeatures[i].buttonCallback();
+                                            }
+                                        }
+                                        ImGui::PopID();
+                                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
                                     }
                                 }
                             }
