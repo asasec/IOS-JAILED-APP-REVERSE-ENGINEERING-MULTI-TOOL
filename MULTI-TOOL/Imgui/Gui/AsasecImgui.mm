@@ -976,7 +976,7 @@ static void ASASECApplyStyle(void)
         ImVec2(11.0f, 8.0f);
 
     style.ItemSpacing =
-        ImVec2(9.0f, 10.0f);
+        ImVec2(9.0f, 12.0f); // Buton ve switchler arasına bir miktar daha boşluk eklendi
 
     style.ItemInnerSpacing =
         ImVec2(7.0f, 6.0f);
@@ -2464,6 +2464,8 @@ drawableSizeWillChange:(CGSize)size
                                                 }
                                             }
                                         }
+                                        // Switch'ler arasına boşluk bırakmak için dummy ekliyoruz
+                                        ImGui::Dummy(ImVec2(0.0f, 6.0f));
                                     }
                                     else if (gRegisteredFeatures[i].type == ASASECFeatureTypeButton)
                                     {
@@ -2479,7 +2481,7 @@ drawableSizeWillChange:(CGSize)size
                                             }
                                         }
                                         ImGui::PopID();
-                                        ImGui::Dummy(ImVec2(0.0f, 4.0f));
+                                        ImGui::Dummy(ImVec2(0.0f, 8.0f));
                                     }
                                 }
                             }
