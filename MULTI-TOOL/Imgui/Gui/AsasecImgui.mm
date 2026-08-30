@@ -13,6 +13,73 @@
 #include "../imgui_internal.h"
 #include "../Backends/imgui_impl_metal.h"
 
+#pragma mark - Custom Feature System & Callbacks
+
+typedef void (*ASASECSwitchCallback)(bool isOn);
+
+typedef struct {
+    const char *category;          // "Combat", "Visuals", "Settings"
+    const char *title;             // Switch İsmi (Örn: "Swicht 1")
+    bool *valuePointer;            // Değerin tutulduğu bellek adresi
+    ASASECSwitchCallback callback; // Açılıp kapatılınca çalışacak fonksiyon
+} ASASECCustomFeature;
+
+// Örnek Değerler
+static bool gCombatSw1 = false;
+static bool gCombatSw2 = false;
+static bool gCombatSw3 = false;
+static bool gCombatSw4 = false;
+
+static bool gVisualsSw1 = false;
+static bool gVisualsSw2 = false;
+static bool gVisualsSw3 = false;
+static bool gVisualsSw4 = false;
+
+static bool gSettingsSw1 = false;
+static bool gSettingsSw2 = false;
+static bool gSettingsSw3 = false;
+static bool gSettingsSw4 = false;
+
+// Fonksiyon İşleyicileri (Callback Örnekleri)
+static void CombatSwitch1Toggled(bool isOn) {
+    // Combat -> Swicht 1 açılıp kapatıldığında yapılacak işlemler
+}
+
+static void CombatSwitch2Toggled(bool isOn) {
+    // Combat -> Swicht 2 açılıp kapatıldığında yapılacak işlemler
+}
+
+static void VisualsSwitch1Toggled(bool isOn) {
+    // Visuals -> Swicht 1 açılıp kapatıldığında yapılacak işlemler
+}
+
+static void SettingsSwitch1Toggled(bool isOn) {
+    // Settings -> Swicht 1 açılıp kapatıldığında yapılacak işlemler
+}
+
+// Harici / Merkezileştirilmiş Özellik Listesi (Buradan dilediğiniz gibi çoğaltabilirsiniz)
+static ASASECCustomFeature gCustomFeatures[] = {
+    // Combat Kategorisi
+    { "Combat",  "Swicht 1", &gCombatSw1,   CombatSwitch1Toggled },
+    { "Combat",  "Swicht 2", &gCombatSw2,   CombatSwitch2Toggled },
+    { "Combat",  "Swicht 3", &gCombatSw3,   NULL },
+    { "Combat",  "Swicht 4", &gCombatSw4,   NULL },
+    
+    // Visuals Kategorisi
+    { "Visuals", "Swicht 1", &gVisualsSw1,  VisualsSwitch1Toggled },
+    { "Visuals", "Swicht 2", &gVisualsSw2,  NULL },
+    { "Visuals", "Swicht 3", &gVisualsSw3,  NULL },
+    { "Visuals", "Swicht 4", &gVisualsSw4,  NULL },
+    
+    // Settings Kategorisi
+    { "Settings","Swicht 1", &gSettingsSw1, SettingsSwitch1Toggled },
+    { "Settings","Swicht 2", &gSettingsSw2, NULL },
+    { "Settings","Swicht 3", &gSettingsSw3, NULL },
+    { "Settings","Swicht 4", &gSettingsSw4, NULL }
+};
+
+static const int gCustomFeatureCount = sizeof(gCustomFeatures) / sizeof(gCustomFeatures[0]);
+
 #pragma mark - Global State
 
 static MTKView *gImGuiView = nil;
@@ -1154,257 +1221,6 @@ static void ASASECPageDescription(const char *text)
         "%s",
         text
     );
-}
-
-static void ASASECFeatureCard(const char *id,
-                              const char *title,
-                              const char *description,
-                              bool *value)
-{
-    if (!id ||
-        !title ||
-        !description ||
-        !value)
-    {
-        return;
-    }
-
-    float width =
-        ImGui::GetContentRegionAvail().x;
-
-    if (width < 260.0f)
-        width = 260.0f;
-
-    const float cardHeight =
-        68.0f;
-
-    ImGui::PushID(id);
-
-    ImVec2 start =
-        ImGui::GetCursorScreenPos();
-
-    ImGui::InvisibleButton(
-        "##feature",
-        ImVec2(
-            width,
-            cardHeight
-        )
-    );
-
-    ImVec2 end =
-        ImGui::GetItemRectMax();
-
-    bool hovered =
-        ImGui::IsItemHovered();
-
-    bool clicked =
-        ImGui::IsItemClicked();
-
-    if (clicked)
-        *value = !(*value);
-
-    ImDrawList *draw =
-        ImGui::GetWindowDrawList();
-
-    ImU32 bg =
-        hovered
-        ? ASASECColor(
-            0.075f,
-            0.105f,
-            0.155f,
-            0.98f
-        )
-        : ASASECColor(
-            0.045f,
-            0.062f,
-            0.092f,
-            0.98f
-        );
-
-    ImU32 border =
-        hovered
-        ? ASASECColor(
-            0.18f,
-            0.30f,
-            0.46f,
-            0.90f
-        )
-        : ASASECColor(
-            0.12f,
-            0.17f,
-            0.25f,
-            0.78f
-        );
-
-    if (draw)
-    {
-        draw->AddRectFilled(
-            start,
-            end,
-            bg,
-            12.0f
-        );
-
-        draw->AddRect(
-            ImVec2(
-                start.x + 0.5f,
-                start.y + 0.5f
-            ),
-            ImVec2(
-                end.x - 0.5f,
-                end.y - 0.5f
-            ),
-            border,
-            12.0f,
-            0,
-            1.0f
-        );
-
-        draw->AddCircleFilled(
-            ImVec2(
-                start.x + 18.0f,
-                start.y + 20.0f
-            ),
-            4.0f,
-            *value
-            ? ASASECColor(
-                0.30f,
-                0.68f,
-                1.0f,
-                1.0f
-            )
-            : ASASECColor(
-                0.25f,
-                0.30f,
-                0.38f,
-                1.0f
-            )
-        );
-    }
-
-    ImGui::SetCursorScreenPos(
-        ImVec2(
-            start.x + 31.0f,
-            start.y + 9.0f
-        )
-    );
-
-    ImGui::TextColored(
-        ImVec4(
-            0.92f,
-            0.95f,
-            1.0f,
-            1.0f
-        ),
-        "%s",
-        title
-    );
-
-    ImGui::SetCursorScreenPos(
-        ImVec2(
-            start.x + 31.0f,
-            start.y + 31.0f
-        )
-    );
-
-    ImGui::TextColored(
-        ImVec4(
-            0.38f,
-            0.44f,
-            0.53f,
-            1.0f
-        ),
-        "%s",
-        description
-    );
-
-    float switchWidth =
-        46.0f;
-
-    float switchHeight =
-        24.0f;
-
-    float sx =
-        end.x -
-        switchWidth -
-        14.0f;
-
-    float sy =
-        start.y +
-        (cardHeight -
-         switchHeight) *
-        0.5f;
-
-    ImVec2 sMin =
-        ImVec2(
-            sx,
-            sy
-        );
-
-    ImVec2 sMax =
-        ImVec2(
-            sx + switchWidth,
-            sy + switchHeight
-        );
-
-    if (draw)
-    {
-        draw->AddRectFilled(
-            sMin,
-            sMax,
-            *value
-            ? ASASECColor(
-                0.16f,
-                0.48f,
-                0.86f,
-                1.0f
-            )
-            : ASASECColor(
-                0.12f,
-                0.16f,
-                0.23f,
-                1.0f
-            ),
-            switchHeight * 0.5f
-        );
-
-        float knobX =
-            *value
-            ? sMax.x - 12.0f
-            : sMin.x + 12.0f;
-
-        draw->AddCircleFilled(
-            ImVec2(
-                knobX,
-                sy +
-                    switchHeight *
-                    0.5f
-            ),
-            8.0f,
-            ASASECColor(
-                0.94f,
-                0.97f,
-                1.0f,
-                1.0f
-            )
-        );
-    }
-
-    ImGui::SetCursorScreenPos(
-        ImVec2(
-            start.x,
-            end.y
-        )
-    );
-
-    ImGui::Dummy(
-        ImVec2(
-            width,
-            8.0f
-        )
-    );
-
-    ImGui::PopID();
 }
 
 #pragma mark - Renderer
@@ -2598,185 +2414,77 @@ drawableSizeWillChange:(CGSize)size
                             gPageSlide
                         );
 
-                        #pragma mark Combat
+                        // Dinamik İçerik Oluşturucu (Kategoriye Göre Listeleme ve Callback Tetikleme)
+                        const char *currentCategoryName =
+                            gSelectedPage == 0 ? "Combat" :
+                            gSelectedPage == 1 ? "Visuals" : "Settings";
 
-                        if (gSelectedPage == 0)
-                        {
-                            ASASECSectionHeader(
-                                "COMBAT",
-                                "ACTIONS",
-                                ASASECColor(
-                                    0.30f,
-                                    0.68f,
-                                    1.0f,
-                                    1.0f
-                                )
-                            );
+                        ImU32 sectionAccent =
+                            gSelectedPage == 0 ? ASASECColor(0.30f, 0.68f, 1.0f, 1.0f) :
+                            gSelectedPage == 1 ? ASASECColor(0.28f, 0.86f, 0.58f, 1.0f) :
+                            ASASECColor(1.0f, 0.67f, 0.28f, 1.0f);
 
-                            ASASECPageDescription(
-                                "Configure your combat options"
-                            );
+                        const char *sectionSubtitle =
+                            gSelectedPage == 0 ? "ACTIONS" :
+                            gSelectedPage == 1 ? "ESP" : "SYSTEM";
 
-                            ImGui::Dummy(
+                        const char *pageDesc =
+                            gSelectedPage == 0 ? "Configure your combat options" :
+                            gSelectedPage == 1 ? "Configure visual and player information" :
+                            "Configure ASASEC interface and system";
+
+                        ASASECSectionHeader(currentCategoryName, sectionSubtitle, sectionAccent);
+                        ASASECPageDescription(pageDesc);
+
+                        ImGui::Dummy(ImVec2(0.0f, 10.0f));
+
+                        float cardWidth =
+                            ImGui::GetContentRegionAvail().x -
+                            22.0f;
+
+                        if (cardWidth < 280.0f)
+                            cardWidth = 280.0f;
+
+                        char childID[64];
+                        snprintf(childID, sizeof(childID), "##Card_%s", currentCategoryName);
+
+                        bool cardOpened =
+                            ImGui::BeginChild(
+                                childID,
                                 ImVec2(
-                                    0.0f,
-                                    10.0f
-                                )
+                                    cardWidth,
+                                    294.0f
+                                ),
+                                false,
+                                ImGuiWindowFlags_NoBackground
                             );
 
-                            static bool sw1 = false;
-                            static bool sw2 = false;
-                            static bool sw3 = false;
-                            static bool sw4 = false;
-
-                            float cardWidth =
-                                ImGui::GetContentRegionAvail().x -
-                                22.0f;
-
-                            if (cardWidth < 280.0f)
-                                cardWidth = 280.0f;
-
-                            bool combatCardOpened =
-                                ImGui::BeginChild(
-                                    "##CombatCard",
-                                    ImVec2(
-                                        cardWidth,
-                                        294.0f
-                                    ),
-                                    false,
-                                    ImGuiWindowFlags_NoBackground
-                                );
-
-                            if (combatCardOpened)
+                        if (cardOpened)
+                        {
+                            for (int i = 0; i < gCustomFeatureCount; i++)
                             {
-                                ASASECModernSwitch("swicht 1", &sw1);
-                                ASASECModernSwitch("swicht 2", &sw2);
-                                ASASECModernSwitch("swicht 3", &sw3);
-                                ASASECModernSwitch("swicht 4", &sw4);
+                                if (strcmp(gCustomFeatures[i].category, currentCategoryName) == 0)
+                                {
+                                    bool *valPtr = gCustomFeatures[i].valuePointer;
+                                    if (valPtr)
+                                    {
+                                        bool oldVal = *valPtr;
+                                        if (ASASECModernSwitch(gCustomFeatures[i].title, valPtr))
+                                        {
+                                            if (oldVal != *valPtr)
+                                            {
+                                                if (gCustomFeatures[i].callback != NULL)
+                                                {
+                                                    gCustomFeatures[i].callback(*valPtr);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
-
-                            ImGui::EndChild();
                         }
 
-                        #pragma mark Visuals
-
-                        else if (gSelectedPage == 1)
-                        {
-                            ASASECSectionHeader(
-                                "VISUALS",
-                                "ESP",
-                                ASASECColor(
-                                    0.28f,
-                                    0.86f,
-                                    0.58f,
-                                    1.0f
-                                )
-                            );
-
-                            ASASECPageDescription(
-                                "Configure visual and player information"
-                            );
-
-                            ImGui::Dummy(
-                                ImVec2(
-                                    0.0f,
-                                    10.0f
-                                )
-                            );
-
-                            static bool sw1 = false;
-                            static bool sw2 = false;
-                            static bool sw3 = false;
-                            static bool sw4 = false;
-
-                            float cardWidth =
-                                ImGui::GetContentRegionAvail().x -
-                                22.0f;
-
-                            if (cardWidth < 280.0f)
-                                cardWidth = 280.0f;
-
-                            bool visualCardOpened =
-                                ImGui::BeginChild(
-                                    "##VisualCard",
-                                    ImVec2(
-                                        cardWidth,
-                                        294.0f
-                                    ),
-                                    false,
-                                    ImGuiWindowFlags_NoBackground
-                                );
-
-                            if (visualCardOpened)
-                            {
-                                ASASECModernSwitch("swicht 1", &sw1);
-                                ASASECModernSwitch("swicht 2", &sw2);
-                                ASASECModernSwitch("swicht 3", &sw3);
-                                ASASECModernSwitch("swicht 4", &sw4);
-                            }
-
-                            ImGui::EndChild();
-                        }
-
-                        #pragma mark Settings
-
-                        else
-                        {
-                            ASASECSectionHeader(
-                                "SETTINGS",
-                                "SYSTEM",
-                                ASASECColor(
-                                    1.0f,
-                                    0.67f,
-                                    0.28f,
-                                    1.0f
-                                )
-                            );
-
-                            ASASECPageDescription(
-                                "Configure ASASEC interface and system"
-                            );
-
-                            ImGui::Dummy(
-                                ImVec2(
-                                    0.0f,
-                                    10.0f
-                                )
-                            );
-
-                            static bool sw1 = false;
-                            static bool sw2 = false;
-                            static bool sw3 = false;
-                            static bool sw4 = false;
-
-                            float cardWidth =
-                                ImGui::GetContentRegionAvail().x -
-                                22.0f;
-
-                            if (cardWidth < 280.0f)
-                                cardWidth = 280.0f;
-
-                            bool settingsCardOpened =
-                                ImGui::BeginChild(
-                                    "##SettingsCard",
-                                    ImVec2(
-                                        cardWidth,
-                                        294.0f
-                                    ),
-                                    false,
-                                    ImGuiWindowFlags_NoBackground
-                                );
-
-                            if (settingsCardOpened)
-                            {
-                                ASASECModernSwitch("swicht 1", &sw1);
-                                ASASECModernSwitch("swicht 2", &sw2);
-                                ASASECModernSwitch("swicht 3", &sw3);
-                                ASASECModernSwitch("swicht 4", &sw4);
-                            }
-
-                            ImGui::EndChild();
-                        }
+                        ImGui::EndChild();
 
                         ImGui::PopStyleVar();
 
