@@ -13,72 +13,32 @@
 #include "../imgui_internal.h"
 #include "../Backends/imgui_impl_metal.h"
 
-#pragma mark - Custom Feature System & Callbacks
+#pragma mark - External Feature Registration System
 
 typedef void (*ASASECSwitchCallback)(bool isOn);
 
 typedef struct {
     const char *category;          // "Combat", "Visuals", "Settings"
     const char *title;             // Switch İsmi (Örn: "Swicht 1")
-    bool *valuePointer;            // Değerin tutulduğu bellek adresi
+    bool *valuePointer;            // Değerin tutulduğu değişken adresi
     ASASECSwitchCallback callback; // Açılıp kapatılınca çalışacak fonksiyon
 } ASASECCustomFeature;
 
-// Örnek Değerler
-static bool gCombatSw1 = false;
-static bool gCombatSw2 = false;
-static bool gCombatSw3 = false;
-static bool gCombatSw4 = false;
+// Maksimum kayıt edilebilir switch limiti
+#define MAX_CUSTOM_FEATURES 64
+static ASASECCustomFeature gRegisteredFeatures[MAX_CUSTOM_FEATURES];
+static int gRegisteredFeatureCount = 0;
 
-static bool gVisualsSw1 = false;
-static bool gVisualsSw2 = false;
-static bool gVisualsSw3 = false;
-static bool gVisualsSw4 = false;
-
-static bool gSettingsSw1 = false;
-static bool gSettingsSw2 = false;
-static bool gSettingsSw3 = false;
-static bool gSettingsSw4 = false;
-
-// Fonksiyon İşleyicileri (Callback Örnekleri)
-static void CombatSwitch1Toggled(bool isOn) {
-    // Combat -> Swicht 1 açılıp kapatıldığında yapılacak işlemler
+// Başka dosyadan (Tweak.swift / C++ / Obj-C dosyalarından) çağrılarak kategoriye switch ekleyen fonksiyon
+void ASASECRegisterFeature(const char *category, const char *title, bool *valuePointer, ASASECSwitchCallback callback) {
+    if (gRegisteredFeatureCount < MAX_CUSTOM_FEATURES) {
+        gRegisteredFeatures[gRegisteredFeatureCount].category = category;
+        gRegisteredFeatures[gRegisteredFeatureCount].title = title;
+        gRegisteredFeatures[gRegisteredFeatureCount].valuePointer = valuePointer;
+        gRegisteredFeatures[gRegisteredFeatureCount].callback = callback;
+        gRegisteredFeatureCount++;
+    }
 }
-
-static void CombatSwitch2Toggled(bool isOn) {
-    // Combat -> Swicht 2 açılıp kapatıldığında yapılacak işlemler
-}
-
-static void VisualsSwitch1Toggled(bool isOn) {
-    // Visuals -> Swicht 1 açılıp kapatıldığında yapılacak işlemler
-}
-
-static void SettingsSwitch1Toggled(bool isOn) {
-    // Settings -> Swicht 1 açılıp kapatıldığında yapılacak işlemler
-}
-
-// Harici / Merkezileştirilmiş Özellik Listesi (Buradan dilediğiniz gibi çoğaltabilirsiniz)
-static ASASECCustomFeature gCustomFeatures[] = {
-    // Combat Kategorisi
-    { "Combat",  "Swicht 1", &gCombatSw1,   CombatSwitch1Toggled },
-    { "Combat",  "Swicht 2", &gCombatSw2,   CombatSwitch2Toggled },
-    { "Combat",  "Swicht 3", &gCombatSw3,   NULL },
-    { "Combat",  "Swicht 4", &gCombatSw4,   NULL },
-    
-    // Visuals Kategorisi
-    { "Visuals", "Swicht 1", &gVisualsSw1,  VisualsSwitch1Toggled },
-    { "Visuals", "Swicht 2", &gVisualsSw2,  NULL },
-    { "Visuals", "Swicht 3", &gVisualsSw3,  NULL },
-    { "Visuals", "Swicht 4", &gVisualsSw4,  NULL },
-    
-    // Settings Kategorisi
-    { "Settings","Swicht 1", &gSettingsSw1, SettingsSwitch1Toggled },
-    { "Settings","Swicht 2", &gSettingsSw2, NULL },
-    { "Settings","Swicht 3", &gSettingsSw3, NULL },
-    { "Settings","Swicht 4", &gSettingsSw4, NULL }
-};
-
-static const int gCustomFeatureCount = sizeof(gCustomFeatures) / sizeof(gCustomFeatures[0]);
 
 #pragma mark - Global State
 
@@ -2414,7 +2374,6 @@ drawableSizeWillChange:(CGSize)size
                             gPageSlide
                         );
 
-                        // Dinamik İçerik Oluşturucu (Kategoriye Göre Listeleme ve Callback Tetikleme)
                         const char *currentCategoryName =
                             gSelectedPage == 0 ? "Combat" :
                             gSelectedPage == 1 ? "Visuals" : "Settings";
@@ -2461,21 +2420,21 @@ drawableSizeWillChange:(CGSize)size
 
                         if (cardOpened)
                         {
-                            for (int i = 0; i < gCustomFeatureCount; i++)
+                            for (int i = 0; i < gRegisteredFeatureCount; i++)
                             {
-                                if (strcmp(gCustomFeatures[i].category, currentCategoryName) == 0)
+                                if (strcmp(gRegisteredFeatures[i].category, currentCategoryName) == 0)
                                 {
-                                    bool *valPtr = gCustomFeatures[i].valuePointer;
+                                    bool *valPtr = gRegisteredFeatures[i].valuePointer;
                                     if (valPtr)
                                     {
                                         bool oldVal = *valPtr;
-                                        if (ASASECModernSwitch(gCustomFeatures[i].title, valPtr))
+                                        if (ASASECModernSwitch(gRegisteredFeatures[i].title, valPtr))
                                         {
                                             if (oldVal != *valPtr)
                                             {
-                                                if (gCustomFeatures[i].callback != NULL)
+                                                if (gRegisteredFeatures[i].callback != NULL)
                                                 {
-                                                    gCustomFeatures[i].callback(*valPtr);
+                                                    gRegisteredFeatures[i].callback(*valPtr);
                                                 }
                                             }
                                         }
