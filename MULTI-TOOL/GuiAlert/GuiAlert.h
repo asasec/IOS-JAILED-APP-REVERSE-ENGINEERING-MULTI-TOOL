@@ -12,8 +12,6 @@ NS_ASSUME_NONNULL_BEGIN
                       storeKitHook:(void (^)(void))storeKitHook
                              kapat:(void (^)(void))kapat;
 
-+ (void)DinleyiciMenuBaslik:(NSString *)baslik;
-
 + (void)OyunaOzelModlu:(void (^)(void))modlu
                 modsuz:(void (^)(void))modsuz
                 mesaj:(NSString *)mesaj;
