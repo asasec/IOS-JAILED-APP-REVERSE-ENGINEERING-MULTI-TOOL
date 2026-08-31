@@ -2014,21 +2014,6 @@ drawableSizeWillChange:(CGSize)size
 
            #pragma mark Header Logo
 
-            /*
-             * ASASEC UI
-             *
-             * Sol sembol
-             *      ↓
-             * ASASEC UI
-             *      ↓
-             * Sağ durum sembolü
-             *
-             * Her iki modda da görünür.
-             *
-             * Normal  = yeşil
-             * Collapse = kırmızı
-             */
-
             ImDrawList *logoDraw =
                 ImGui::GetWindowDrawList();
 
@@ -2043,7 +2028,6 @@ drawableSizeWillChange:(CGSize)size
                     ->Fonts[0];
             }
 
-            // Font ölçeğini uygulayıp güncel metin boyutlarını ve satır yüksekliğini alıyoruz
             ImGui::SetWindowFontScale(1.13f);
 
             const char *partOne =
@@ -2066,9 +2050,6 @@ drawableSizeWillChange:(CGSize)size
                 uiSize.x +
                 titleSpacing;
 
-            /*
-             * Header grubunun konumu.
-             */
             float leftSymbolX =
                 windowPos.x + 27.0f;
 
@@ -2081,9 +2062,7 @@ drawableSizeWillChange:(CGSize)size
                 (titleWidth * 1.13f) +
                 13.0f;
 
-            /*
-             * Dikey merkez (Ölçekli font yüksekliğine göre tam hizalama).
-             */
+            // Dikey hizalama düzeltmesi: Fontun tam dikey merkezlemesi sağlandı
             float currentFontHeight =
                 ImGui::GetTextLineHeight();
 
@@ -2091,18 +2070,12 @@ drawableSizeWillChange:(CGSize)size
                 windowPos.y +
                 (kHeaderHeight -
                  currentFontHeight) *
-                0.5f;
+                0.5f - 1.5f;
 
             float symbolY =
                 windowPos.y +
                 kHeaderHeight * 0.5f;
 
-            /*
-             * Sağ sembolün rengi:
-             *
-             * Normal      -> Yeşil
-             * Küçültülmüş -> Kırmızı
-             */
             ImU32 statusColor =
                 gMenuCollapsed
                 ? ASASECColor(
@@ -2135,9 +2108,6 @@ drawableSizeWillChange:(CGSize)size
 
             if (logoDraw) {
 
-                /*
-                 * Sol mavi sembol glow.
-                 */
                 logoDraw->AddCircleFilled(
                     ImVec2(
                         leftSymbolX,
@@ -2153,9 +2123,6 @@ drawableSizeWillChange:(CGSize)size
                     24
                 );
 
-                /*
-                 * Sol mavi sembol.
-                 */
                 logoDraw->AddCircleFilled(
                     ImVec2(
                         leftSymbolX,
@@ -2171,9 +2138,6 @@ drawableSizeWillChange:(CGSize)size
                     24
                 );
 
-                /*
-                 * Sağ durum sembolü glow.
-                 */
                 logoDraw->AddCircleFilled(
                     ImVec2(
                         rightSymbolX,
@@ -2184,9 +2148,6 @@ drawableSizeWillChange:(CGSize)size
                     24
                 );
 
-                /*
-                 * Sağ durum sembolü.
-                 */
                 logoDraw->AddCircleFilled(
                     ImVec2(
                         rightSymbolX,
@@ -2198,12 +2159,6 @@ drawableSizeWillChange:(CGSize)size
                 );
             }
 
-            /*
-             * ASASEC UI yazısı.
-             *
-             * İki sembol arasında.
-             * Dikey olarak header merkezinde.
-             */
             ImGui::PushFont(headerFont);
 
             ImGui::SetCursorPos(
@@ -2616,9 +2571,6 @@ drawableSizeWillChange:(CGSize)size
 
                 if (draw) {
 
-                    /*
-                     * Sidebar.
-                     */
                     draw->AddRectFilled(
                         ImVec2(
                             windowPos.x,
@@ -2639,9 +2591,6 @@ drawableSizeWillChange:(CGSize)size
                         0.0f
                     );
 
-                    /*
-                     * Sidebar hafif iç parlaklık.
-                     */
                     draw->AddLine(
                         ImVec2(
                             windowPos.x +
@@ -2730,7 +2679,6 @@ drawableSizeWillChange:(CGSize)size
                         1.0f
                     );
                 }
-
 
                 #pragma mark Categories
 
@@ -3132,9 +3080,9 @@ drawableSizeWillChange:(CGSize)size
                             }
                         }
 
+                        // Her kategoride en altta rahat bir boşluk payı (ekstra 30px) bırakıldı
                         float calculatedHeight =
-                            featureCount *
-                            60.0f;
+                            (featureCount * 60.0f) + 30.0f;
 
                         if (calculatedHeight <
                             scrollHeight - 10.0f) {
