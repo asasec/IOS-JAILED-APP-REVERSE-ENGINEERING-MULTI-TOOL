@@ -41,7 +41,7 @@ static void Button1Clicked(void) {
 }
 
 static void Button2Clicked(void) {
-    [GuiAlert DinleyiciMenuBaslik:@"Combat Dinleyicileri"];
+  
 }
 
 #pragma mark - Menüyü Dışarıya Açan Başlatıcı Fonksiyon
