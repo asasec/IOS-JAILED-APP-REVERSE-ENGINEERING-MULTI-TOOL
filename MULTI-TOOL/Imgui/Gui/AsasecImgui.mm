@@ -134,7 +134,19 @@ static BOOL gMetalBackendInitialized = NO;
 
 static BOOL gMenuVisible = YES;
 static BOOL gMenuCollapsed = NO;
-static BOOL gCategoriesHidden = NO;
+
+/*
+ * Kategori paneli durumu.
+ *
+ * YES  = kategoriler açık
+ * NO   = kategoriler kapalı
+ *
+ * gCategoriesAnimation:
+ * 0.0 = tamamen kapalı
+ * 1.0 = tamamen açık
+ */
+static BOOL gCategoriesVisible = YES;
+static float gCategoriesAnimation = 1.0f;
 
 static ImVec2 gMenuPosition =
     ImVec2(25.0f, 75.0f);
@@ -150,6 +162,14 @@ static const float kMenuMaxHeight = 620.0f;
 
 static const float kHeaderHeight = 56.0f;
 static const float kResizeSize = 58.0f;
+
+static const float kSidebarWidth = 145.0f;
+
+/*
+ * Sidebar animasyon hızı.
+ * Değer yükseldikçe açılıp kapanma daha hızlı olur.
+ */
+static const float kSidebarAnimationSpeed = 15.0f;
 
 static int gSelectedPage = 0;
 static int gPreviousPage = 0;
@@ -307,6 +327,24 @@ static float ASASECEase(float current,
 
     return current +
            (target - current) * factor;
+}
+
+/*
+ * Kategori panelinin o anki animasyon genişliği.
+ *
+ * Örneğin:
+ * 1.0  -> 145 px
+ * 0.5  -> 72.5 px
+ * 0.0  -> 0 px
+ */
+static float ASASECGetAnimatedSidebarWidth(void)
+{
+    return kSidebarWidth *
+           ASASECClampFloat(
+               gCategoriesAnimation,
+               0.0f,
+               1.0f
+           );
 }
 
 static ImU32 ASASECColor(float r,
@@ -1178,13 +1216,21 @@ static bool ASASECModernButton(const char *label)
         return;
     }
 
+    /*
+     * Sidebar kapalıyken sol üstte bulunan
+     * "→" butonuna dokunulmasını engellememek
+     * için content touch alanını artık sabit
+     * 145 px yerine animasyon genişliğine göre
+     * hesaplıyoruz.
+     */
     if (!gMenuCollapsed) {
 
-        const float sidebarWidth = gCategoriesHidden ? 0.0f : 145.0f;
+        float animatedSidebarWidth =
+            ASASECGetAnimatedSidebarWidth();
 
         float contentStartX =
             gMenuPosition.x +
-            sidebarWidth;
+            animatedSidebarWidth;
 
         float contentStartY =
             gMenuPosition.y +
@@ -1763,6 +1809,47 @@ drawableSizeWillChange:(CGSize)size
     float dt =
         io.DeltaTime;
 
+    /*
+     * ---------------------------------------------------------
+     * KATEGORİ PANELİ ANİMASYONU
+     * ---------------------------------------------------------
+     *
+     * gCategoriesVisible:
+     *   YES -> hedef 1.0
+     *   NO  -> hedef 0.0
+     *
+     * Böylece panel aniden kaybolmak yerine
+     * yatay olarak sağa/sola kayarak kapanır/açılır.
+     */
+    float categoriesTarget =
+        gCategoriesVisible
+        ? 1.0f
+        : 0.0f;
+
+    gCategoriesAnimation =
+        ASASECEase(
+            gCategoriesAnimation,
+            categoriesTarget,
+            kSidebarAnimationSpeed,
+            dt
+        );
+
+    /*
+     * Çok küçük artık değerleri sıfırlıyoruz.
+     * Bu hem görüntüyü hem de touch alanını temiz tutar.
+     */
+    if (fabsf(
+            gCategoriesAnimation -
+            categoriesTarget
+        ) < 0.001f) {
+
+        gCategoriesAnimation =
+            categoriesTarget;
+    }
+
+    /*
+     * Sayfa değişim animasyonu.
+     */
     if (gSelectedPage !=
         gPreviousPage) {
 
@@ -1792,6 +1879,9 @@ drawableSizeWillChange:(CGSize)size
             dt
         );
 
+    /*
+     * Content inertia.
+     */
     if (!gContentDragging &&
         fabsf(gContentScrollVelocity) >
         0.01f) {
@@ -1821,7 +1911,11 @@ drawableSizeWillChange:(CGSize)size
                 win
             );
 
-        const float sidebarWidth = gCategoriesHidden ? 0.0f : 145.0f;
+        /*
+         * Animasyonlu sidebar genişliği.
+         */
+        float animatedSidebarWidth =
+            ASASECGetAnimatedSidebarWidth();
 
         ImVec2 actualWindowSize =
             ImVec2(
@@ -1895,6 +1989,9 @@ drawableSizeWillChange:(CGSize)size
             ImDrawList *draw =
                 ImGui::GetWindowDrawList();
 
+            /*
+             * Ana pencere zemini.
+             */
             if (draw) {
 
                 draw->AddRectFilled(
@@ -1929,6 +2026,9 @@ drawableSizeWillChange:(CGSize)size
                     1.0f
                 );
 
+                /*
+                 * Header.
+                 */
                 draw->AddRectFilled(
                     ImVec2(
                         windowPos.x + 1.0f,
@@ -1949,6 +2049,9 @@ drawableSizeWillChange:(CGSize)size
                     ImDrawFlags_RoundCornersTop
                 );
 
+                /*
+                 * Header alt çizgisi.
+                 */
                 draw->AddLine(
                     ImVec2(
                         windowPos.x + 18.0f,
@@ -1969,6 +2072,9 @@ drawableSizeWillChange:(CGSize)size
                     1.0f
                 );
 
+                /*
+                 * Header accent.
+                 */
                 draw->AddLine(
                     ImVec2(
                         windowPos.x + 20.0f,
@@ -1989,6 +2095,9 @@ drawableSizeWillChange:(CGSize)size
                     2.0f
                 );
 
+                /*
+                 * Çok hafif üst parlaklık.
+                 */
                 draw->AddLine(
                     ImVec2(
                         windowPos.x + 25.0f,
@@ -2010,34 +2119,85 @@ drawableSizeWillChange:(CGSize)size
 
             #pragma mark Main Content
 
+            /*
+             * -----------------------------------------------------
+             * SIDEBAR + CONTENT
+             * -----------------------------------------------------
+             *
+             * Sidebar genişliği artık sabit 145 px değil.
+             * gCategoriesAnimation değerine göre değişiyor.
+             *
+             * Panel açılırken:
+             *
+             * 0 -> 145
+             *
+             * Content de aynı anda sola/sağa doğru genişliyor.
+             */
             if (!gMenuCollapsed &&
                 gMenuVisible) {
 
-                const char *uniqueCategories[32];
-                int uniqueCategoryCount =
-                    ASASECGetUniqueCategories(
-                        uniqueCategories,
-                        32
+                /*
+                 * Sidebar çizimi.
+                 *
+                 * Animasyon sırasında genişlik
+                 * 0'dan 145'e çıkar.
+                 */
+                if (draw &&
+                    animatedSidebarWidth > 0.01f) {
+
+                    draw->AddRectFilled(
+                        ImVec2(
+                            windowPos.x,
+                            windowPos.y +
+                            kHeaderHeight
+                        ),
+                        ImVec2(
+                            windowPos.x +
+                            animatedSidebarWidth,
+                            windowEnd.y
+                        ),
+                        IM_COL32(
+                            7,
+                            12,
+                            22,
+                            255
+                        ),
+                        0.0f
                     );
 
-                if (gSelectedPage >=
-                    uniqueCategoryCount) {
+                    /*
+                     * Sidebar içeriğini panel genişliği
+                     * içinde kırpmak için clip alanı.
+                     */
+                    draw->PushClipRect(
+                        ImVec2(
+                            windowPos.x,
+                            windowPos.y +
+                            kHeaderHeight
+                        ),
+                        ImVec2(
+                            windowPos.x +
+                            animatedSidebarWidth,
+                            windowEnd.y
+                        ),
+                        true
+                    );
 
-                    gSelectedPage = 0;
-                }
-
-                if (!gCategoriesHidden) {
-                    if (draw) {
+                    /*
+                     * Sidebar alt köşe.
+                     */
+                    if (animatedSidebarWidth >
+                        1.0f) {
 
                         draw->AddRectFilled(
                             ImVec2(
                                 windowPos.x,
-                                windowPos.y +
-                                kHeaderHeight
+                                windowEnd.y -
+                                22.0f
                             ),
                             ImVec2(
                                 windowPos.x +
-                                sidebarWidth,
+                                animatedSidebarWidth,
                                 windowEnd.y
                             ),
                             IM_COL32(
@@ -2046,20 +2206,28 @@ drawableSizeWillChange:(CGSize)size
                                 22,
                                 255
                             ),
-                            0.0f
+                            20.0f,
+                            ImDrawFlags_RoundCornersBottomLeft
                         );
+                    }
+
+                    /*
+                     * Sidebar ayırıcı.
+                     */
+                    if (animatedSidebarWidth >
+                        1.0f) {
 
                         draw->AddLine(
                             ImVec2(
                                 windowPos.x +
-                                sidebarWidth -
+                                animatedSidebarWidth -
                                 1.0f,
                                 windowPos.y +
                                 72.0f
                             ),
                             ImVec2(
                                 windowPos.x +
-                                sidebarWidth -
+                                animatedSidebarWidth -
                                 1.0f,
                                 windowEnd.y -
                                 22.0f
@@ -2072,52 +2240,20 @@ drawableSizeWillChange:(CGSize)size
                             ),
                             1.0f
                         );
-
-                        draw->AddRectFilled(
-                            ImVec2(
-                                windowPos.x,
-                                windowEnd.y -
-                                22.0f
-                            ),
-                            ImVec2(
-                                windowPos.x +
-                                sidebarWidth,
-                                windowEnd.y
-                            ),
-                            IM_COL32(
-                                7,
-                                12,
-                                22,
-                                255
-                            ),
-                            20.0f,
-                            ImDrawFlags_RoundCornersBottomLeft
-                        );
-
-                        draw->AddLine(
-                            ImVec2(
-                                windowPos.x +
-                                sidebarWidth,
-                                windowPos.y +
-                                68.0f
-                            ),
-                            ImVec2(
-                                windowPos.x +
-                                sidebarWidth,
-                                windowEnd.y -
-                                16.0f
-                            ),
-                            IM_COL32(
-                                34,
-                                44,
-                                61,
-                                220
-                            ),
-                            1.0f
-                        );
                     }
+                }
 
-                    #pragma mark Categories
+                #pragma mark Categories
+
+                /*
+                 * Kategoriler sadece panel açılma
+                 * animasyonu devam ederken çizilir.
+                 *
+                 * İçerikleri clip alanı sayesinde
+                 * panel genişliği ile beraber kaybolur.
+                 */
+                if (gCategoriesAnimation >
+                    0.001f) {
 
                     ImGui::SetCursorPos(
                         ImVec2(
@@ -2135,6 +2271,20 @@ drawableSizeWillChange:(CGSize)size
                         ),
                         "KATEGORİLER"
                     );
+
+                    const char *uniqueCategories[32];
+
+                    int uniqueCategoryCount =
+                        ASASECGetUniqueCategories(
+                            uniqueCategories,
+                            32
+                        );
+
+                    if (gSelectedPage >=
+                        uniqueCategoryCount) {
+
+                        gSelectedPage = 0;
+                    }
 
                     for (int i = 0;
                          i < uniqueCategoryCount;
@@ -2157,7 +2307,7 @@ drawableSizeWillChange:(CGSize)size
                                 ),
                                 ImVec2(
                                     windowPos.x +
-                                    sidebarWidth -
+                                    kSidebarWidth -
                                     8.0f,
                                     windowPos.y +
                                     itemY +
@@ -2180,7 +2330,7 @@ drawableSizeWillChange:(CGSize)size
                                 ),
                                 ImVec2(
                                     windowPos.x +
-                                    sidebarWidth -
+                                    kSidebarWidth -
                                     8.5f,
                                     windowPos.y +
                                     itemY +
@@ -2281,19 +2431,71 @@ drawableSizeWillChange:(CGSize)size
                         if (ImGui::Button(
                                 id,
                                 ImVec2(
-                                    sidebarWidth -
+                                    kSidebarWidth -
                                     20.0f,
                                     43.0f
                                 ))) {
 
+                            /*
+                             * -------------------------------------------------
+                             * ANA DEĞİŞİKLİK
+                             * -------------------------------------------------
+                             *
+                             * Aynı kategoriye tekrar basılırsa:
+                             *
+                             *     kategori paneli KAPANIR.
+                             *
+                             * Farklı kategoriye basılırsa:
+                             *
+                             *     kategori seçilir,
+                             *     panel açık kalır.
+                             */
                             if (gSelectedPage == i) {
-                                gCategoriesHidden = true;
+
+                                gCategoriesVisible =
+                                    !gCategoriesVisible;
+
+                                gPendingContentScrollY =
+                                    0.0f;
+
+                                gContentScrollVelocity =
+                                    0.0f;
+
+                                gContentDragging =
+                                    NO;
+
+                                gContentTouchCandidate =
+                                    NO;
+
                             } else {
-                                gSelectedPage = i;
-                                gPageAnimation = 0.0f;
-                                gPageSlide = 16.0f;
-                                gPendingContentScrollY = 0.0f;
-                                gContentScrollVelocity = 0.0f;
+
+                                gSelectedPage =
+                                    i;
+
+                                /*
+                                 * Başka kategori seçildiğinde
+                                 * panel otomatik olarak açık kalır.
+                                 */
+                                gCategoriesVisible =
+                                    YES;
+
+                                gPageAnimation =
+                                    0.0f;
+
+                                gPageSlide =
+                                    16.0f;
+
+                                gPendingContentScrollY =
+                                    0.0f;
+
+                                gContentScrollVelocity =
+                                    0.0f;
+
+                                gContentDragging =
+                                    NO;
+
+                                gContentTouchCandidate =
+                                    NO;
                             }
                         }
 
@@ -2307,82 +2509,78 @@ drawableSizeWillChange:(CGSize)size
                         ImGui::PopStyleVar();
                         ImGui::PopID();
                     }
-                } else {
-                    // Kategoriler gizliyken sol üst köşede büyütülmüş sağ yön oku butonu
+
+                    /*
+                     * Sidebar çizim clip'i.
+                     */
+                    if (draw &&
+                        gCategoriesAnimation >
+                        0.001f) {
+
+                        draw->PopClipRect();
+                    }
+
+                    #pragma mark Content Root
+
+                    /*
+                     * Content artık sabit 145 px'den değil,
+                     * animasyonlu sidebar genişliğinden
+                     * başlıyor.
+                     *
+                     * Panel kapanırken:
+                     *
+                     * sidebarWidth -> 0
+                     *
+                     * contentWidth -> pencerenin tamamı
+                     */
                     ImGui::SetCursorPos(
                         ImVec2(
-                            12.0f,
-                            62.0f
+                            animatedSidebarWidth + 1.0f,
+                            kHeaderHeight - 2.0f
                         )
                     );
-                    
-                    if (ImGui::InvisibleButton("##show_categories_btn", ImVec2(44.0f, 44.0f))) {
-                        gCategoriesHidden = false;
-                    }
-                    
-                    if (draw) {
-                        ImVec2 minR = ImGui::GetItemRectMin();
-                        ImVec2 maxR = ImGui::GetItemRectMax();
-                        float cy = (minR.y + maxR.y) * 0.5f;
-                        float cx = minR.x + 14.0f;
-                        
-                        // Yön okunu biraz daha büyük çizdik (kalınlık ve uzunluk artırıldı)
-                        draw->AddLine(ImVec2(cx, cy - 7.0f), ImVec2(cx + 10.0f, cy), ASASECColor(0.42f, 0.74f, 1.0f, 1.0f), 3.0f);
-                        draw->AddLine(ImVec2(cx + 10.0f, cy), ImVec2(cx, cy + 7.0f), ASASECColor(0.42f, 0.74f, 1.0f, 1.0f), 3.0f);
-                    }
-                }
 
-                #pragma mark Content Root
+                    float contentWidth =
+                        windowSize.x -
+                        animatedSidebarWidth -
+                        1.0f;
 
-                ImGui::SetCursorPos(
-                    ImVec2(
-                        sidebarWidth + 1.0f,
-                        kHeaderHeight - 2.0f
-                    )
-                );
+                    float contentHeight =
+                        windowSize.y -
+                        kHeaderHeight +
+                        2.0f;
 
-                float contentWidth =
-                    windowSize.x -
-                    sidebarWidth -
-                    1.0f;
+                    if (contentWidth < 100.0f)
+                        contentWidth = 100.0f;
 
-                float contentHeight =
-                    windowSize.y -
-                    kHeaderHeight +
-                    2.0f;
+                    if (contentHeight < 100.0f)
+                        contentHeight = 100.0f;
 
-                if (contentWidth < 100.0f)
-                    contentWidth = 100.0f;
+                    bool contentRootOpened =
+                        ImGui::BeginChild(
+                            "##ContentRoot",
+                            ImVec2(
+                                contentWidth,
+                                contentHeight
+                            ),
+                            false,
+                            ImGuiWindowFlags_NoBackground |
+                            ImGuiWindowFlags_NoScrollbar
+                        );
 
-                if (contentHeight < 100.0f)
-                    contentHeight = 100.0f;
+                    if (contentRootOpened) {
 
-                bool contentRootOpened =
-                    ImGui::BeginChild(
-                        "##ContentRoot",
-                        ImVec2(
-                            contentWidth,
-                            contentHeight
-                        ),
-                        false,
-                        ImGuiWindowFlags_NoBackground |
-                        ImGuiWindowFlags_NoScrollbar
-                    );
+                        const char *currentCategoryName =
+                            (
+                                uniqueCategoryCount > 0 &&
+                                gSelectedPage <
+                                uniqueCategoryCount
+                            )
+                            ? uniqueCategories[
+                                gSelectedPage
+                            ]
+                            : "General";
 
-                if (contentRootOpened) {
-
-                    const char *currentCategoryName =
-                        (
-                            uniqueCategoryCount > 0 &&
-                            gSelectedPage <
-                            uniqueCategoryCount
-                        )
-                        ? uniqueCategories[
-                            gSelectedPage
-                        ]
-                        : "General";
-
-                    if (!gCategoriesHidden) {
                         ImGui::SetCursorPos(
                             ImVec2(
                                 17.0f,
@@ -2421,7 +2619,7 @@ drawableSizeWillChange:(CGSize)size
                             draw->AddLine(
                                 ImVec2(
                                     windowPos.x +
-                                    sidebarWidth +
+                                    animatedSidebarWidth +
                                     16.0f,
                                     windowPos.y +
                                     53.0f
@@ -2441,230 +2639,424 @@ drawableSizeWillChange:(CGSize)size
                                 1.0f
                             );
                         }
-                    }
 
-                    float contentTopOffset = gCategoriesHidden ? 12.0f : 62.0f;
-
-                    ImGui::SetCursorPos(
-                        ImVec2(
-                            0.0f,
-                            contentTopOffset
-                        )
-                    );
-
-                    float scrollHeight =
-                        contentHeight -
-                        contentTopOffset;
-
-                    if (scrollHeight < 100.0f)
-                        scrollHeight = 100.0f;
-
-                    bool scrollableOpened =
-                        ImGui::BeginChild(
-                            "##ScrollableContent",
+                        ImGui::SetCursorPos(
                             ImVec2(
-                                contentWidth,
-                                scrollHeight
-                            ),
-                            false,
-                            ImGuiWindowFlags_NoScrollbar
-                        );
-
-                    if (scrollableOpened) {
-
-                        float fade =
-                            ASASECClampFloat(
-                                gPageAnimation,
                                 0.0f,
-                                1.0f
-                            );
-
-                        ImGui::PushStyleVar(
-                            ImGuiStyleVar_Alpha,
-                            fade
+                                62.0f
+                            )
                         );
 
-                        ImGui::SetCursorPosX(
-                            17.0f +
-                            gPageSlide
-                        );
+                        float scrollHeight =
+                            contentHeight -
+                            62.0f;
 
-                        float cardWidth =
-                            ImGui::GetContentRegionAvail().x -
-                            22.0f;
+                        if (scrollHeight < 100.0f)
+                            scrollHeight = 100.0f;
 
-                        if (cardWidth < 200.0f)
-                            cardWidth = 200.0f;
-
-                        char childID[128];
-
-                        snprintf(
-                            childID,
-                            sizeof(childID),
-                            "##Card_%s",
-                            currentCategoryName
-                        );
-
-                        int featureCount =
-                            0;
-
-                        for (int i = 0;
-                             i < gRegisteredFeatureCount;
-                             i++) {
-
-                            if (
-                                gRegisteredFeatures[i].category &&
-                                strcmp(
-                                    gRegisteredFeatures[i].category,
-                                    currentCategoryName
-                                ) == 0
-                            ) {
-
-                                featureCount++;
-                            }
-                        }
-
-                        float calculatedHeight =
-                            (featureCount * 60.0f) + 30.0f;
-
-                        if (calculatedHeight <
-                            scrollHeight - 10.0f) {
-
-                            calculatedHeight =
-                                scrollHeight - 10.0f;
-                        }
-
-                        bool cardOpened =
+                        bool scrollableOpened =
                             ImGui::BeginChild(
-                                childID,
+                                "##ScrollableContent",
                                 ImVec2(
-                                    cardWidth,
-                                    calculatedHeight
+                                    contentWidth,
+                                    scrollHeight
                                 ),
                                 false,
-                                ImGuiWindowFlags_NoBackground
+                                ImGuiWindowFlags_NoScrollbar
                             );
 
-                        if (cardOpened) {
+                        if (scrollableOpened) {
+
+                            float fade =
+                                ASASECClampFloat(
+                                    gPageAnimation,
+                                    0.0f,
+                                    1.0f
+                                );
+
+                            ImGui::PushStyleVar(
+                                ImGuiStyleVar_Alpha,
+                                fade
+                            );
+
+                            ImGui::SetCursorPosX(
+                                17.0f +
+                                gPageSlide
+                            );
+
+                            float cardWidth =
+                                ImGui::GetContentRegionAvail().x -
+                                22.0f;
+
+                            if (cardWidth < 200.0f)
+                                cardWidth = 200.0f;
+
+                            char childID[128];
+
+                            snprintf(
+                                childID,
+                                sizeof(childID),
+                                "##Card_%s",
+                                currentCategoryName
+                            );
+
+                            int featureCount =
+                                0;
 
                             for (int i = 0;
                                  i < gRegisteredFeatureCount;
                                  i++) {
 
-                                ASASECCustomFeature *feature =
-                                    &gRegisteredFeatures[i];
-
-                                if (!feature->category)
-                                    continue;
-
-                                if (strcmp(
-                                        feature->category,
+                                if (
+                                    gRegisteredFeatures[i].category &&
+                                    strcmp(
+                                        gRegisteredFeatures[i].category,
                                         currentCategoryName
-                                    ) != 0)
-                                    continue;
+                                    ) == 0
+                                ) {
 
-                                if (feature->type ==
-                                    ASASECFeatureTypeSwitch) {
+                                    featureCount++;
+                                }
+                            }
 
-                                    bool *valPtr =
-                                        feature->valuePointer;
+                            float calculatedHeight =
+                                (featureCount * 60.0f) + 30.0f;
 
-                                    if (valPtr) {
+                            if (calculatedHeight <
+                                scrollHeight - 10.0f) {
 
-                                        bool oldVal =
-                                            *valPtr;
+                                calculatedHeight =
+                                    scrollHeight - 10.0f;
+                            }
 
-                                        bool switchClicked =
-                                            ASASECModernSwitch(
-                                                feature->title,
-                                                valPtr
-                                            );
+                            bool cardOpened =
+                                ImGui::BeginChild(
+                                    childID,
+                                    ImVec2(
+                                        cardWidth,
+                                        calculatedHeight
+                                    ),
+                                    false,
+                                    ImGuiWindowFlags_NoBackground
+                                );
 
-                                        if (switchClicked &&
-                                            oldVal != *valPtr) {
+                            if (cardOpened) {
 
-                                            if (feature->switchCallback) {
+                                for (int i = 0;
+                                     i < gRegisteredFeatureCount;
+                                     i++) {
 
-                                                feature->switchCallback(
-                                                    *valPtr
+                                    ASASECCustomFeature *feature =
+                                        &gRegisteredFeatures[i];
+
+                                    if (!feature->category)
+                                        continue;
+
+                                    if (strcmp(
+                                            feature->category,
+                                            currentCategoryName
+                                        ) != 0)
+                                        continue;
+
+                                    if (feature->type ==
+                                        ASASECFeatureTypeSwitch) {
+
+                                        bool *valPtr =
+                                            feature->valuePointer;
+
+                                        if (valPtr) {
+
+                                            bool oldVal =
+                                                *valPtr;
+
+                                            bool switchClicked =
+                                                ASASECModernSwitch(
+                                                    feature->title,
+                                                    valPtr
                                                 );
+
+                                            if (switchClicked &&
+                                                oldVal != *valPtr) {
+
+                                                if (feature->switchCallback) {
+
+                                                    feature->switchCallback(
+                                                        *valPtr
+                                                    );
+                                                }
                                             }
                                         }
-                                    }
 
-                                    ImGui::Dummy(
-                                        ImVec2(
-                                            0.0f,
-                                            6.0f
-                                        )
-                                    );
-
-                                } else if (
-                                    feature->type ==
-                                    ASASECFeatureTypeButton) {
-
-                                    bool buttonClicked =
-                                        ASASECModernButton(
-                                            feature->title
+                                        ImGui::Dummy(
+                                            ImVec2(
+                                                0.0f,
+                                                6.0f
+                                            )
                                         );
 
-                                    if (buttonClicked) {
+                                    } else if (
+                                        feature->type ==
+                                        ASASECFeatureTypeButton) {
 
-                                        if (feature->buttonCallback) {
+                                        bool buttonClicked =
+                                            ASASECModernButton(
+                                                feature->title
+                                            );
 
-                                            feature->buttonCallback();
+                                        if (buttonClicked) {
+
+                                            if (feature->buttonCallback) {
+
+                                                feature->buttonCallback();
+                                            }
                                         }
-                                    }
 
-                                    ImGui::Dummy(
-                                        ImVec2(
-                                            0.0f,
-                                            7.0f
-                                        )
-                                    );
+                                        ImGui::Dummy(
+                                            ImVec2(
+                                                0.0f,
+                                                7.0f
+                                            )
+                                        );
+                                    }
                                 }
+                            }
+
+                            ImGui::EndChild();
+
+                            ImGui::PopStyleVar();
+
+                            if (fabsf(
+                                    gPendingContentScrollY
+                                ) > 0.001f) {
+
+                                float currentScroll =
+                                    ImGui::GetScrollY();
+
+                                float maxScroll =
+                                    ImGui::GetScrollMaxY();
+
+                                float targetScroll =
+                                    ASASECClampFloat(
+                                        currentScroll +
+                                        gPendingContentScrollY,
+                                        0.0f,
+                                        maxScroll
+                                    );
+
+                                ImGui::SetScrollY(
+                                    targetScroll
+                                );
+
+                                gPendingContentScrollY =
+                                    0.0f;
                             }
                         }
 
                         ImGui::EndChild();
-
-                        ImGui::PopStyleVar();
-
-                        if (fabsf(
-                                gPendingContentScrollY
-                            ) > 0.001f) {
-
-                            float currentScroll =
-                                ImGui::GetScrollY();
-
-                            float maxScroll =
-                                ImGui::GetScrollMaxY();
-
-                            float targetScroll =
-                                ASASECClampFloat(
-                                    currentScroll +
-                                    gPendingContentScrollY,
-                                    0.0f,
-                                    maxScroll
-                                );
-
-                            ImGui::SetScrollY(
-                                targetScroll
-                            );
-
-                            gPendingContentScrollY =
-                                0.0f;
-                        }
                     }
 
                     ImGui::EndChild();
                 }
 
-                ImGui::EndChild();
+                /*
+                 * ---------------------------------------------------------
+                 * KATEGORİLER KAPALIYKEN GERİ AÇMA BUTONU
+                 * ---------------------------------------------------------
+                 *
+                 * Panel tamamen kapandığında,
+                 * KATEGORİLER yazısının bulunduğu konumda
+                 * sağ yön oku gösterilir.
+                 *
+                 * Ok'a basınca:
+                 *
+                 *     gCategoriesVisible = YES
+                 *
+                 * olur ve sidebar animasyonlu şekilde geri gelir.
+                 */
+                if (!gCategoriesVisible &&
+                    gCategoriesAnimation <= 0.001f) {
+
+                    ImGui::SetCursorPos(
+                        ImVec2(
+                            10.0f,
+                            66.0f
+                        )
+                    );
+
+                    ImGui::PushID(
+                        "ASASEC_OPEN_CATEGORIES"
+                    );
+
+                    ImGui::PushStyleVar(
+                        ImGuiStyleVar_FrameRounding,
+                        11.0f
+                    );
+
+                    ImGui::PushStyleColor(
+                        ImGuiCol_Button,
+                        ImVec4(
+                            0.045f,
+                            0.075f,
+                            0.12f,
+                            0.95f
+                        )
+                    );
+
+                    ImGui::PushStyleColor(
+                        ImGuiCol_ButtonHovered,
+                        ImVec4(
+                            0.10f,
+                            0.17f,
+                            0.27f,
+                            1.0f
+                        )
+                    );
+
+                    ImGui::PushStyleColor(
+                        ImGuiCol_ButtonActive,
+                        ImVec4(
+                            0.13f,
+                            0.25f,
+                            0.40f,
+                            1.0f
+                        )
+                    );
+
+                    ImGui::Button(
+                        "##open_categories",
+                        ImVec2(
+                            42.0f,
+                            40.0f
+                        )
+                    );
+
+                    bool openCategoriesPressed =
+                        ImGui::IsItemClicked(
+                            ImGuiMouseButton_Left
+                        );
+
+                    bool openCategoriesHovered =
+                        ImGui::IsItemHovered();
+
+                    ImVec2 openMin =
+                        ImGui::GetItemRectMin();
+
+                    ImVec2 openMax =
+                        ImGui::GetItemRectMax();
+
+                    ImDrawList *openDraw =
+                        ImGui::GetForegroundDrawList();
+
+                    if (openDraw) {
+
+                        float centerX =
+                            (openMin.x +
+                             openMax.x) *
+                            0.5f;
+
+                        float centerY =
+                            (openMin.y +
+                             openMax.y) *
+                            0.5f;
+
+                        float arrowWidth =
+                            8.0f;
+
+                        float arrowHeight =
+                            6.0f;
+
+                        ImU32 arrowColor =
+                            openCategoriesHovered
+                            ? ASASECColor(
+                                0.42f,
+                                0.74f,
+                                1.0f,
+                                1.0f
+                            )
+                            : ASASECColor(
+                                0.78f,
+                                0.85f,
+                                0.94f,
+                                0.96f
+                            );
+
+                        /*
+                         * Sağa bakan ok:
+                         *
+                         *       >
+                         */
+                        openDraw->AddLine(
+                            ImVec2(
+                                centerX -
+                                arrowWidth,
+                                centerY -
+                                arrowHeight
+                            ),
+                            ImVec2(
+                                centerX,
+                                centerY
+                            ),
+                            arrowColor,
+                            2.4f
+                        );
+
+                        openDraw->AddLine(
+                            ImVec2(
+                                centerX,
+                                centerY
+                            ),
+                            ImVec2(
+                                centerX -
+                                arrowWidth,
+                                centerY +
+                                arrowHeight
+                            ),
+                            arrowColor,
+                            2.4f
+                        );
+                    }
+
+                    if (openCategoriesPressed) {
+
+                        /*
+                         * Paneli aç.
+                         *
+                         * Animasyon bir sonraki frame'den
+                         * itibaren 0 -> 1 şeklinde ilerleyecek.
+                         */
+                        gCategoriesVisible =
+                            YES;
+
+                        gContentDragging =
+                            NO;
+
+                        gContentTouchCandidate =
+                            NO;
+
+                        gContentHasMoved =
+                            NO;
+
+                        gPendingContentScrollY =
+                            0.0f;
+
+                        gContentScrollVelocity =
+                            0.0f;
+                    }
+
+                    ImGui::PopStyleColor(3);
+                    ImGui::PopStyleVar();
+                    ImGui::PopID();
+                }
             }
 
             #pragma mark Header Logo - TOP LAYER
 
+            /*
+             * HEADER LOGOSU EN SON ÇİZİLİYOR.
+             *
+             * Böylece sidebar veya content,
+             * ASASEC UI yazısının üzerine gelemez.
+             */
             ImDrawList *logoDraw =
                 ImGui::GetForegroundDrawList();
 
@@ -2764,6 +3156,9 @@ drawableSizeWillChange:(CGSize)size
 
             if (logoDraw) {
 
+                /*
+                 * Sol logo glow.
+                 */
                 logoDraw->AddCircleFilled(
                     ImVec2(
                         leftSymbolX,
@@ -2794,6 +3189,9 @@ drawableSizeWillChange:(CGSize)size
                     24
                 );
 
+                /*
+                 * Sağ durum göstergesi.
+                 */
                 logoDraw->AddCircleFilled(
                     ImVec2(
                         rightSymbolX,
@@ -2815,6 +3213,9 @@ drawableSizeWillChange:(CGSize)size
                 );
             }
 
+            /*
+             * Logo yazısı.
+             */
             if (headerFont) {
 
                 ImGui::PushFont(headerFont);
@@ -3538,7 +3939,12 @@ void ASASECImGuiStart(void)
 
             gMenuVisible = YES;
             gMenuCollapsed = NO;
-            gCategoriesHidden = NO;
+
+            /*
+             * Kategori paneli başlangıçta açık.
+             */
+            gCategoriesVisible = YES;
+            gCategoriesAnimation = 1.0f;
 
             gSelectedPage = 0;
             gPreviousPage = 0;
@@ -3743,6 +4149,15 @@ void ASASECImGuiStop(void)
             gContentDragging = NO;
             gContentTouchCandidate = NO;
             gContentHasMoved = NO;
+
+            /*
+             * Kategori paneli state'ini temizle.
+             */
+            gCategoriesVisible =
+                YES;
+
+            gCategoriesAnimation =
+                1.0f;
         }
     );
 }
