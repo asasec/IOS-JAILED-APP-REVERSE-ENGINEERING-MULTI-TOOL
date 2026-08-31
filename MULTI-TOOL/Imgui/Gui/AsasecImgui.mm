@@ -158,16 +158,25 @@ static const float kSidebarWidth = 145.0f;
 static const float kSidebarAnimationSpeed = 15.0f;
 
 /*
- * Kategori paneli kapalıyken kullanılan layout.
- * Ok üstte, kategori başlığı altta olacak.
+ * Kategori paneli kapalıyken ContentRoot içinde kullanılan layout.
+ *
+ * Ok artık ContentRoot'un dışında ayrı bir alan kullanmaz.
+ *
+ * ContentRoot:
+ *
+ *   [ > ]  Kategori / ASASEC
+ *          ----------------
+ *          Content...
+ *
+ * Ok ve başlık aynı Content alanının içinde tutulur.
  */
-static const float kClosedCategoryArrowY = 66.0f;
-static const float kClosedCategoryArrowWidth = 42.0f;
-static const float kClosedCategoryArrowHeight = 40.0f;
+static const float kClosedCategoryArrowY = 7.0f;
+static const float kClosedCategoryArrowWidth = 34.0f;
+static const float kClosedCategoryArrowHeight = 32.0f;
 
-static const float kClosedCategoryTitleY = 116.0f;
-static const float kClosedCategoryHeaderLineY = 151.0f;
-static const float kClosedCategoryContentStartY = 160.0f;
+static const float kClosedCategoryTitleY = 11.0f;
+static const float kClosedCategoryHeaderLineY = 49.0f;
+static const float kClosedCategoryContentStartY = 58.0f;
 
 static int gSelectedPage = 0;
 static int gPreviousPage = 0;
@@ -179,9 +188,8 @@ static BOOL gContentDragging = NO;
 /*
  * Kategori açma oku için native touch candidate.
  *
- * ImGui ContentRoot aynı bölgede bulunduğundan,
- * sadece ImGui::IsItemClicked() kullanmak bazı
- * touch durumlarında okun tıklamasını kaçırabiliyordu.
+ * Ok artık ContentRoot içerisinde olduğundan native touch
+ * alanı da ContentRoot'un yeni konumuyla aynı hizadadır.
  */
 static BOOL gOpenCategoriesTouchCandidate = NO;
 
@@ -1069,16 +1077,29 @@ static bool ASASECModernButton(const char *label)
         return NO;
 
     /*
-     * Native touch alanı ImGui butonundan biraz daha
-     * geniş tutuluyor. Böylece parmakla dokunmada
-     * okun kaçırılması engelleniyor.
+     * Ok artık ContentRoot'un içinde.
+     *
+     * ContentRoot global başlangıcı:
+     *
+     *     gMenuPosition.y + kHeaderHeight
+     *
+     * Ok local konumu:
+     *
+     *     kClosedCategoryArrowY
+     *
+     * Böylece native touch alanı görsel ok ile
+     * birebir aynı bölgede tutuluyor.
      */
+    float contentRootY =
+        gMenuPosition.y +
+        kHeaderHeight;
+
     float x1 =
         gMenuPosition.x +
-        4.0f;
+        5.0f;
 
     float y1 =
-        gMenuPosition.y +
+        contentRootY +
         kClosedCategoryArrowY -
         4.0f;
 
@@ -1188,11 +1209,8 @@ static bool ASASECModernButton(const char *label)
      * KATEGORİLERİ GERİ AÇMA NATIVE TOUCH
      * =========================================================
      *
-     * Bu kontrol Content touch kontrolünden ÖNCE yapılmalıdır.
-     *
-     * Çünkü kategori paneli kapalıyken ContentRoot bütün
-     * genişliği kaplar ve okun bulunduğu alan ContentRoot
-     * ile geometrik olarak çakışır.
+     * Ok artık ContentRoot içerisinde olsa da Content
+     * scroll kontrolünden ÖNCE yakalanır.
      */
     if ([self pointInsideOpenCategoriesButton:point]) {
 
@@ -1515,10 +1533,6 @@ static bool ASASECModernButton(const char *label)
 
     /*
      * Native kategori açma işlemi.
-     *
-     * touchesBegan'da yakalandıysa burada doğrudan
-     * kategoriler açılır. Böylece ImGui hit-test / Content
-     * çakışması tamamen devre dışı kalır.
      */
     if (gOpenCategoriesTouchCandidate) {
 
@@ -2583,16 +2597,11 @@ drawableSizeWillChange:(CGSize)size
                     animatedSidebarWidth + 1.0f;
 
                 /*
-                 * Kategori paneli kapalıysa üst tarafta
-                 * ok alanı bırakılıyor.
+                 * Kategori paneli kapalıysa artık ContentRoot
+                 * içerisinde özel bir üst alan oluşturulmuyor.
                  *
-                 * Ok:
-                 *   yaklaşık Y = 66..106
-                 *
-                 * Başlık:
-                 *   Y = 116
-                 *
-                 * Böylece başlık ile ok üst üste binmiyor.
+                 * Ok, başlık ve içerik aynı Content alanının
+                 * birbirine çok yakın parçalarıdır.
                  */
                 BOOL categoriesFullyClosed =
                     (!gCategoriesVisible &&
@@ -2652,12 +2661,200 @@ drawableSizeWillChange:(CGSize)size
 
                     /*
                      * -------------------------------------------------
+                     * KATEGORİLERİ GERİ AÇMA OKU
+                     *
+                     * ÖNEMLİ:
+                     * Ok artık ContentRoot'un DIŞINDA değil.
+                     *
+                     * Ayrı bir alan / ayrı bir bölüm / büyük boşluk
+                     * oluşturulmuyor.
+                     *
+                     * Ok ve kategori başlığı aynı satır bölgesinde
+                     * tutuluyor.
+                     * -------------------------------------------------
+                     */
+                    if (categoriesFullyClosed) {
+
+                        ImGui::SetCursorPos(
+                            ImVec2(
+                                7.0f,
+                                kClosedCategoryArrowY
+                            )
+                        );
+
+                        ImGui::PushID(
+                            "ASASEC_OPEN_CATEGORIES"
+                        );
+
+                        ImGui::PushStyleVar(
+                            ImGuiStyleVar_FrameRounding,
+                            9.0f
+                        );
+
+                        ImGui::PushStyleColor(
+                            ImGuiCol_Button,
+                            ImVec4(
+                                0.045f,
+                                0.075f,
+                                0.12f,
+                                0.95f
+                            )
+                        );
+
+                        ImGui::PushStyleColor(
+                            ImGuiCol_ButtonHovered,
+                            ImVec4(
+                                0.10f,
+                                0.17f,
+                                0.27f,
+                                1.0f
+                            )
+                        );
+
+                        ImGui::PushStyleColor(
+                            ImGuiCol_ButtonActive,
+                            ImVec4(
+                                0.13f,
+                                0.25f,
+                                0.40f,
+                                1.0f
+                            )
+                        );
+
+                        ImGui::Button(
+                            "##open_categories",
+                            ImVec2(
+                                kClosedCategoryArrowWidth,
+                                kClosedCategoryArrowHeight
+                            )
+                        );
+
+                        bool openCategoriesPressed =
+                            ImGui::IsItemClicked(
+                                ImGuiMouseButton_Left
+                            );
+
+                        bool openCategoriesHovered =
+                            ImGui::IsItemHovered();
+
+                        ImVec2 openMin =
+                            ImGui::GetItemRectMin();
+
+                        ImVec2 openMax =
+                            ImGui::GetItemRectMax();
+
+                        ImDrawList *openDraw =
+                            ImGui::GetWindowDrawList();
+
+                        if (openDraw) {
+
+                            float centerX =
+                                (openMin.x +
+                                 openMax.x) *
+                                0.5f;
+
+                            float centerY =
+                                (openMin.y +
+                                 openMax.y) *
+                                0.5f;
+
+                            float arrowWidth =
+                                7.0f;
+
+                            float arrowHeight =
+                                5.0f;
+
+                            ImU32 arrowColor =
+                                openCategoriesHovered
+                                ? ASASECColor(
+                                    0.42f,
+                                    0.74f,
+                                    1.0f,
+                                    1.0f
+                                )
+                                : ASASECColor(
+                                    0.78f,
+                                    0.85f,
+                                    0.94f,
+                                    0.96f
+                                );
+
+                            /*
+                             * Sağa bakan ok.
+                             */
+                            openDraw->AddLine(
+                                ImVec2(
+                                    centerX -
+                                    arrowWidth,
+                                    centerY -
+                                    arrowHeight
+                                ),
+                                ImVec2(
+                                    centerX,
+                                    centerY
+                                ),
+                                arrowColor,
+                                2.3f
+                            );
+
+                            openDraw->AddLine(
+                                ImVec2(
+                                    centerX,
+                                    centerY
+                                ),
+                                ImVec2(
+                                    centerX -
+                                    arrowWidth,
+                                    centerY +
+                                    arrowHeight
+                                ),
+                                arrowColor,
+                                2.3f
+                            );
+                        }
+
+                        if (openCategoriesPressed) {
+
+                            gCategoriesVisible =
+                                YES;
+
+                            gOpenCategoriesTouchCandidate =
+                                NO;
+
+                            gContentDragging =
+                                NO;
+
+                            gContentTouchCandidate =
+                                NO;
+
+                            gContentHasMoved =
+                                NO;
+
+                            gPendingContentScrollY =
+                                0.0f;
+
+                            gContentScrollVelocity =
+                                0.0f;
+                        }
+
+                        ImGui::PopStyleColor(3);
+                        ImGui::PopStyleVar();
+                        ImGui::PopID();
+                    }
+
+                    /*
+                     * -------------------------------------------------
                      * Content başlığı
                      * -------------------------------------------------
+                     *
+                     * Kapalı durumda ok ile başlık arasında sadece
+                     * küçük bir yatay boşluk bulunuyor.
                      */
                     ImGui::SetCursorPos(
                         ImVec2(
-                            17.0f,
+                            categoriesFullyClosed
+                            ? 49.0f
+                            : 17.0f,
                             contentTitleY
                         )
                     );
@@ -2690,6 +2887,8 @@ drawableSizeWillChange:(CGSize)size
 
                     /*
                      * Content header çizgisi.
+                     *
+                     * Önceki büyük boşluk kaldırıldı.
                      */
                     ImDrawList *contentDraw =
                         ImGui::GetWindowDrawList();
@@ -2702,12 +2901,14 @@ drawableSizeWillChange:(CGSize)size
                                 animatedSidebarWidth +
                                 16.0f,
                                 windowPos.y +
+                                kHeaderHeight +
                                 contentLineY
                             ),
                             ImVec2(
                                 windowEnd.x -
                                 16.0f,
                                 windowPos.y +
+                                kHeaderHeight +
                                 contentLineY
                             ),
                             IM_COL32(
@@ -2949,181 +3150,11 @@ drawableSizeWillChange:(CGSize)size
              * KATEGORİLERİ GERİ AÇMA BUTONU
              * =========================================================
              *
-             * Buradaki ImGui butonu görsel/UI tarafıdır.
-             * Gerçek touch güvenliği ASASECImGuiView içerisinde
-             * native touch ile de yapılmaktadır.
+             * Eski ayrı dış buton kaldırıldı.
+             *
+             * Ok artık yukarıdaki ContentRoot içerisinde
+             * çiziliyor ve çalışıyor.
              */
-            if (!gCategoriesVisible &&
-                gCategoriesAnimation <= 0.001f &&
-                !gMenuCollapsed &&
-                gMenuVisible) {
-
-                ImGui::SetCursorPos(
-                    ImVec2(
-                        10.0f,
-                        kClosedCategoryArrowY
-                    )
-                );
-
-                ImGui::PushID(
-                    "ASASEC_OPEN_CATEGORIES"
-                );
-
-                ImGui::PushStyleVar(
-                    ImGuiStyleVar_FrameRounding,
-                    11.0f
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_Button,
-                    ImVec4(
-                        0.045f,
-                        0.075f,
-                        0.12f,
-                        0.95f
-                    )
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_ButtonHovered,
-                    ImVec4(
-                        0.10f,
-                        0.17f,
-                        0.27f,
-                        1.0f
-                    )
-                );
-
-                ImGui::PushStyleColor(
-                    ImGuiCol_ButtonActive,
-                    ImVec4(
-                        0.13f,
-                        0.25f,
-                        0.40f,
-                        1.0f
-                    )
-                );
-
-                ImGui::Button(
-                    "##open_categories",
-                    ImVec2(
-                        kClosedCategoryArrowWidth,
-                        kClosedCategoryArrowHeight
-                    )
-                );
-
-                bool openCategoriesPressed =
-                    ImGui::IsItemClicked(
-                        ImGuiMouseButton_Left
-                    );
-
-                bool openCategoriesHovered =
-                    ImGui::IsItemHovered();
-
-                ImVec2 openMin =
-                    ImGui::GetItemRectMin();
-
-                ImVec2 openMax =
-                    ImGui::GetItemRectMax();
-
-                ImDrawList *openDraw =
-                    ImGui::GetForegroundDrawList();
-
-                if (openDraw) {
-
-                    float centerX =
-                        (openMin.x +
-                         openMax.x) *
-                        0.5f;
-
-                    float centerY =
-                        (openMin.y +
-                         openMax.y) *
-                        0.5f;
-
-                    float arrowWidth =
-                        8.0f;
-
-                    float arrowHeight =
-                        6.0f;
-
-                    ImU32 arrowColor =
-                        openCategoriesHovered
-                        ? ASASECColor(
-                            0.42f,
-                            0.74f,
-                            1.0f,
-                            1.0f
-                        )
-                        : ASASECColor(
-                            0.78f,
-                            0.85f,
-                            0.94f,
-                            0.96f
-                        );
-
-                    /*
-                     * Sağa bakan ok.
-                     */
-                    openDraw->AddLine(
-                        ImVec2(
-                            centerX -
-                            arrowWidth,
-                            centerY -
-                            arrowHeight
-                        ),
-                        ImVec2(
-                            centerX,
-                            centerY
-                        ),
-                        arrowColor,
-                        2.4f
-                    );
-
-                    openDraw->AddLine(
-                        ImVec2(
-                            centerX,
-                            centerY
-                        ),
-                        ImVec2(
-                            centerX -
-                            arrowWidth,
-                            centerY +
-                            arrowHeight
-                        ),
-                        arrowColor,
-                        2.4f
-                    );
-                }
-
-                if (openCategoriesPressed) {
-
-                    gCategoriesVisible =
-                        YES;
-
-                    gOpenCategoriesTouchCandidate =
-                        NO;
-
-                    gContentDragging =
-                        NO;
-
-                    gContentTouchCandidate =
-                        NO;
-
-                    gContentHasMoved =
-                        NO;
-
-                    gPendingContentScrollY =
-                        0.0f;
-
-                    gContentScrollVelocity =
-                        0.0f;
-                }
-
-                ImGui::PopStyleColor(3);
-                ImGui::PopStyleVar();
-                ImGui::PopID();
-            }
 
             #pragma mark Header Logo - TOP LAYER
 
