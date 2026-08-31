@@ -134,6 +134,7 @@ static BOOL gMetalBackendInitialized = NO;
 
 static BOOL gMenuVisible = YES;
 static BOOL gMenuCollapsed = NO;
+static BOOL gCategoriesHidden = NO;
 
 static ImVec2 gMenuPosition =
     ImVec2(25.0f, 75.0f);
@@ -1179,8 +1180,7 @@ static bool ASASECModernButton(const char *label)
 
     if (!gMenuCollapsed) {
 
-        const float sidebarWidth =
-            145.0f;
+        const float sidebarWidth = gCategoriesHidden ? 0.0f : 145.0f;
 
         float contentStartX =
             gMenuPosition.x +
@@ -1821,8 +1821,7 @@ drawableSizeWillChange:(CGSize)size
                 win
             );
 
-        const float sidebarWidth =
-            145.0f;
+        const float sidebarWidth = gCategoriesHidden ? 0.0f : 145.0f;
 
         ImVec2 actualWindowSize =
             ImVec2(
@@ -1896,9 +1895,6 @@ drawableSizeWillChange:(CGSize)size
             ImDrawList *draw =
                 ImGui::GetWindowDrawList();
 
-            /*
-             * Ana pencere zemini.
-             */
             if (draw) {
 
                 draw->AddRectFilled(
@@ -1933,9 +1929,6 @@ drawableSizeWillChange:(CGSize)size
                     1.0f
                 );
 
-                /*
-                 * Header arka planı.
-                 */
                 draw->AddRectFilled(
                     ImVec2(
                         windowPos.x + 1.0f,
@@ -1956,9 +1949,6 @@ drawableSizeWillChange:(CGSize)size
                     ImDrawFlags_RoundCornersTop
                 );
 
-                /*
-                 * Header alt çizgisi.
-                 */
                 draw->AddLine(
                     ImVec2(
                         windowPos.x + 18.0f,
@@ -1979,9 +1969,6 @@ drawableSizeWillChange:(CGSize)size
                     1.0f
                 );
 
-                /*
-                 * Header accent.
-                 */
                 draw->AddLine(
                     ImVec2(
                         windowPos.x + 20.0f,
@@ -2002,9 +1989,6 @@ drawableSizeWillChange:(CGSize)size
                     2.0f
                 );
 
-                /*
-                 * Çok hafif üst parlaklık.
-                 */
                 draw->AddLine(
                     ImVec2(
                         windowPos.x + 25.0f,
@@ -2026,135 +2010,10 @@ drawableSizeWillChange:(CGSize)size
 
             #pragma mark Main Content
 
-            /*
-             * Sidebar ve içerik HEADER'DAN SONRA çizilir.
-             *
-             * ÖNCEKİ HATANIN KAYNAĞI:
-             * Sidebar'ın header bölgesine ayrıca
-             * AddRectFilled çizmesi ASASEC UI
-             * yazısının üzerini kapatıyordu.
-             *
-             * Artık sidebar yalnızca header'ın ALTINDAN
-             * başlıyor.
-             */
             if (!gMenuCollapsed &&
                 gMenuVisible) {
 
-                if (draw) {
-
-                    draw->AddRectFilled(
-                        ImVec2(
-                            windowPos.x,
-                            windowPos.y +
-                            kHeaderHeight
-                        ),
-                        ImVec2(
-                            windowPos.x +
-                            sidebarWidth,
-                            windowEnd.y
-                        ),
-                        IM_COL32(
-                            7,
-                            12,
-                            22,
-                            255
-                        ),
-                        0.0f
-                    );
-
-                    draw->AddLine(
-                        ImVec2(
-                            windowPos.x +
-                            sidebarWidth -
-                            1.0f,
-                            windowPos.y +
-                            72.0f
-                        ),
-                        ImVec2(
-                            windowPos.x +
-                            sidebarWidth -
-                            1.0f,
-                            windowEnd.y -
-                            22.0f
-                        ),
-                        IM_COL32(
-                            53,
-                            69,
-                            94,
-                            120
-                        ),
-                        1.0f
-                    );
-
-                    /*
-                     * Sidebar'ın alt köşesini
-                     * yumuşat.
-                     */
-                    draw->AddRectFilled(
-                        ImVec2(
-                            windowPos.x,
-                            windowEnd.y -
-                            22.0f
-                        ),
-                        ImVec2(
-                            windowPos.x +
-                            sidebarWidth,
-                            windowEnd.y
-                        ),
-                        IM_COL32(
-                            7,
-                            12,
-                            22,
-                            255
-                        ),
-                        20.0f,
-                        ImDrawFlags_RoundCornersBottomLeft
-                    );
-
-                    draw->AddLine(
-                        ImVec2(
-                            windowPos.x +
-                            sidebarWidth,
-                            windowPos.y +
-                            68.0f
-                        ),
-                        ImVec2(
-                            windowPos.x +
-                            sidebarWidth,
-                            windowEnd.y -
-                            16.0f
-                        ),
-                        IM_COL32(
-                            34,
-                            44,
-                            61,
-                            220
-                        ),
-                        1.0f
-                    );
-                }
-
-                #pragma mark Categories
-
-                ImGui::SetCursorPos(
-                    ImVec2(
-                        18.0f,
-                        66.0f
-                    )
-                );
-
-                ImGui::TextColored(
-                    ImVec4(
-                        0.30f,
-                        0.36f,
-                        0.45f,
-                        1.0f
-                    ),
-                    "KATEGORİLER"
-                );
-
                 const char *uniqueCategories[32];
-
                 int uniqueCategoryCount =
                     ASASECGetUniqueCategories(
                         uniqueCategories,
@@ -2167,183 +2026,317 @@ drawableSizeWillChange:(CGSize)size
                     gSelectedPage = 0;
                 }
 
-                for (int i = 0;
-                     i < uniqueCategoryCount;
-                     i++) {
-
-                    bool active =
-                        gSelectedPage == i;
-
-                    float itemY =
-                        102.0f +
-                        i * 52.0f;
-
-                    if (active && draw) {
+                if (!gCategoriesHidden) {
+                    if (draw) {
 
                         draw->AddRectFilled(
                             ImVec2(
-                                windowPos.x + 8.0f,
+                                windowPos.x,
                                 windowPos.y +
-                                itemY
+                                kHeaderHeight
                             ),
                             ImVec2(
                                 windowPos.x +
-                                sidebarWidth -
-                                8.0f,
-                                windowPos.y +
-                                itemY +
-                                43.0f
+                                sidebarWidth,
+                                windowEnd.y
                             ),
                             IM_COL32(
-                                16,
-                                43,
-                                76,
+                                7,
+                                12,
+                                22,
                                 255
                             ),
-                            12.0f
+                            0.0f
                         );
 
-                        draw->AddRect(
+                        draw->AddLine(
                             ImVec2(
-                                windowPos.x + 8.5f,
+                                windowPos.x +
+                                sidebarWidth -
+                                1.0f,
                                 windowPos.y +
-                                itemY + 0.5f
+                                72.0f
                             ),
                             ImVec2(
                                 windowPos.x +
                                 sidebarWidth -
-                                8.5f,
-                                windowPos.y +
-                                itemY +
-                                42.5f
+                                1.0f,
+                                windowEnd.y -
+                                22.0f
                             ),
                             IM_COL32(
-                                48,
-                                108,
-                                185,
-                                145
+                                53,
+                                69,
+                                94,
+                                120
                             ),
-                            12.0f,
-                            0,
                             1.0f
                         );
 
-                        draw->AddCircleFilled(
+                        draw->AddRectFilled(
                             ImVec2(
-                                windowPos.x + 18.0f,
-                                windowPos.y +
-                                itemY +
-                                21.5f
+                                windowPos.x,
+                                windowEnd.y -
+                                22.0f
                             ),
-                            3.2f,
+                            ImVec2(
+                                windowPos.x +
+                                sidebarWidth,
+                                windowEnd.y
+                            ),
                             IM_COL32(
-                                80,
-                                160,
-                                255,
+                                7,
+                                12,
+                                22,
                                 255
-                            )
+                            ),
+                            20.0f,
+                            ImDrawFlags_RoundCornersBottomLeft
+                        );
+
+                        draw->AddLine(
+                            ImVec2(
+                                windowPos.x +
+                                sidebarWidth,
+                                windowPos.y +
+                                68.0f
+                            ),
+                            ImVec2(
+                                windowPos.x +
+                                sidebarWidth,
+                                windowEnd.y -
+                                16.0f
+                            ),
+                            IM_COL32(
+                                34,
+                                44,
+                                61,
+                                220
+                            ),
+                            1.0f
                         );
                     }
 
-                    char id[128];
-
-                    snprintf(
-                        id,
-                        sizeof(id),
-                        "%s##page_%d",
-                        uniqueCategories[i],
-                        i
-                    );
+                    #pragma mark Categories
 
                     ImGui::SetCursorPos(
                         ImVec2(
-                            10.0f,
-                            itemY
+                            18.0f,
+                            66.0f
                         )
                     );
 
-                    ImGui::PushID(i);
-
-                    ImGui::PushStyleVar(
-                        ImGuiStyleVar_FrameRounding,
-                        11.0f
-                    );
-
-                    ImGui::PushStyleColor(
-                        ImGuiCol_Button,
+                    // KATEGORİLER başlığı veya Açma Oku
+                    bool arrowClicked = false;
+                    ImVec2 catPos = ImGui::GetCursorScreenPos();
+                    ImGui::TextColored(
                         ImVec4(
-                            0.0f,
-                            0.0f,
-                            0.0f,
-                            0.0f
-                        )
-                    );
-
-                    ImGui::PushStyleColor(
-                        ImGuiCol_ButtonHovered,
-                        ImVec4(
-                            0.10f,
-                            0.17f,
-                            0.27f,
-                            0.85f
-                        )
-                    );
-
-                    ImGui::PushStyleColor(
-                        ImGuiCol_ButtonActive,
-                        ImVec4(
-                            0.13f,
-                            0.24f,
-                            0.39f,
+                            0.30f,
+                            0.36f,
+                            0.45f,
                             1.0f
-                        )
+                        ),
+                        "KATEGORİLER"
                     );
-
-                    ImGui::PushFont(
-                        ImGui::GetIO()
-                            .Fonts
-                            ->Fonts[0]
-                    );
-
-                    ImGui::SetWindowFontScale(
-                        1.06f
-                    );
-
-                    if (ImGui::Button(
-                            id,
-                            ImVec2(
-                                sidebarWidth -
-                                20.0f,
-                                43.0f
-                            ))) {
-
-                        if (gSelectedPage != i) {
-
-                            gSelectedPage = i;
-
-                            gPageAnimation =
-                                0.0f;
-
-                            gPageSlide =
-                                16.0f;
-
-                            gPendingContentScrollY =
-                                0.0f;
-
-                            gContentScrollVelocity =
-                                0.0f;
-                        }
+                    
+                    if (ImGui::IsItemClicked()) {
+                        gCategoriesHidden = false;
                     }
 
-                    ImGui::SetWindowFontScale(
-                        1.0f
+                    for (int i = 0;
+                         i < uniqueCategoryCount;
+                         i++) {
+
+                        bool active =
+                            gSelectedPage == i;
+
+                        float itemY =
+                            102.0f +
+                            i * 52.0f;
+
+                        if (active && draw) {
+
+                            draw->AddRectFilled(
+                                ImVec2(
+                                    windowPos.x + 8.0f,
+                                    windowPos.y +
+                                    itemY
+                                ),
+                                ImVec2(
+                                    windowPos.x +
+                                    sidebarWidth -
+                                    8.0f,
+                                    windowPos.y +
+                                    itemY +
+                                    43.0f
+                                ),
+                                IM_COL32(
+                                    16,
+                                    43,
+                                    76,
+                                    255
+                                ),
+                                12.0f
+                            );
+
+                            draw->AddRect(
+                                ImVec2(
+                                    windowPos.x + 8.5f,
+                                    windowPos.y +
+                                    itemY + 0.5f
+                                ),
+                                ImVec2(
+                                    windowPos.x +
+                                    sidebarWidth -
+                                    8.5f,
+                                    windowPos.y +
+                                    itemY +
+                                    42.5f
+                                ),
+                                IM_COL32(
+                                    48,
+                                    108,
+                                    185,
+                                    145
+                                ),
+                                12.0f,
+                                0,
+                                1.0f
+                            );
+
+                            draw->AddCircleFilled(
+                                ImVec2(
+                                    windowPos.x + 18.0f,
+                                    windowPos.y +
+                                    itemY +
+                                    21.5f
+                                ),
+                                3.2f,
+                                IM_COL32(
+                                    80,
+                                    160,
+                                    255,
+                                    255
+                                )
+                            );
+                        }
+
+                        char id[128];
+
+                        snprintf(
+                            id,
+                            sizeof(id),
+                            "%s##page_%d",
+                            uniqueCategories[i],
+                            i
+                        );
+
+                        ImGui::SetCursorPos(
+                            ImVec2(
+                                10.0f,
+                                itemY
+                            )
+                        );
+
+                        ImGui::PushID(i);
+
+                        ImGui::PushStyleVar(
+                            ImGuiStyleVar_FrameRounding,
+                            11.0f
+                        );
+
+                        ImGui::PushStyleColor(
+                            ImGuiCol_Button,
+                            ImVec4(
+                                0.0f,
+                                0.0f,
+                                0.0f,
+                                0.0f
+                            )
+                        );
+
+                        ImGui::PushStyleColor(
+                            ImGuiCol_ButtonHovered,
+                            ImVec4(
+                                0.10f,
+                                0.17f,
+                                0.27f,
+                                0.85f
+                            )
+                        );
+
+                        ImGui::PushStyleColor(
+                            ImGuiCol_ButtonActive,
+                            ImVec4(
+                                0.13f,
+                                0.24f,
+                                0.39f,
+                                1.0f
+                            )
+                        );
+
+                        ImGui::PushFont(
+                            ImGui::GetIO()
+                                .Fonts
+                                ->Fonts[0]
+                        );
+
+                        ImGui::SetWindowFontScale(
+                            1.06f
+                        );
+
+                        if (ImGui::Button(
+                                id,
+                                ImVec2(
+                                    sidebarWidth -
+                                    20.0f,
+                                    43.0f
+                                ))) {
+
+                            if (gSelectedPage == i) {
+                                gCategoriesHidden = true;
+                            } else {
+                                gSelectedPage = i;
+                                gPageAnimation = 0.0f;
+                                gPageSlide = 16.0f;
+                                gPendingContentScrollY = 0.0f;
+                                gContentScrollVelocity = 0.0f;
+                            }
+                        }
+
+                        ImGui::SetWindowFontScale(
+                            1.0f
+                        );
+
+                        ImGui::PopFont();
+
+                        ImGui::PopStyleColor(3);
+                        ImGui::PopStyleVar();
+                        ImGui::PopID();
+                    }
+                } else {
+                    // Kategoriler gizliyken sol üst köşede sağ yön oku ve KATEGORİLER yazısı
+                    ImGui::SetCursorPos(
+                        ImVec2(
+                            18.0f,
+                            66.0f
+                        )
                     );
-
-                    ImGui::PopFont();
-
-                    ImGui::PopStyleColor(3);
-                    ImGui::PopStyleVar();
-                    ImGui::PopID();
+                    
+                    if (ImGui::InvisibleButton("##show_categories_btn", ImVec2(120.0f, 24.0f))) {
+                        gCategoriesHidden = false;
+                    }
+                    
+                    if (draw) {
+                        ImVec2 minR = ImGui::GetItemRectMin();
+                        ImVec2 maxR = ImGui::GetItemRectMax();
+                        float cy = (minR.y + maxR.y) * 0.5f;
+                        float cx = minR.x + 8.0f;
+                        
+                        // Sağ yön oku çizimi
+                        draw->AddLine(ImVec2(cx, cy - 4.0f), ImVec2(cx + 6.0f, cy), ASASECColor(0.42f, 0.74f, 1.0f, 1.0f), 2.0f);
+                        draw->AddLine(ImVec2(cx + 6.0f, cy), ImVec2(cx, cy + 4.0f), ASASECColor(0.42f, 0.74f, 1.0f, 1.0f), 2.0f);
+                    }
                 }
 
                 #pragma mark Content Root
@@ -2675,13 +2668,6 @@ drawableSizeWillChange:(CGSize)size
 
             #pragma mark Header Logo - TOP LAYER
 
-            /*
-             * HEADER LOGOSU EN SON ÇİZİLİYOR.
-             *
-             * Böylece normal modda sidebar,
-             * content veya başka bir draw call
-             * ASASEC UI yazısının üzerine gelemez.
-             */
             ImDrawList *logoDraw =
                 ImGui::GetForegroundDrawList();
 
@@ -2781,9 +2767,6 @@ drawableSizeWillChange:(CGSize)size
 
             if (logoDraw) {
 
-                /*
-                 * Sol logo glow.
-                 */
                 logoDraw->AddCircleFilled(
                     ImVec2(
                         leftSymbolX,
@@ -2814,9 +2797,6 @@ drawableSizeWillChange:(CGSize)size
                     24
                 );
 
-                /*
-                 * Sağ durum göstergesi.
-                 */
                 logoDraw->AddCircleFilled(
                     ImVec2(
                         rightSymbolX,
@@ -2838,13 +2818,6 @@ drawableSizeWillChange:(CGSize)size
                 );
             }
 
-            /*
-             * Logo yazısı.
-             *
-             * FontScale kullanmak yerine PushFont +
-             * SetWindowFontScale kombinasyonunu kontrollü
-             * şekilde kullanıyoruz.
-             */
             if (headerFont) {
 
                 ImGui::PushFont(headerFont);
@@ -3568,6 +3541,7 @@ void ASASECImGuiStart(void)
 
             gMenuVisible = YES;
             gMenuCollapsed = NO;
+            gCategoriesHidden = NO;
 
             gSelectedPage = 0;
             gPreviousPage = 0;
