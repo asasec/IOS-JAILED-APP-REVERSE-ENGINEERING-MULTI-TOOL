@@ -2,6 +2,7 @@
 #import <dispatch/dispatch.h>
 
 #import "../Imgui/Gui/AsasecImgui.h"
+#import "../GuiAlert/GuiAlert.h"
 #include "../Imgui/imgui.h"
 
 #pragma mark - ASASEC GUI Registration API
