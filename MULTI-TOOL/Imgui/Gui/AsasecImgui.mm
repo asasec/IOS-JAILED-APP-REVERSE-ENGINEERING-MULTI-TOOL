@@ -2126,9 +2126,6 @@ drawableSizeWillChange:(CGSize)size
                         )
                     );
 
-                    // KATEGORİLER başlığı veya Açma Oku
-                    bool arrowClicked = false;
-                    ImVec2 catPos = ImGui::GetCursorScreenPos();
                     ImGui::TextColored(
                         ImVec4(
                             0.30f,
@@ -2138,10 +2135,6 @@ drawableSizeWillChange:(CGSize)size
                         ),
                         "KATEGORİLER"
                     );
-                    
-                    if (ImGui::IsItemClicked()) {
-                        gCategoriesHidden = false;
-                    }
 
                     for (int i = 0;
                          i < uniqueCategoryCount;
@@ -2315,15 +2308,15 @@ drawableSizeWillChange:(CGSize)size
                         ImGui::PopID();
                     }
                 } else {
-                    // Kategoriler gizliyken sol üst köşede sağ yön oku ve KATEGORİLER yazısı
+                    // Kategoriler gizliyken sol üst köşede büyütülmüş sağ yön oku butonu
                     ImGui::SetCursorPos(
                         ImVec2(
-                            18.0f,
-                            66.0f
+                            12.0f,
+                            62.0f
                         )
                     );
                     
-                    if (ImGui::InvisibleButton("##show_categories_btn", ImVec2(120.0f, 24.0f))) {
+                    if (ImGui::InvisibleButton("##show_categories_btn", ImVec2(44.0f, 44.0f))) {
                         gCategoriesHidden = false;
                     }
                     
@@ -2331,11 +2324,11 @@ drawableSizeWillChange:(CGSize)size
                         ImVec2 minR = ImGui::GetItemRectMin();
                         ImVec2 maxR = ImGui::GetItemRectMax();
                         float cy = (minR.y + maxR.y) * 0.5f;
-                        float cx = minR.x + 8.0f;
+                        float cx = minR.x + 14.0f;
                         
-                        // Sağ yön oku çizimi
-                        draw->AddLine(ImVec2(cx, cy - 4.0f), ImVec2(cx + 6.0f, cy), ASASECColor(0.42f, 0.74f, 1.0f, 1.0f), 2.0f);
-                        draw->AddLine(ImVec2(cx + 6.0f, cy), ImVec2(cx, cy + 4.0f), ASASECColor(0.42f, 0.74f, 1.0f, 1.0f), 2.0f);
+                        // Yön okunu biraz daha büyük çizdik (kalınlık ve uzunluk artırıldı)
+                        draw->AddLine(ImVec2(cx, cy - 7.0f), ImVec2(cx + 10.0f, cy), ASASECColor(0.42f, 0.74f, 1.0f, 1.0f), 3.0f);
+                        draw->AddLine(ImVec2(cx + 10.0f, cy), ImVec2(cx, cy + 7.0f), ASASECColor(0.42f, 0.74f, 1.0f, 1.0f), 3.0f);
                     }
                 }
 
@@ -2389,75 +2382,79 @@ drawableSizeWillChange:(CGSize)size
                         ]
                         : "General";
 
-                    ImGui::SetCursorPos(
-                        ImVec2(
-                            17.0f,
-                            13.0f
-                        )
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.94f,
-                            0.97f,
-                            1.0f,
-                            1.0f
-                        ),
-                        "%s",
-                        currentCategoryName
-                    );
-
-                    ImGui::SameLine(
-                        0.0f,
-                        8.0f
-                    );
-
-                    ImGui::TextColored(
-                        ImVec4(
-                            0.30f,
-                            0.37f,
-                            0.47f,
-                            1.0f
-                        ),
-                        "/ ASASEC"
-                    );
-
-                    if (draw) {
-
-                        draw->AddLine(
+                    if (!gCategoriesHidden) {
+                        ImGui::SetCursorPos(
                             ImVec2(
-                                windowPos.x +
-                                sidebarWidth +
-                                16.0f,
-                                windowPos.y +
-                                53.0f
-                            ),
-                            ImVec2(
-                                windowEnd.x -
-                                16.0f,
-                                windowPos.y +
-                                53.0f
-                            ),
-                            IM_COL32(
-                                32,
-                                42,
-                                58,
-                                220
-                            ),
-                            1.0f
+                                17.0f,
+                                13.0f
+                            )
                         );
+
+                        ImGui::TextColored(
+                            ImVec4(
+                                0.94f,
+                                0.97f,
+                                1.0f,
+                                1.0f
+                            ),
+                            "%s",
+                            currentCategoryName
+                        );
+
+                        ImGui::SameLine(
+                            0.0f,
+                            8.0f
+                        );
+
+                        ImGui::TextColored(
+                            ImVec4(
+                                0.30f,
+                                0.37f,
+                                0.47f,
+                                1.0f
+                            ),
+                            "/ ASASEC"
+                        );
+
+                        if (draw) {
+
+                            draw->AddLine(
+                                ImVec2(
+                                    windowPos.x +
+                                    sidebarWidth +
+                                    16.0f,
+                                    windowPos.y +
+                                    53.0f
+                                ),
+                                ImVec2(
+                                    windowEnd.x -
+                                    16.0f,
+                                    windowPos.y +
+                                    53.0f
+                                ),
+                                IM_COL32(
+                                    32,
+                                    42,
+                                    58,
+                                    220
+                                ),
+                                1.0f
+                            );
+                        }
                     }
+
+                    float contentTopOffset = gCategoriesHidden ? 12.0f : 62.0f;
 
                     ImGui::SetCursorPos(
                         ImVec2(
                             0.0f,
-                            62.0f
+                            contentTopOffset
                         )
                     );
 
                     float scrollHeight =
                         contentHeight -
-                        62.0f;
+                        contentTopOffset;
 
                     if (scrollHeight < 100.0f)
                         scrollHeight = 100.0f;
