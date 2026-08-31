@@ -51,10 +51,10 @@ void StartAsasecMenu(void) {
     /*
      * COMBAT
      */
-    ASASECGuiSwitch("Combat", "Switch 1", &gSwitch1Val, Switch1Toggled);
-    ASASECGuiSwitch("Combat", "Switch 2 (God Mode)", &gSwitch2Val, Switch2Toggled);
-    ASASECGuiButton("Combat", "Test Butonu 1", Button1Clicked);
-    ASASECGuiButton("Combat", "Test Butonu 2", Button2Clicked);
+    ASASECGuiSwitch("Switch Deneme", "Switch 1", &gSwitch1Val, Switch1Toggled);
+    ASASECGuiSwitch("Switch Deneme", "Switch 2 (God Mode)", &gSwitch2Val, Switch2Toggled);
+    ASASECGuiButton("Buton Deneme", "Test Butonu 1", Button1Clicked);
+    ASASECGuiButton("Buton Deneme", "Test Butonu 2", Button2Clicked);
 
     // Alert ekranı kaldırıldı, doğrudan ImGui arayüzü başlatılıyor:
     ASASECImGuiStart();
