@@ -157,12 +157,33 @@ static const float kSidebarWidth = 145.0f;
 
 static const float kSidebarAnimationSpeed = 15.0f;
 
+/*
+ * Kategori paneli kapalıyken kullanılan layout.
+ * Ok üstte, kategori başlığı altta olacak.
+ */
+static const float kClosedCategoryArrowY = 66.0f;
+static const float kClosedCategoryArrowWidth = 42.0f;
+static const float kClosedCategoryArrowHeight = 40.0f;
+
+static const float kClosedCategoryTitleY = 116.0f;
+static const float kClosedCategoryHeaderLineY = 151.0f;
+static const float kClosedCategoryContentStartY = 160.0f;
+
 static int gSelectedPage = 0;
 static int gPreviousPage = 0;
 
 static BOOL gDraggingMenu = NO;
 static BOOL gResizingMenu = NO;
 static BOOL gContentDragging = NO;
+
+/*
+ * Kategori açma oku için native touch candidate.
+ *
+ * ImGui ContentRoot aynı bölgede bulunduğundan,
+ * sadece ImGui::IsItemClicked() kullanmak bazı
+ * touch durumlarında okun tıklamasını kaçırabiliyordu.
+ */
+static BOOL gOpenCategoriesTouchCandidate = NO;
 
 static CGPoint gDragStartPoint = CGPointZero;
 static CGPoint gResizeStartPoint = CGPointZero;
@@ -703,13 +724,10 @@ static bool ASASECModernSwitch(const char *label,
             ASASECColor(
                 0.25f +
                 0.22f * progress,
-
                 0.33f +
                 0.31f * progress,
-
                 0.47f +
                 0.39f * progress,
-
                 0.90f
             ),
             switchHeight * 0.5f,
@@ -745,7 +763,6 @@ static bool ASASECModernSwitch(const char *label,
                 ),
                 12.0f +
                 pulse * 3.0f,
-
                 ASASECColor(
                     0.30f,
                     0.68f,
@@ -930,13 +947,10 @@ static bool ASASECModernButton(const char *label)
             ASASECColor(
                 0.12f +
                 pulse * 0.20f,
-
                 0.19f +
                 pulse * 0.35f,
-
                 0.30f +
                 pulse * 0.60f,
-
                 0.90f
             );
 
@@ -994,7 +1008,6 @@ static bool ASASECModernButton(const char *label)
             min.x +
             (available -
              textSize.x) * 0.5f,
-
             min.y +
             (height -
              textSize.y) * 0.5f
@@ -1046,6 +1059,44 @@ static bool ASASECModernButton(const char *label)
         point.y <=
         gMenuPosition.y +
         height;
+}
+
+- (BOOL)pointInsideOpenCategoriesButton:(CGPoint)point
+{
+    if (!gMenuVisible ||
+        gMenuCollapsed ||
+        gCategoriesVisible)
+        return NO;
+
+    /*
+     * Native touch alanı ImGui butonundan biraz daha
+     * geniş tutuluyor. Böylece parmakla dokunmada
+     * okun kaçırılması engelleniyor.
+     */
+    float x1 =
+        gMenuPosition.x +
+        4.0f;
+
+    float y1 =
+        gMenuPosition.y +
+        kClosedCategoryArrowY -
+        4.0f;
+
+    float x2 =
+        x1 +
+        kClosedCategoryArrowWidth +
+        8.0f;
+
+    float y2 =
+        y1 +
+        kClosedCategoryArrowHeight +
+        8.0f;
+
+    return
+        point.x >= x1 &&
+        point.x <= x2 &&
+        point.y >= y1 &&
+        point.y <= y2;
 }
 
 - (UIView *)hitTest:(CGPoint)point
@@ -1131,6 +1182,49 @@ static bool ASASECModernButton(const char *label)
 
     if (!gMenuVisible)
         return;
+
+    /*
+     * =========================================================
+     * KATEGORİLERİ GERİ AÇMA NATIVE TOUCH
+     * =========================================================
+     *
+     * Bu kontrol Content touch kontrolünden ÖNCE yapılmalıdır.
+     *
+     * Çünkü kategori paneli kapalıyken ContentRoot bütün
+     * genişliği kaplar ve okun bulunduğu alan ContentRoot
+     * ile geometrik olarak çakışır.
+     */
+    if ([self pointInsideOpenCategoriesButton:point]) {
+
+        gOpenCategoriesTouchCandidate =
+            YES;
+
+        gDraggingMenu = NO;
+        gResizingMenu = NO;
+        gContentDragging = NO;
+        gContentTouchCandidate = NO;
+        gContentHasMoved = NO;
+
+        gPendingContentScrollY =
+            0.0f;
+
+        gContentScrollVelocity =
+            0.0f;
+
+        ImGuiContext *ctx =
+            ImGui::GetCurrentContext();
+
+        if (ctx) {
+
+            ImGui::GetIO().MouseDown[0] =
+                false;
+        }
+
+        return;
+    }
+
+    gOpenCategoriesTouchCandidate =
+        NO;
 
     if (!gMenuCollapsed) {
 
@@ -1257,6 +1351,18 @@ static bool ASASECModernButton(const char *label)
 
     CGPoint point =
         [touch locationInView:self];
+
+    /*
+     * Açma oku için hareket başladıysa normal Content
+     * scrolling'e kesinlikle aktarılmaz.
+     */
+    if (gOpenCategoriesTouchCandidate) {
+
+        ImGui::GetIO().MouseDown[0] =
+            false;
+
+        return;
+    }
 
     if (gResizingMenu) {
 
@@ -1407,6 +1513,48 @@ static bool ASASECModernButton(const char *label)
 
     [self updateIOWithTouchEvent:event];
 
+    /*
+     * Native kategori açma işlemi.
+     *
+     * touchesBegan'da yakalandıysa burada doğrudan
+     * kategoriler açılır. Böylece ImGui hit-test / Content
+     * çakışması tamamen devre dışı kalır.
+     */
+    if (gOpenCategoriesTouchCandidate) {
+
+        gOpenCategoriesTouchCandidate =
+            NO;
+
+        gCategoriesVisible =
+            YES;
+
+        gContentDragging =
+            NO;
+
+        gContentTouchCandidate =
+            NO;
+
+        gContentHasMoved =
+            NO;
+
+        gPendingContentScrollY =
+            0.0f;
+
+        gContentScrollVelocity =
+            0.0f;
+
+        ImGuiContext *ctx =
+            ImGui::GetCurrentContext();
+
+        if (ctx) {
+
+            ImGui::GetIO().MouseDown[0] =
+                false;
+        }
+
+        return;
+    }
+
     ImGuiContext *ctx =
         ImGui::GetCurrentContext();
 
@@ -1434,6 +1582,9 @@ static bool ASASECModernButton(const char *label)
     if (ctx)
         ImGui::GetIO().MouseDown[0] =
             false;
+
+    gOpenCategoriesTouchCandidate =
+        NO;
 
     gDraggingMenu = NO;
     gResizingMenu = NO;
@@ -1780,12 +1931,6 @@ drawableSizeWillChange:(CGSize)size
     float dt =
         io.DeltaTime;
 
-    /*
-     * Kategori paneli animasyonu.
-     *
-     * Content bu animasyondan bağımsız
-     * olarak her frame çizilecektir.
-     */
     float categoriesTarget =
         gCategoriesVisible
         ? 1.0f
@@ -1808,9 +1953,6 @@ drawableSizeWillChange:(CGSize)size
             categoriesTarget;
     }
 
-    /*
-     * Sayfa animasyonu.
-     */
     if (gSelectedPage !=
         gPreviousPage) {
 
@@ -1840,9 +1982,6 @@ drawableSizeWillChange:(CGSize)size
             dt
         );
 
-    /*
-     * Content inertia.
-     */
     if (!gContentDragging &&
         fabsf(gContentScrollVelocity) >
         0.01f) {
@@ -1872,9 +2011,6 @@ drawableSizeWillChange:(CGSize)size
                 win
             );
 
-        /*
-         * Sidebar'ın gerçek animasyon genişliği.
-         */
         float animatedSidebarWidth =
             ASASECGetAnimatedSidebarWidth();
 
@@ -1942,7 +2078,6 @@ drawableSizeWillChange:(CGSize)size
                 ImVec2(
                     windowPos.x +
                     windowSize.x,
-
                     windowPos.y +
                     windowSize.y
                 );
@@ -1950,9 +2085,6 @@ drawableSizeWillChange:(CGSize)size
             ImDrawList *draw =
                 ImGui::GetWindowDrawList();
 
-            /*
-             * Ana pencere zemini.
-             */
             if (draw) {
 
                 draw->AddRectFilled(
@@ -1987,9 +2119,6 @@ drawableSizeWillChange:(CGSize)size
                     1.0f
                 );
 
-                /*
-                 * Header.
-                 */
                 draw->AddRectFilled(
                     ImVec2(
                         windowPos.x + 1.0f,
@@ -2069,18 +2198,6 @@ drawableSizeWillChange:(CGSize)size
                 );
             }
 
-            /*
-             * =========================================================
-             * KATEGORİ VERİSİ
-             * =========================================================
-             *
-             * ÖNEMLİ:
-             *
-             * uniqueCategories artık kategori çizim bloğunun
-             * içinde değil. Böylece kategori paneli tamamen
-             * kapandığında Content hâlâ mevcut kategori bilgisini
-             * kullanabilir.
-             */
             const char *uniqueCategories[32];
 
             int uniqueCategoryCount =
@@ -2116,9 +2233,6 @@ drawableSizeWillChange:(CGSize)size
              * =========================================================
              * SIDEBAR
              * =========================================================
-             *
-             * Sidebar yalnızca kendi alanında clip edilir.
-             * Content bu clip alanının dışında çizilir.
              */
             if (!gMenuCollapsed &&
                 gMenuVisible) {
@@ -2214,11 +2328,6 @@ drawableSizeWillChange:(CGSize)size
                     }
                 }
 
-                /*
-                 * =====================================================
-                 * CATEGORIES
-                 * =====================================================
-                 */
                 if (gCategoriesAnimation >
                     0.001f) {
 
@@ -2389,14 +2498,13 @@ drawableSizeWillChange:(CGSize)size
                                     43.0f
                                 ))) {
 
-                            /*
-                             * Aynı kategoriye tekrar basılırsa
-                             * sidebar kapanır.
-                             */
                             if (gSelectedPage == i) {
 
                                 gCategoriesVisible =
                                     !gCategoriesVisible;
+
+                                gOpenCategoriesTouchCandidate =
+                                    NO;
 
                                 gPendingContentScrollY =
                                     0.0f;
@@ -2417,6 +2525,9 @@ drawableSizeWillChange:(CGSize)size
 
                                 gCategoriesVisible =
                                     YES;
+
+                                gOpenCategoriesTouchCandidate =
+                                    NO;
 
                                 gPageAnimation =
                                     0.0f;
@@ -2450,14 +2561,6 @@ drawableSizeWillChange:(CGSize)size
                     }
                 }
 
-                /*
-                 * =====================================================
-                 * CLIP KAPAT
-                 * =====================================================
-                 *
-                 * Content başlamadan ÖNCE sidebar clip'i kesinlikle
-                 * kapatılıyor.
-                 */
                 if (draw &&
                     animatedSidebarWidth > 0.01f) {
 
@@ -2469,33 +2572,46 @@ drawableSizeWillChange:(CGSize)size
              * =========================================================
              * CONTENT ROOT
              * =========================================================
-             *
-             * KRİTİK DÜZELTME:
-             *
-             * Bu bölüm artık:
-             *
-             * if (gCategoriesAnimation > 0.001f)
-             *
-             * bloğunun DIŞINDA.
-             *
-             * Dolayısıyla:
-             *
-             * gCategoriesAnimation = 1.0
-             * -> normal Content
-             *
-             * gCategoriesAnimation = 0.5
-             * -> sidebar yarı açık + Content genişlemiş
-             *
-             * gCategoriesAnimation = 0.0
-             * -> sidebar yok + Content tam genişlik
-             *
-             * şeklinde çalışır.
              */
             if (!gMenuCollapsed &&
                 gMenuVisible) {
 
+                /*
+                 * Sidebar tamamen kapalıyken Content tam genişlikte.
+                 */
                 float contentStartX =
                     animatedSidebarWidth + 1.0f;
+
+                /*
+                 * Kategori paneli kapalıysa üst tarafta
+                 * ok alanı bırakılıyor.
+                 *
+                 * Ok:
+                 *   yaklaşık Y = 66..106
+                 *
+                 * Başlık:
+                 *   Y = 116
+                 *
+                 * Böylece başlık ile ok üst üste binmiyor.
+                 */
+                BOOL categoriesFullyClosed =
+                    (!gCategoriesVisible &&
+                     gCategoriesAnimation <= 0.001f);
+
+                float contentTitleY =
+                    categoriesFullyClosed
+                    ? kClosedCategoryTitleY
+                    : 13.0f;
+
+                float contentLineY =
+                    categoriesFullyClosed
+                    ? kClosedCategoryHeaderLineY
+                    : 53.0f;
+
+                float contentScrollableStartY =
+                    categoriesFullyClosed
+                    ? kClosedCategoryContentStartY
+                    : 62.0f;
 
                 ImGui::SetCursorPos(
                     ImVec2(
@@ -2534,10 +2650,15 @@ drawableSizeWillChange:(CGSize)size
 
                 if (contentRootOpened) {
 
+                    /*
+                     * -------------------------------------------------
+                     * Content başlığı
+                     * -------------------------------------------------
+                     */
                     ImGui::SetCursorPos(
                         ImVec2(
                             17.0f,
-                            13.0f
+                            contentTitleY
                         )
                     );
 
@@ -2569,8 +2690,6 @@ drawableSizeWillChange:(CGSize)size
 
                     /*
                      * Content header çizgisi.
-                     *
-                     * Sidebar genişliği ile beraber hareket eder.
                      */
                     ImDrawList *contentDraw =
                         ImGui::GetWindowDrawList();
@@ -2583,13 +2702,13 @@ drawableSizeWillChange:(CGSize)size
                                 animatedSidebarWidth +
                                 16.0f,
                                 windowPos.y +
-                                53.0f
+                                contentLineY
                             ),
                             ImVec2(
                                 windowEnd.x -
                                 16.0f,
                                 windowPos.y +
-                                53.0f
+                                contentLineY
                             ),
                             IM_COL32(
                                 32,
@@ -2601,16 +2720,21 @@ drawableSizeWillChange:(CGSize)size
                         );
                     }
 
+                    /*
+                     * -------------------------------------------------
+                     * Scrollable content
+                     * -------------------------------------------------
+                     */
                     ImGui::SetCursorPos(
                         ImVec2(
                             0.0f,
-                            62.0f
+                            contentScrollableStartY
                         )
                     );
 
                     float scrollHeight =
                         contentHeight -
-                        62.0f;
+                        contentScrollableStartY;
 
                     if (scrollHeight < 100.0f)
                         scrollHeight = 100.0f;
@@ -2681,7 +2805,8 @@ drawableSizeWillChange:(CGSize)size
                         }
 
                         float calculatedHeight =
-                            (featureCount * 60.0f) + 30.0f;
+                            (featureCount * 60.0f) +
+                            30.0f;
 
                         if (calculatedHeight <
                             scrollHeight - 10.0f) {
@@ -2823,6 +2948,10 @@ drawableSizeWillChange:(CGSize)size
              * =========================================================
              * KATEGORİLERİ GERİ AÇMA BUTONU
              * =========================================================
+             *
+             * Buradaki ImGui butonu görsel/UI tarafıdır.
+             * Gerçek touch güvenliği ASASECImGuiView içerisinde
+             * native touch ile de yapılmaktadır.
              */
             if (!gCategoriesVisible &&
                 gCategoriesAnimation <= 0.001f &&
@@ -2832,7 +2961,7 @@ drawableSizeWillChange:(CGSize)size
                 ImGui::SetCursorPos(
                     ImVec2(
                         10.0f,
-                        66.0f
+                        kClosedCategoryArrowY
                     )
                 );
 
@@ -2878,8 +3007,8 @@ drawableSizeWillChange:(CGSize)size
                 ImGui::Button(
                     "##open_categories",
                     ImVec2(
-                        42.0f,
-                        40.0f
+                        kClosedCategoryArrowWidth,
+                        kClosedCategoryArrowHeight
                     )
                 );
 
@@ -2933,6 +3062,9 @@ drawableSizeWillChange:(CGSize)size
                             0.96f
                         );
 
+                    /*
+                     * Sağa bakan ok.
+                     */
                     openDraw->AddLine(
                         ImVec2(
                             centerX -
@@ -2968,6 +3100,9 @@ drawableSizeWillChange:(CGSize)size
 
                     gCategoriesVisible =
                         YES;
+
+                    gOpenCategoriesTouchCandidate =
+                        NO;
 
                     gContentDragging =
                         NO;
@@ -3382,6 +3517,7 @@ drawableSizeWillChange:(CGSize)size
                 gResizingMenu = NO;
                 gContentDragging = NO;
                 gContentTouchCandidate = NO;
+                gOpenCategoriesTouchCandidate = NO;
 
                 gPendingContentScrollY =
                     0.0f;
@@ -3548,6 +3684,7 @@ drawableSizeWillChange:(CGSize)size
                 gResizingMenu = NO;
                 gContentDragging = NO;
                 gContentTouchCandidate = NO;
+                gOpenCategoriesTouchCandidate = NO;
             }
 
             ImGui::PopStyleColor(3);
@@ -3879,6 +4016,9 @@ void ASASECImGuiStart(void)
             gResizingMenu = NO;
             gContentDragging = NO;
 
+            gOpenCategoriesTouchCandidate =
+                NO;
+
             gContentTouchCandidate =
                 NO;
 
@@ -4072,6 +4212,9 @@ void ASASECImGuiStop(void)
             gContentDragging = NO;
             gContentTouchCandidate = NO;
             gContentHasMoved = NO;
+
+            gOpenCategoriesTouchCandidate =
+                NO;
 
             gCategoriesVisible =
                 YES;
