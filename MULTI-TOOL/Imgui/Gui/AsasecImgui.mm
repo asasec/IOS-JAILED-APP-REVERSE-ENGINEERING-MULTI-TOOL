@@ -578,9 +578,9 @@ static bool ASASECModernSwitch(const char *label,
             0.99f
         )
         : ASASECColor(
-            0.050f,
-            0.065f,
-            0.095f,
+            0.045f,
+            0.060f,
+            0.088f,
             0.98f
         );
 
@@ -593,9 +593,9 @@ static bool ASASECModernSwitch(const char *label,
             0.90f
         )
         : ASASECColor(
-            0.11f,
-            0.16f,
-            0.23f,
+            0.10f,
+            0.15f,
+            0.22f,
             0.80f
         );
 
@@ -605,7 +605,7 @@ static bool ASASECModernSwitch(const char *label,
             itemMin,
             itemMax,
             cardBackground,
-            13.0f
+            14.0f
         );
 
         draw->AddRect(
@@ -618,7 +618,7 @@ static bool ASASECModernSwitch(const char *label,
                 itemMax.y - 0.5f
             ),
             cardBorder,
-            13.0f,
+            14.0f,
             0,
             1.0f
         );
@@ -886,9 +886,9 @@ static bool ASASECModernButton(const char *label)
 
     if (draw) {
 
-        float baseR = 0.055f;
-        float baseG = 0.075f;
-        float baseB = 0.115f;
+        float baseR = 0.045f;
+        float baseG = 0.065f;
+        float baseB = 0.105f;
 
         if (hovered) {
 
@@ -927,7 +927,7 @@ static bool ASASECModernButton(const char *label)
             min,
             max,
             background,
-            12.0f
+            13.0f
         );
 
         draw->AddRect(
@@ -940,7 +940,7 @@ static bool ASASECModernButton(const char *label)
                 max.y - 0.5f
             ),
             border,
-            12.0f,
+            13.0f,
             0,
             1.0f
         );
@@ -962,7 +962,7 @@ static bool ASASECModernButton(const char *label)
                     1.0f,
                     pulse * 0.55f
                 ),
-                12.0f,
+                13.0f,
                 0,
                 2.0f
             );
@@ -1115,9 +1115,6 @@ static bool ASASECModernButton(const char *label)
     if (!gMenuVisible)
         return;
 
-    /*
-     * Resize alanı.
-     */
     if (!gMenuCollapsed) {
 
         float resizeX =
@@ -1154,34 +1151,6 @@ static bool ASASECModernButton(const char *label)
         }
     }
 
-    /*
-     * ÖNEMLİ:
-     *
-     * Collapse ve Close burada
-     * artık değiştirilmez.
-     *
-     * Önceden touchesBegan içinde
-     * gMenuCollapsed toggle ediliyor,
-     * ardından ImGui Button da toggle
-     * ediyordu.
-     *
-     * Bu yüzden tek dokunuşta:
-     *
-     * collapsed -> normal
-     * normal -> collapsed
-     *
-     * şeklinde iki kez değişiyordu.
-     *
-     * Artık bu işlemi sadece ImGui
-     * header butonu yönetiyor.
-     */
-
-    /*
-     * Menü sürükleme.
-     *
-     * Sadece header'ın sol
-     * tarafında çalışır.
-     */
     float dragAreaRight =
         gMenuPosition.x +
         gMenuSize.x -
@@ -1208,9 +1177,6 @@ static bool ASASECModernButton(const char *label)
         return;
     }
 
-    /*
-     * Content scroll candidate.
-     */
     if (!gMenuCollapsed) {
 
         const float sidebarWidth =
@@ -1495,7 +1461,7 @@ static void ASASECApplyStyle(void)
         15.0f;
 
     style.FrameRounding =
-        11.0f;
+        12.0f;
 
     style.PopupRounding =
         13.0f;
@@ -1542,17 +1508,17 @@ static void ASASECApplyStyle(void)
 
     c[ImGuiCol_WindowBg] =
         ImVec4(
-            0.018f,
-            0.024f,
-            0.038f,
+            0.016f,
+            0.022f,
+            0.035f,
             0.985f
         );
 
     c[ImGuiCol_ChildBg] =
         ImVec4(
-            0.040f,
-            0.052f,
-            0.074f,
+            0.035f,
+            0.047f,
+            0.068f,
             0.98f
         );
 
@@ -1566,17 +1532,17 @@ static void ASASECApplyStyle(void)
 
     c[ImGuiCol_FrameBg] =
         ImVec4(
-            0.060f,
-            0.076f,
-            0.108f,
+            0.055f,
+            0.071f,
+            0.102f,
             1.0f
         );
 
     c[ImGuiCol_FrameBgHovered] =
         ImVec4(
-            0.095f,
-            0.125f,
-            0.18f,
+            0.090f,
+            0.120f,
+            0.175f,
             1.0f
         );
 
@@ -1590,15 +1556,15 @@ static void ASASECApplyStyle(void)
 
     c[ImGuiCol_Button] =
         ImVec4(
-            0.060f,
-            0.080f,
-            0.12f,
+            0.055f,
+            0.075f,
+            0.115f,
             1.0f
         );
 
     c[ImGuiCol_ButtonHovered] =
         ImVec4(
-            0.105f,
+            0.10f,
             0.15f,
             0.23f,
             1.0f
@@ -1896,9 +1862,9 @@ drawableSizeWillChange:(CGSize)size
         ImGui::PushStyleColor(
             ImGuiCol_WindowBg,
             ImVec4(
-                0.018f,
-                0.024f,
-                0.038f,
+                0.016f,
+                0.022f,
+                0.035f,
                 0.985f
             )
         );
@@ -1930,26 +1896,20 @@ drawableSizeWillChange:(CGSize)size
             ImDrawList *draw =
                 ImGui::GetWindowDrawList();
 
-            /*
-             * Modern Main Background
-             */
             if (draw) {
 
                 draw->AddRectFilled(
                     windowPos,
                     windowEnd,
                     IM_COL32(
-                        6,
-                        9,
-                        16,
-                        252
+                        5,
+                        8,
+                        15,
+                        253
                     ),
                     22.0f
                 );
 
-                /*
-                 * Hafif iç çerçeve.
-                 */
                 draw->AddRect(
                     ImVec2(
                         windowPos.x + 0.5f,
@@ -1960,19 +1920,16 @@ drawableSizeWillChange:(CGSize)size
                         windowEnd.y - 0.5f
                     ),
                     IM_COL32(
-                        48,
-                        64,
-                        88,
-                        210
+                        44,
+                        61,
+                        86,
+                        220
                     ),
                     22.0f,
                     0,
                     1.0f
                 );
 
-                /*
-                 * Header.
-                 */
                 draw->AddRectFilled(
                     ImVec2(
                         windowPos.x + 1.0f,
@@ -1984,18 +1941,15 @@ drawableSizeWillChange:(CGSize)size
                         kHeaderHeight
                     ),
                     IM_COL32(
-                        10,
-                        15,
-                        25,
+                        9,
+                        14,
+                        24,
                         255
                     ),
                     21.0f,
                     ImDrawFlags_RoundCornersTop
                 );
 
-                /*
-                 * Header alt çizgisi.
-                 */
                 draw->AddLine(
                     ImVec2(
                         windowPos.x + 18.0f,
@@ -2008,17 +1962,14 @@ drawableSizeWillChange:(CGSize)size
                         kHeaderHeight
                     ),
                     IM_COL32(
-                        38,
-                        49,
-                        68,
+                        36,
+                        48,
+                        67,
                         220
                     ),
                     1.0f
                 );
 
-                /*
-                 * Header accent.
-                 */
                 draw->AddLine(
                     ImVec2(
                         windowPos.x + 20.0f,
@@ -2026,73 +1977,192 @@ drawableSizeWillChange:(CGSize)size
                         kHeaderHeight - 1.0f
                     ),
                     ImVec2(
-                        windowPos.x + 104.0f,
+                        windowPos.x + 105.0f,
                         windowPos.y +
                         kHeaderHeight - 1.0f
                     ),
                     IM_COL32(
-                        72,
-                        154,
-                        255,
-                        170
+                        64,
+                        145,
+                        245,
+                        180
                     ),
                     2.0f
+                );
+
+                /*
+                 * Header'ın çok hafif üst parlaklığı.
+                 */
+                draw->AddLine(
+                    ImVec2(
+                        windowPos.x + 25.0f,
+                        windowPos.y + 1.0f
+                    ),
+                    ImVec2(
+                        windowEnd.x - 25.0f,
+                        windowPos.y + 1.0f
+                    ),
+                    IM_COL32(
+                        74,
+                        94,
+                        124,
+                        90
+                    ),
+                    1.0f
                 );
             }
 
             #pragma mark Header Logo
 
             /*
-             * ASASEC UI:
+             * ASASEC UI
              *
-             * Hem normal durumda,
-             * hem collapsed durumda
-             * HER ZAMAN çizilir.
+             * Sol sembol
+             *      ↓
+             * ASASEC UI
+             *      ↓
+             * Sağ durum sembolü
              *
-             * Artık içerik alanının içinde
-             * olmadığı için collapse
-             * durumunda kaybolmaz.
+             * Her iki modda da görünür.
+             *
+             * Normal  = yeşil
+             * Collapse = kırmızı
              */
-
-            ImGui::SetCursorPos(
-                ImVec2(
-                    20.0f,
-                    12.0f
-                )
-            );
 
             ImDrawList *logoDraw =
                 ImGui::GetWindowDrawList();
 
+            ImFont *headerFont =
+                ImGui::GetIO().FontDefault;
+
+            if (!headerFont) {
+
+                headerFont =
+                    ImGui::GetIO()
+                    .Fonts
+                    ->Fonts[0];
+            }
+
+            const float headerFontSize =
+                headerFont
+                ? headerFont->FontSize * 1.13f
+                : 17.0f;
+
+            const char *partOne =
+                "ASASEC";
+
+            const char *partTwo =
+                "UI";
+
+            ImVec2 asececSize =
+                ImGui::CalcTextSize(partOne);
+
+            ImVec2 uiSize =
+                ImGui::CalcTextSize(partTwo);
+
+            float titleSpacing =
+                5.0f;
+
+            float titleWidth =
+                (asececSize.x +
+                 uiSize.x +
+                 titleSpacing) *
+                1.13f;
+
+            /*
+             * Header grubunun konumu.
+             */
+            float leftSymbolX =
+                windowPos.x + 27.0f;
+
+            float titleStartX =
+                leftSymbolX +
+                23.0f;
+
+            float rightSymbolX =
+                titleStartX +
+                titleWidth +
+                13.0f;
+
+            /*
+             * Dikey merkez.
+             */
+            float titleY =
+                windowPos.y +
+                (kHeaderHeight -
+                 headerFontSize) *
+                0.5f -
+                1.0f;
+
+            float symbolY =
+                windowPos.y +
+                kHeaderHeight * 0.5f;
+
+            /*
+             * Sağ sembolün rengi:
+             *
+             * Normal      -> Yeşil
+             * Küçültülmüş -> Kırmızı
+             */
+            ImU32 statusColor =
+                gMenuCollapsed
+                ? ASASECColor(
+                    1.0f,
+                    0.24f,
+                    0.28f,
+                    1.0f
+                )
+                : ASASECColor(
+                    0.25f,
+                    0.86f,
+                    0.55f,
+                    1.0f
+                );
+
+            ImU32 statusGlow =
+                gMenuCollapsed
+                ? ASASECColor(
+                    1.0f,
+                    0.18f,
+                    0.22f,
+                    0.18f
+                )
+                : ASASECColor(
+                    0.20f,
+                    0.90f,
+                    0.50f,
+                    0.18f
+                );
+
             if (logoDraw) {
 
                 /*
-                 * Logo glow.
+                 * Sol mavi sembol glow.
                  */
                 logoDraw->AddCircleFilled(
                     ImVec2(
-                        windowPos.x + 27.0f,
-                        windowPos.y + 28.0f
+                        leftSymbolX,
+                        symbolY
                     ),
-                    9.0f,
+                    11.0f,
                     ASASECColor(
                         0.18f,
                         0.55f,
                         1.0f,
-                        0.16f
+                        0.12f
                     ),
                     24
                 );
 
                 /*
-                 * Logo noktası.
+                 * Sol mavi sembol.
                  */
                 logoDraw->AddCircleFilled(
                     ImVec2(
-                        windowPos.x + 27.0f,
-                        windowPos.y + 28.0f
+                        leftSymbolX,
+                        symbolY
                     ),
-                    4.0f,
+                    5.0f,
                     ASASECColor(
                         0.30f,
                         0.68f,
@@ -2101,32 +2171,69 @@ drawableSizeWillChange:(CGSize)size
                     ),
                     24
                 );
+
+                /*
+                 * Sağ durum sembolü glow.
+                 */
+                logoDraw->AddCircleFilled(
+                    ImVec2(
+                        rightSymbolX,
+                        symbolY
+                    ),
+                    8.0f,
+                    statusGlow,
+                    24
+                );
+
+                /*
+                 * Sağ durum sembolü.
+                 */
+                logoDraw->AddCircleFilled(
+                    ImVec2(
+                        rightSymbolX,
+                        symbolY
+                    ),
+                    3.5f,
+                    statusColor,
+                    20
+                );
             }
 
-            ImGui::SetCursorPos(
-                ImVec2(
-                    41.0f,
-                    12.0f
-                )
-            );
+            /*
+             * ASASEC UI yazısı.
+             *
+             * İki sembol arasında.
+             * Dikey olarak header merkezinde.
+             */
+            ImGui::PushFont(headerFont);
 
             ImGui::SetWindowFontScale(
                 1.13f
             );
 
+            ImGui::SetCursorPos(
+                ImVec2(
+                    titleStartX -
+                    windowPos.x,
+                    titleY -
+                    windowPos.y
+                )
+            );
+
             ImGui::TextColored(
                 ImVec4(
-                    0.96f,
-                    0.98f,
+                    0.95f,
+                    0.97f,
                     1.0f,
                     1.0f
                 ),
-                "ASASEC"
+                "%s",
+                partOne
             );
 
             ImGui::SameLine(
                 0.0f,
-                5.0f
+                titleSpacing
             );
 
             ImGui::TextColored(
@@ -2136,34 +2243,15 @@ drawableSizeWillChange:(CGSize)size
                     1.0f,
                     1.0f
                 ),
-                "UI"
+                "%s",
+                partTwo
             );
 
             ImGui::SetWindowFontScale(
                 1.0f
             );
 
-            /*
-             * Küçültülmüş durumda da
-             * küçük durum göstergesi.
-             */
-            if (logoDraw) {
-
-                logoDraw->AddCircleFilled(
-                    ImVec2(
-                        windowPos.x + 124.0f,
-                        windowPos.y + 28.0f
-                    ),
-                    3.0f,
-                    IM_COL32(
-                        70,
-                        220,
-                        150,
-                        220
-                    ),
-                    16
-                );
-            }
+            ImGui::PopFont();
 
             #pragma mark Collapse Button
 
@@ -2184,15 +2272,15 @@ drawableSizeWillChange:(CGSize)size
 
             ImGui::PushStyleVar(
                 ImGuiStyleVar_FrameRounding,
-                11.0f
+                12.0f
             );
 
             ImGui::PushStyleColor(
                 ImGuiCol_Button,
                 ImVec4(
-                    0.055f,
-                    0.085f,
-                    0.135f,
+                    0.045f,
+                    0.075f,
+                    0.12f,
                     1.0f
                 )
             );
@@ -2200,9 +2288,9 @@ drawableSizeWillChange:(CGSize)size
             ImGui::PushStyleColor(
                 ImGuiCol_ButtonHovered,
                 ImVec4(
-                    0.10f,
-                    0.18f,
-                    0.29f,
+                    0.085f,
+                    0.16f,
+                    0.26f,
                     1.0f
                 )
             );
@@ -2210,9 +2298,9 @@ drawableSizeWillChange:(CGSize)size
             ImGui::PushStyleColor(
                 ImGuiCol_ButtonActive,
                 ImVec4(
-                    0.14f,
-                    0.27f,
-                    0.43f,
+                    0.12f,
+                    0.25f,
+                    0.40f,
                     1.0f
                 )
             );
@@ -2275,9 +2363,6 @@ drawableSizeWillChange:(CGSize)size
                         0.95f
                     );
 
-                /*
-                 * Modern arrow.
-                 */
                 if (gMenuCollapsed) {
 
                     headerDraw->AddLine(
@@ -2348,9 +2433,6 @@ drawableSizeWillChange:(CGSize)size
                 }
             }
 
-            /*
-             * SADECE BURADA toggle.
-             */
             if (collapsePressed) {
 
                 gMenuCollapsed =
@@ -2399,15 +2481,15 @@ drawableSizeWillChange:(CGSize)size
 
             ImGui::PushStyleVar(
                 ImGuiStyleVar_FrameRounding,
-                11.0f
+                12.0f
             );
 
             ImGui::PushStyleColor(
                 ImGuiCol_Button,
                 ImVec4(
-                    0.10f,
-                    0.065f,
-                    0.085f,
+                    0.095f,
+                    0.055f,
+                    0.075f,
                     1.0f
                 )
             );
@@ -2415,9 +2497,9 @@ drawableSizeWillChange:(CGSize)size
             ImGui::PushStyleColor(
                 ImGuiCol_ButtonHovered,
                 ImVec4(
-                    0.34f,
-                    0.10f,
-                    0.15f,
+                    0.30f,
+                    0.085f,
+                    0.14f,
                     1.0f
                 )
             );
@@ -2425,8 +2507,8 @@ drawableSizeWillChange:(CGSize)size
             ImGui::PushStyleColor(
                 ImGuiCol_ButtonActive,
                 ImVec4(
-                    0.48f,
-                    0.12f,
+                    0.45f,
+                    0.11f,
                     0.18f,
                     1.0f
                 )
@@ -2554,17 +2636,41 @@ drawableSizeWillChange:(CGSize)size
                             windowEnd.y
                         ),
                         IM_COL32(
-                            8,
-                            13,
-                            23,
+                            7,
+                            12,
+                            22,
                             255
                         ),
                         0.0f
                     );
 
                     /*
-                     * Sidebar top-left.
+                     * Sidebar hafif iç parlaklık.
                      */
+                    draw->AddLine(
+                        ImVec2(
+                            windowPos.x +
+                            sidebarWidth -
+                            1.0f,
+                            windowPos.y +
+                            72.0f
+                        ),
+                        ImVec2(
+                            windowPos.x +
+                            sidebarWidth -
+                            1.0f,
+                            windowEnd.y -
+                            22.0f
+                        ),
+                        IM_COL32(
+                            53,
+                            69,
+                            94,
+                            120
+                        ),
+                        1.0f
+                    );
+
                     draw->AddRectFilled(
                         ImVec2(
                             windowPos.x,
@@ -2577,18 +2683,15 @@ drawableSizeWillChange:(CGSize)size
                             kHeaderHeight
                         ),
                         IM_COL32(
-                            8,
-                            13,
-                            23,
+                            7,
+                            12,
+                            22,
                             255
                         ),
                         17.0f,
                         ImDrawFlags_RoundCornersTopLeft
                     );
 
-                    /*
-                     * Sidebar bottom-left.
-                     */
                     draw->AddRectFilled(
                         ImVec2(
                             windowPos.x,
@@ -2601,18 +2704,15 @@ drawableSizeWillChange:(CGSize)size
                             windowEnd.y
                         ),
                         IM_COL32(
-                            8,
-                            13,
-                            23,
+                            7,
+                            12,
+                            22,
                             255
                         ),
                         20.0f,
                         ImDrawFlags_RoundCornersBottomLeft
                     );
 
-                    /*
-                     * Sidebar separator.
-                     */
                     draw->AddLine(
                         ImVec2(
                             windowPos.x +
@@ -2682,10 +2782,6 @@ drawableSizeWillChange:(CGSize)size
 
                     if (active && draw) {
 
-                        /*
-                         * Active category
-                         * modern background.
-                         */
                         draw->AddRectFilled(
                             ImVec2(
                                 windowPos.x + 8.0f,
@@ -2701,12 +2797,12 @@ drawableSizeWillChange:(CGSize)size
                                 43.0f
                             ),
                             IM_COL32(
-                                18,
-                                47,
-                                82,
+                                16,
+                                43,
+                                76,
                                 255
                             ),
-                            11.0f
+                            12.0f
                         );
 
                         draw->AddRect(
@@ -2724,12 +2820,12 @@ drawableSizeWillChange:(CGSize)size
                                 42.5f
                             ),
                             IM_COL32(
-                                50,
+                                48,
                                 108,
-                                180,
-                                130
+                                185,
+                                145
                             ),
-                            11.0f,
+                            12.0f,
                             0,
                             1.0f
                         );
@@ -2741,7 +2837,7 @@ drawableSizeWillChange:(CGSize)size
                                 itemY +
                                 21.5f
                             ),
-                            3.0f,
+                            3.2f,
                             IM_COL32(
                                 80,
                                 160,
@@ -2902,9 +2998,6 @@ drawableSizeWillChange:(CGSize)size
                         ]
                         : "General";
 
-                    /*
-                     * Content başlığı.
-                     */
                     ImGui::SetCursorPos(
                         ImVec2(
                             17.0f,
