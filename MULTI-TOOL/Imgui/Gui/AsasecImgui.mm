@@ -2012,7 +2012,7 @@ drawableSizeWillChange:(CGSize)size
                 );
             }
 
-            #pragma mark Header Logo
+           #pragma mark Header Logo
 
             /*
              * ASASEC UI
@@ -2043,10 +2043,8 @@ drawableSizeWillChange:(CGSize)size
                     ->Fonts[0];
             }
 
-            const float headerFontSize =
-                headerFont
-                ? headerFont->LegacySize * 1.13f
-                : 17.0f;
+            // Font ölçeğini uygulayıp güncel metin boyutlarını ve satır yüksekliğini alıyoruz
+            ImGui::SetWindowFontScale(1.13f);
 
             const char *partOne =
                 "ASASEC";
@@ -2064,10 +2062,9 @@ drawableSizeWillChange:(CGSize)size
                 5.0f;
 
             float titleWidth =
-                (asececSize.x +
-                 uiSize.x +
-                 titleSpacing) *
-                1.13f;
+                asececSize.x +
+                uiSize.x +
+                titleSpacing;
 
             /*
              * Header grubunun konumu.
@@ -2081,18 +2078,20 @@ drawableSizeWillChange:(CGSize)size
 
             float rightSymbolX =
                 titleStartX +
-                titleWidth +
+                (titleWidth * 1.13f) +
                 13.0f;
 
             /*
-             * Dikey merkez.
+             * Dikey merkez (Ölçekli font yüksekliğine göre tam hizalama).
              */
+            float currentFontHeight =
+                ImGui::GetTextLineHeight();
+
             float titleY =
                 windowPos.y +
                 (kHeaderHeight -
-                 headerFontSize) *
-                0.5f -
-                1.0f;
+                 currentFontHeight) *
+                0.5f;
 
             float symbolY =
                 windowPos.y +
@@ -2207,10 +2206,6 @@ drawableSizeWillChange:(CGSize)size
              */
             ImGui::PushFont(headerFont);
 
-            ImGui::SetWindowFontScale(
-                1.13f
-            );
-
             ImGui::SetCursorPos(
                 ImVec2(
                     titleStartX -
@@ -2233,7 +2228,7 @@ drawableSizeWillChange:(CGSize)size
 
             ImGui::SameLine(
                 0.0f,
-                titleSpacing
+                titleSpacing * 1.13f
             );
 
             ImGui::TextColored(
@@ -2735,6 +2730,7 @@ drawableSizeWillChange:(CGSize)size
                         1.0f
                     );
                 }
+
 
                 #pragma mark Categories
 
