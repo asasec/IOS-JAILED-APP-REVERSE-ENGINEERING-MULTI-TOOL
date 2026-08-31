@@ -2045,7 +2045,7 @@ drawableSizeWillChange:(CGSize)size
 
             const float headerFontSize =
                 headerFont
-                ? headerFont->FontSize * 1.13f
+                ? headerFont->LegacySize * 1.13f
                 : 17.0f;
 
             const char *partOne =
