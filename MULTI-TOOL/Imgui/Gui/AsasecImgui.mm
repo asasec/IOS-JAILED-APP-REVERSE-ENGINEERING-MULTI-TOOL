@@ -1896,6 +1896,9 @@ drawableSizeWillChange:(CGSize)size
             ImDrawList *draw =
                 ImGui::GetWindowDrawList();
 
+            /*
+             * Ana pencere zemini.
+             */
             if (draw) {
 
                 draw->AddRectFilled(
@@ -1930,6 +1933,9 @@ drawableSizeWillChange:(CGSize)size
                     1.0f
                 );
 
+                /*
+                 * Header arka planı.
+                 */
                 draw->AddRectFilled(
                     ImVec2(
                         windowPos.x + 1.0f,
@@ -1950,6 +1956,9 @@ drawableSizeWillChange:(CGSize)size
                     ImDrawFlags_RoundCornersTop
                 );
 
+                /*
+                 * Header alt çizgisi.
+                 */
                 draw->AddLine(
                     ImVec2(
                         windowPos.x + 18.0f,
@@ -1970,6 +1979,9 @@ drawableSizeWillChange:(CGSize)size
                     1.0f
                 );
 
+                /*
+                 * Header accent.
+                 */
                 draw->AddLine(
                     ImVec2(
                         windowPos.x + 20.0f,
@@ -1991,7 +2003,7 @@ drawableSizeWillChange:(CGSize)size
                 );
 
                 /*
-                 * Header'ın çok hafif üst parlaklığı.
+                 * Çok hafif üst parlaklık.
                  */
                 draw->AddLine(
                     ImVec2(
@@ -2012,560 +2024,19 @@ drawableSizeWillChange:(CGSize)size
                 );
             }
 
-           #pragma mark Header Logo
-
-            ImDrawList *logoDraw =
-                ImGui::GetWindowDrawList();
-
-            ImFont *headerFont =
-                ImGui::GetIO().FontDefault;
-
-            if (!headerFont) {
-
-                headerFont =
-                    ImGui::GetIO()
-                    .Fonts
-                    ->Fonts[0];
-            }
-
-            ImGui::SetWindowFontScale(1.13f);
-
-            const char *partOne =
-                "ASASEC";
-
-            const char *partTwo =
-                "UI";
-
-            ImVec2 asececSize =
-                ImGui::CalcTextSize(partOne);
-
-            ImVec2 uiSize =
-                ImGui::CalcTextSize(partTwo);
-
-            float titleSpacing =
-                5.0f;
-
-            float titleWidth =
-                asececSize.x +
-                uiSize.x +
-                titleSpacing;
-
-            float leftSymbolX =
-                windowPos.x + 27.0f;
-
-            float titleStartX =
-                leftSymbolX +
-                23.0f;
-
-            float rightSymbolX =
-                titleStartX +
-                (titleWidth * 1.13f) +
-                13.0f;
-
-            // Dikey hizalama düzeltmesi: Fontun tam dikey merkezlemesi sağlandı
-            float currentFontHeight =
-                ImGui::GetTextLineHeight();
-
-            float titleY =
-                windowPos.y +
-                (kHeaderHeight -
-                 currentFontHeight) *
-                0.5f - 1.5f;
-
-            float symbolY =
-                windowPos.y +
-                kHeaderHeight * 0.5f;
-
-            ImU32 statusColor =
-                gMenuCollapsed
-                ? ASASECColor(
-                    1.0f,
-                    0.24f,
-                    0.28f,
-                    1.0f
-                )
-                : ASASECColor(
-                    0.25f,
-                    0.86f,
-                    0.55f,
-                    1.0f
-                );
-
-            ImU32 statusGlow =
-                gMenuCollapsed
-                ? ASASECColor(
-                    1.0f,
-                    0.18f,
-                    0.22f,
-                    0.18f
-                )
-                : ASASECColor(
-                    0.20f,
-                    0.90f,
-                    0.50f,
-                    0.18f
-                );
-
-            if (logoDraw) {
-
-                logoDraw->AddCircleFilled(
-                    ImVec2(
-                        leftSymbolX,
-                        symbolY
-                    ),
-                    11.0f,
-                    ASASECColor(
-                        0.18f,
-                        0.55f,
-                        1.0f,
-                        0.12f
-                    ),
-                    24
-                );
-
-                logoDraw->AddCircleFilled(
-                    ImVec2(
-                        leftSymbolX,
-                        symbolY
-                    ),
-                    5.0f,
-                    ASASECColor(
-                        0.30f,
-                        0.68f,
-                        1.0f,
-                        1.0f
-                    ),
-                    24
-                );
-
-                logoDraw->AddCircleFilled(
-                    ImVec2(
-                        rightSymbolX,
-                        symbolY
-                    ),
-                    8.0f,
-                    statusGlow,
-                    24
-                );
-
-                logoDraw->AddCircleFilled(
-                    ImVec2(
-                        rightSymbolX,
-                        symbolY
-                    ),
-                    3.5f,
-                    statusColor,
-                    20
-                );
-            }
-
-            ImGui::PushFont(headerFont);
-
-            ImGui::SetCursorPos(
-                ImVec2(
-                    titleStartX -
-                    windowPos.x,
-                    titleY -
-                    windowPos.y
-                )
-            );
-
-            ImGui::TextColored(
-                ImVec4(
-                    0.95f,
-                    0.97f,
-                    1.0f,
-                    1.0f
-                ),
-                "%s",
-                partOne
-            );
-
-            ImGui::SameLine(
-                0.0f,
-                titleSpacing * 1.13f
-            );
-
-            ImGui::TextColored(
-                ImVec4(
-                    0.35f,
-                    0.68f,
-                    1.0f,
-                    1.0f
-                ),
-                "%s",
-                partTwo
-            );
-
-            ImGui::SetWindowFontScale(
-                1.0f
-            );
-
-            ImGui::PopFont();
-
-            #pragma mark Collapse Button
-
-            float collapseButtonX =
-                windowSize.x -
-                104.0f;
-
-            ImGui::SetCursorPos(
-                ImVec2(
-                    collapseButtonX,
-                    10.0f
-                )
-            );
-
-            ImGui::PushID(
-                "ASASEC_COLLAPSE_BUTTON"
-            );
-
-            ImGui::PushStyleVar(
-                ImGuiStyleVar_FrameRounding,
-                12.0f
-            );
-
-            ImGui::PushStyleColor(
-                ImGuiCol_Button,
-                ImVec4(
-                    0.045f,
-                    0.075f,
-                    0.12f,
-                    1.0f
-                )
-            );
-
-            ImGui::PushStyleColor(
-                ImGuiCol_ButtonHovered,
-                ImVec4(
-                    0.085f,
-                    0.16f,
-                    0.26f,
-                    1.0f
-                )
-            );
-
-            ImGui::PushStyleColor(
-                ImGuiCol_ButtonActive,
-                ImVec4(
-                    0.12f,
-                    0.25f,
-                    0.40f,
-                    1.0f
-                )
-            );
-
-            ImGui::Button(
-                "##collapse",
-                ImVec2(
-                    38.0f,
-                    34.0f
-                )
-            );
-
-            bool collapsePressed =
-                ImGui::IsItemClicked(
-                    ImGuiMouseButton_Left
-                );
-
-            bool collapseHovered =
-                ImGui::IsItemHovered();
-
-            ImVec2 arrowMin =
-                ImGui::GetItemRectMin();
-
-            ImVec2 arrowMax =
-                ImGui::GetItemRectMax();
-
-            ImDrawList *headerDraw =
-                ImGui::GetWindowDrawList();
-
-            if (headerDraw) {
-
-                float centerX =
-                    (arrowMin.x +
-                     arrowMax.x) *
-                    0.5f;
-
-                float centerY =
-                    (arrowMin.y +
-                     arrowMax.y) *
-                    0.5f;
-
-                float arrowWidth =
-                    7.0f;
-
-                float arrowHeight =
-                    5.0f;
-
-                ImU32 arrowColor =
-                    collapseHovered
-                    ? ASASECColor(
-                        0.42f,
-                        0.74f,
-                        1.0f,
-                        1.0f
-                    )
-                    : ASASECColor(
-                        0.78f,
-                        0.85f,
-                        0.94f,
-                        0.95f
-                    );
-
-                if (gMenuCollapsed) {
-
-                    headerDraw->AddLine(
-                        ImVec2(
-                            centerX -
-                            arrowWidth,
-                            centerY -
-                            arrowHeight
-                        ),
-                        ImVec2(
-                            centerX,
-                            centerY +
-                            arrowHeight
-                        ),
-                        arrowColor,
-                        2.3f
-                    );
-
-                    headerDraw->AddLine(
-                        ImVec2(
-                            centerX,
-                            centerY +
-                            arrowHeight
-                        ),
-                        ImVec2(
-                            centerX +
-                            arrowWidth,
-                            centerY -
-                            arrowHeight
-                        ),
-                        arrowColor,
-                        2.3f
-                    );
-
-                } else {
-
-                    headerDraw->AddLine(
-                        ImVec2(
-                            centerX -
-                            arrowWidth,
-                            centerY +
-                            arrowHeight
-                        ),
-                        ImVec2(
-                            centerX,
-                            centerY -
-                            arrowHeight
-                        ),
-                        arrowColor,
-                        2.3f
-                    );
-
-                    headerDraw->AddLine(
-                        ImVec2(
-                            centerX,
-                            centerY -
-                            arrowHeight
-                        ),
-                        ImVec2(
-                            centerX +
-                            arrowWidth,
-                            centerY +
-                            arrowHeight
-                        ),
-                        arrowColor,
-                        2.3f
-                    );
-                }
-            }
-
-            if (collapsePressed) {
-
-                gMenuCollapsed =
-                    !gMenuCollapsed;
-
-                gDraggingMenu = NO;
-                gResizingMenu = NO;
-                gContentDragging = NO;
-                gContentTouchCandidate = NO;
-
-                gPendingContentScrollY =
-                    0.0f;
-
-                gContentScrollVelocity =
-                    0.0f;
-
-                UIWindow *window =
-                    view.window;
-
-                if (window)
-                    ASASECClampMenuToScreen(
-                        window
-                    );
-            }
-
-            ImGui::PopStyleColor(3);
-            ImGui::PopStyleVar();
-            ImGui::PopID();
-
-            #pragma mark Close Button
-
-            float closeButtonX =
-                windowSize.x -
-                51.0f;
-
-            ImGui::SetCursorPos(
-                ImVec2(
-                    closeButtonX,
-                    10.0f
-                )
-            );
-
-            ImGui::PushID(
-                "ASASEC_CLOSE_BUTTON"
-            );
-
-            ImGui::PushStyleVar(
-                ImGuiStyleVar_FrameRounding,
-                12.0f
-            );
-
-            ImGui::PushStyleColor(
-                ImGuiCol_Button,
-                ImVec4(
-                    0.095f,
-                    0.055f,
-                    0.075f,
-                    1.0f
-                )
-            );
-
-            ImGui::PushStyleColor(
-                ImGuiCol_ButtonHovered,
-                ImVec4(
-                    0.30f,
-                    0.085f,
-                    0.14f,
-                    1.0f
-                )
-            );
-
-            ImGui::PushStyleColor(
-                ImGuiCol_ButtonActive,
-                ImVec4(
-                    0.45f,
-                    0.11f,
-                    0.18f,
-                    1.0f
-                )
-            );
-
-            ImGui::Button(
-                "##close",
-                ImVec2(
-                    34.0f,
-                    34.0f
-                )
-            );
-
-            bool closePressed =
-                ImGui::IsItemClicked(
-                    ImGuiMouseButton_Left
-                );
-
-            bool closeHovered =
-                ImGui::IsItemHovered();
-
-            ImVec2 closeMin =
-                ImGui::GetItemRectMin();
-
-            ImVec2 closeMax =
-                ImGui::GetItemRectMax();
-
-            ImDrawList *closeDraw =
-                ImGui::GetWindowDrawList();
-
-            if (closeDraw) {
-
-                float cx =
-                    (closeMin.x +
-                     closeMax.x) *
-                    0.5f;
-
-                float cy =
-                    (closeMin.y +
-                     closeMax.y) *
-                    0.5f;
-
-                float size =
-                    6.0f;
-
-                ImU32 closeColor =
-                    closeHovered
-                    ? ASASECColor(
-                        1.0f,
-                        0.45f,
-                        0.52f,
-                        1.0f
-                    )
-                    : ASASECColor(
-                        0.86f,
-                        0.90f,
-                        0.96f,
-                        0.95f
-                    );
-
-                closeDraw->AddLine(
-                    ImVec2(
-                        cx - size,
-                        cy - size
-                    ),
-                    ImVec2(
-                        cx + size,
-                        cy + size
-                    ),
-                    closeColor,
-                    2.2f
-                );
-
-                closeDraw->AddLine(
-                    ImVec2(
-                        cx + size,
-                        cy - size
-                    ),
-                    ImVec2(
-                        cx - size,
-                        cy + size
-                    ),
-                    closeColor,
-                    2.2f
-                );
-            }
-
-            if (closePressed) {
-
-                gMenuVisible =
-                    NO;
-
-                gMenuCollapsed =
-                    NO;
-
-                gDraggingMenu = NO;
-                gResizingMenu = NO;
-                gContentDragging = NO;
-                gContentTouchCandidate = NO;
-            }
-
-            ImGui::PopStyleColor(3);
-            ImGui::PopStyleVar();
-            ImGui::PopID();
-
             #pragma mark Main Content
 
+            /*
+             * Sidebar ve içerik HEADER'DAN SONRA çizilir.
+             *
+             * ÖNCEKİ HATANIN KAYNAĞI:
+             * Sidebar'ın header bölgesine ayrıca
+             * AddRectFilled çizmesi ASASEC UI
+             * yazısının üzerini kapatıyordu.
+             *
+             * Artık sidebar yalnızca header'ın ALTINDAN
+             * başlıyor.
+             */
             if (!gMenuCollapsed &&
                 gMenuVisible) {
 
@@ -2615,27 +2086,10 @@ drawableSizeWillChange:(CGSize)size
                         1.0f
                     );
 
-                    draw->AddRectFilled(
-                        ImVec2(
-                            windowPos.x,
-                            windowPos.y
-                        ),
-                        ImVec2(
-                            windowPos.x +
-                            sidebarWidth,
-                            windowPos.y +
-                            kHeaderHeight
-                        ),
-                        IM_COL32(
-                            7,
-                            12,
-                            22,
-                            255
-                        ),
-                        17.0f,
-                        ImDrawFlags_RoundCornersTopLeft
-                    );
-
+                    /*
+                     * Sidebar'ın alt köşesini
+                     * yumuşat.
+                     */
                     draw->AddRectFilled(
                         ImVec2(
                             windowPos.x,
@@ -3080,7 +2534,6 @@ drawableSizeWillChange:(CGSize)size
                             }
                         }
 
-                        // Her kategoride en altta rahat bir boşluk payı (ekstra 30px) bırakıldı
                         float calculatedHeight =
                             (featureCount * 60.0f) + 30.0f;
 
@@ -3219,6 +2672,590 @@ drawableSizeWillChange:(CGSize)size
 
                 ImGui::EndChild();
             }
+
+            #pragma mark Header Logo - TOP LAYER
+
+            /*
+             * HEADER LOGOSU EN SON ÇİZİLİYOR.
+             *
+             * Böylece normal modda sidebar,
+             * content veya başka bir draw call
+             * ASASEC UI yazısının üzerine gelemez.
+             */
+            ImDrawList *logoDraw =
+                ImGui::GetForegroundDrawList();
+
+            ImFont *headerFont =
+                ImGui::GetIO().FontDefault;
+
+            if (!headerFont) {
+
+                if (ImGui::GetIO().Fonts &&
+                    !ImGui::GetIO().Fonts->Fonts.empty()) {
+
+                    headerFont =
+                        ImGui::GetIO()
+                            .Fonts
+                            ->Fonts[0];
+                }
+            }
+
+            const char *partOne =
+                "ASASEC";
+
+            const char *partTwo =
+                "UI";
+
+            float titleScale =
+                1.13f;
+
+            float titleSpacing =
+                5.0f;
+
+            float leftSymbolX =
+                windowPos.x + 27.0f;
+
+            float titleStartX =
+                leftSymbolX + 23.0f;
+
+            float fontHeight =
+                ImGui::GetTextLineHeight() *
+                titleScale;
+
+            float titleY =
+                windowPos.y +
+                (kHeaderHeight -
+                 fontHeight) *
+                0.5f - 1.0f;
+
+            ImVec2 asececSize =
+                ImGui::CalcTextSize(partOne);
+
+            ImVec2 uiSize =
+                ImGui::CalcTextSize(partTwo);
+
+            float titleWidth =
+                (asececSize.x +
+                 uiSize.x +
+                 titleSpacing) *
+                titleScale;
+
+            float rightSymbolX =
+                titleStartX +
+                titleWidth +
+                13.0f;
+
+            float symbolY =
+                windowPos.y +
+                kHeaderHeight * 0.5f;
+
+            ImU32 statusColor =
+                gMenuCollapsed
+                ? ASASECColor(
+                    1.0f,
+                    0.24f,
+                    0.28f,
+                    1.0f
+                )
+                : ASASECColor(
+                    0.25f,
+                    0.86f,
+                    0.55f,
+                    1.0f
+                );
+
+            ImU32 statusGlow =
+                gMenuCollapsed
+                ? ASASECColor(
+                    1.0f,
+                    0.18f,
+                    0.22f,
+                    0.18f
+                )
+                : ASASECColor(
+                    0.20f,
+                    0.90f,
+                    0.50f,
+                    0.18f
+                );
+
+            if (logoDraw) {
+
+                /*
+                 * Sol logo glow.
+                 */
+                logoDraw->AddCircleFilled(
+                    ImVec2(
+                        leftSymbolX,
+                        symbolY
+                    ),
+                    12.0f,
+                    ASASECColor(
+                        0.18f,
+                        0.55f,
+                        1.0f,
+                        0.10f
+                    ),
+                    24
+                );
+
+                logoDraw->AddCircleFilled(
+                    ImVec2(
+                        leftSymbolX,
+                        symbolY
+                    ),
+                    5.0f,
+                    ASASECColor(
+                        0.30f,
+                        0.68f,
+                        1.0f,
+                        1.0f
+                    ),
+                    24
+                );
+
+                /*
+                 * Sağ durum göstergesi.
+                 */
+                logoDraw->AddCircleFilled(
+                    ImVec2(
+                        rightSymbolX,
+                        symbolY
+                    ),
+                    9.0f,
+                    statusGlow,
+                    24
+                );
+
+                logoDraw->AddCircleFilled(
+                    ImVec2(
+                        rightSymbolX,
+                        symbolY
+                    ),
+                    3.5f,
+                    statusColor,
+                    20
+                );
+            }
+
+            /*
+             * Logo yazısı.
+             *
+             * FontScale kullanmak yerine PushFont +
+             * SetWindowFontScale kombinasyonunu kontrollü
+             * şekilde kullanıyoruz.
+             */
+            if (headerFont) {
+
+                ImGui::PushFont(headerFont);
+
+                ImGui::SetWindowFontScale(
+                    titleScale
+                );
+
+                ImGui::SetCursorPos(
+                    ImVec2(
+                        titleStartX -
+                        windowPos.x,
+                        titleY -
+                        windowPos.y
+                    )
+                );
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.95f,
+                        0.97f,
+                        1.0f,
+                        1.0f
+                    ),
+                    "%s",
+                    partOne
+                );
+
+                ImGui::SameLine(
+                    0.0f,
+                    titleSpacing
+                );
+
+                ImGui::TextColored(
+                    ImVec4(
+                        0.35f,
+                        0.68f,
+                        1.0f,
+                        1.0f
+                    ),
+                    "%s",
+                    partTwo
+                );
+
+                ImGui::SetWindowFontScale(
+                    1.0f
+                );
+
+                ImGui::PopFont();
+            }
+
+            #pragma mark Collapse Button
+
+            float collapseButtonX =
+                windowSize.x -
+                104.0f;
+
+            ImGui::SetCursorPos(
+                ImVec2(
+                    collapseButtonX,
+                    10.0f
+                )
+            );
+
+            ImGui::PushID(
+                "ASASEC_COLLAPSE_BUTTON"
+            );
+
+            ImGui::PushStyleVar(
+                ImGuiStyleVar_FrameRounding,
+                12.0f
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_Button,
+                ImVec4(
+                    0.045f,
+                    0.075f,
+                    0.12f,
+                    1.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_ButtonHovered,
+                ImVec4(
+                    0.085f,
+                    0.16f,
+                    0.26f,
+                    1.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_ButtonActive,
+                ImVec4(
+                    0.12f,
+                    0.25f,
+                    0.40f,
+                    1.0f
+                )
+            );
+
+            ImGui::Button(
+                "##collapse",
+                ImVec2(
+                    38.0f,
+                    34.0f
+                )
+            );
+
+            bool collapsePressed =
+                ImGui::IsItemClicked(
+                    ImGuiMouseButton_Left
+                );
+
+            bool collapseHovered =
+                ImGui::IsItemHovered();
+
+            ImVec2 arrowMin =
+                ImGui::GetItemRectMin();
+
+            ImVec2 arrowMax =
+                ImGui::GetItemRectMax();
+
+            ImDrawList *headerDraw =
+                ImGui::GetForegroundDrawList();
+
+            if (headerDraw) {
+
+                float centerX =
+                    (arrowMin.x +
+                     arrowMax.x) *
+                    0.5f;
+
+                float centerY =
+                    (arrowMin.y +
+                     arrowMax.y) *
+                    0.5f;
+
+                float arrowWidth =
+                    7.0f;
+
+                float arrowHeight =
+                    5.0f;
+
+                ImU32 arrowColor =
+                    collapseHovered
+                    ? ASASECColor(
+                        0.42f,
+                        0.74f,
+                        1.0f,
+                        1.0f
+                    )
+                    : ASASECColor(
+                        0.78f,
+                        0.85f,
+                        0.94f,
+                        0.95f
+                    );
+
+                if (gMenuCollapsed) {
+
+                    headerDraw->AddLine(
+                        ImVec2(
+                            centerX -
+                            arrowWidth,
+                            centerY -
+                            arrowHeight
+                        ),
+                        ImVec2(
+                            centerX,
+                            centerY +
+                            arrowHeight
+                        ),
+                        arrowColor,
+                        2.3f
+                    );
+
+                    headerDraw->AddLine(
+                        ImVec2(
+                            centerX,
+                            centerY +
+                            arrowHeight
+                        ),
+                        ImVec2(
+                            centerX +
+                            arrowWidth,
+                            centerY -
+                            arrowHeight
+                        ),
+                        arrowColor,
+                        2.3f
+                    );
+
+                } else {
+
+                    headerDraw->AddLine(
+                        ImVec2(
+                            centerX -
+                            arrowWidth,
+                            centerY +
+                            arrowHeight
+                        ),
+                        ImVec2(
+                            centerX,
+                            centerY -
+                            arrowHeight
+                        ),
+                        arrowColor,
+                        2.3f
+                    );
+
+                    headerDraw->AddLine(
+                        ImVec2(
+                            centerX,
+                            centerY -
+                            arrowHeight
+                        ),
+                        ImVec2(
+                            centerX +
+                            arrowWidth,
+                            centerY +
+                            arrowHeight
+                        ),
+                        arrowColor,
+                        2.3f
+                    );
+                }
+            }
+
+            if (collapsePressed) {
+
+                gMenuCollapsed =
+                    !gMenuCollapsed;
+
+                gDraggingMenu = NO;
+                gResizingMenu = NO;
+                gContentDragging = NO;
+                gContentTouchCandidate = NO;
+
+                gPendingContentScrollY =
+                    0.0f;
+
+                gContentScrollVelocity =
+                    0.0f;
+
+                UIWindow *window =
+                    view.window;
+
+                if (window)
+                    ASASECClampMenuToScreen(
+                        window
+                    );
+            }
+
+            ImGui::PopStyleColor(3);
+            ImGui::PopStyleVar();
+            ImGui::PopID();
+
+            #pragma mark Close Button
+
+            float closeButtonX =
+                windowSize.x -
+                51.0f;
+
+            ImGui::SetCursorPos(
+                ImVec2(
+                    closeButtonX,
+                    10.0f
+                )
+            );
+
+            ImGui::PushID(
+                "ASASEC_CLOSE_BUTTON"
+            );
+
+            ImGui::PushStyleVar(
+                ImGuiStyleVar_FrameRounding,
+                12.0f
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_Button,
+                ImVec4(
+                    0.095f,
+                    0.055f,
+                    0.075f,
+                    1.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_ButtonHovered,
+                ImVec4(
+                    0.30f,
+                    0.085f,
+                    0.14f,
+                    1.0f
+                )
+            );
+
+            ImGui::PushStyleColor(
+                ImGuiCol_ButtonActive,
+                ImVec4(
+                    0.45f,
+                    0.11f,
+                    0.18f,
+                    1.0f
+                )
+            );
+
+            ImGui::Button(
+                "##close",
+                ImVec2(
+                    34.0f,
+                    34.0f
+                )
+            );
+
+            bool closePressed =
+                ImGui::IsItemClicked(
+                    ImGuiMouseButton_Left
+                );
+
+            bool closeHovered =
+                ImGui::IsItemHovered();
+
+            ImVec2 closeMin =
+                ImGui::GetItemRectMin();
+
+            ImVec2 closeMax =
+                ImGui::GetItemRectMax();
+
+            ImDrawList *closeDraw =
+                ImGui::GetForegroundDrawList();
+
+            if (closeDraw) {
+
+                float cx =
+                    (closeMin.x +
+                     closeMax.x) *
+                    0.5f;
+
+                float cy =
+                    (closeMin.y +
+                     closeMax.y) *
+                    0.5f;
+
+                float size =
+                    6.0f;
+
+                ImU32 closeColor =
+                    closeHovered
+                    ? ASASECColor(
+                        1.0f,
+                        0.45f,
+                        0.52f,
+                        1.0f
+                    )
+                    : ASASECColor(
+                        0.86f,
+                        0.90f,
+                        0.96f,
+                        0.95f
+                    );
+
+                closeDraw->AddLine(
+                    ImVec2(
+                        cx - size,
+                        cy - size
+                    ),
+                    ImVec2(
+                        cx + size,
+                        cy + size
+                    ),
+                    closeColor,
+                    2.2f
+                );
+
+                closeDraw->AddLine(
+                    ImVec2(
+                        cx + size,
+                        cy - size
+                    ),
+                    ImVec2(
+                        cx - size,
+                        cy + size
+                    ),
+                    closeColor,
+                    2.2f
+                );
+            }
+
+            if (closePressed) {
+
+                gMenuVisible =
+                    NO;
+
+                gMenuCollapsed =
+                    NO;
+
+                gDraggingMenu = NO;
+                gResizingMenu = NO;
+                gContentDragging = NO;
+                gContentTouchCandidate = NO;
+            }
+
+            ImGui::PopStyleColor(3);
+            ImGui::PopStyleVar();
+            ImGui::PopID();
 
             #pragma mark Resize Indicator
 
