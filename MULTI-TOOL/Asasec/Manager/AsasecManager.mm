@@ -5,6 +5,29 @@
 #import "../../GuiAlert/GuiAlert.h"
 #include "../../Imgui/imgui.h"
 
+#pragma mark - ASASEC GUI Registration API (Extern Declarations)
+
+extern void ASASECUiSwitch(const char *category,
+                            const char *title,
+                            bool *valuePointer,
+                            void (*callback)(bool));
+
+extern void ASASECUiButton(const char *category,
+                            const char *title,
+                            void (*callback)(void));
+
+extern void ASASECUiSlider(const char *category,
+                            const char *title,
+                            float *valuePointer,
+                            float minVal,
+                            float maxVal,
+                            void (*callback)(float));
+
+extern void ASASECUiCheckbox(const char *category,
+                              const char *title,
+                              bool *valuePointer,
+                              void (*callback)(bool));
+
 #pragma mark - COMBAT & SETTINGS CALLBACKS
 
 static bool gSwitch1Val = false;
@@ -43,7 +66,7 @@ static void SliderChanged(float value) {
 
 static void Button1Clicked(void) {
     [GuiAlert SonUyariYapi:@"Test Butonu 1" devamEt:^{
-        [GuiAlert SaniyeliUyariBaslik:@"Başarılı" mesaj:@"İşlem Onaylandı" saniye:2.0];
+        [GuiAlert SaniyeliUyariBaslik:@"Başارılı" mesaj:@"İşlem Onaylandı" saniye:2.0];
     } iptalEt:^{
         // İptal
     }];
