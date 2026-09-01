@@ -21,14 +21,22 @@ extern void ASASECGuiButton(const char *category,
 static bool gSwitch1Val = false;
 static void Switch1Toggled(bool isOn) {
     if (isOn) {
-        [GuiAlert SaniyeliUyariBaslik:@"Combat" mesaj:@"Switch 1 Aktifleştirildi" saniye:2.0];
+        [GuiAlert SonUyariYapi:@"Test Switch 1" devamEt:^{
+        [GuiAlert SaniyeliUyariBaslik:@"Başarılı" mesaj:@"İşlem Onaylandı" saniye:2.0];
+        } iptalEt:^{
+           // İptal
+        }];
     }
 }
 
 static bool gSwitch2Val = false;
 static void Switch2Toggled(bool isOn) {
     if (isOn) {
-        [GuiAlert BilgiAktarBaslik:@"God Mode" mesaj:@"Ölümsüzlük modu başarıyla açıldı!"];
+        [GuiAlert SonUyariYapi:@"Test Switch 2" devamEt:^{
+        [GuiAlert SaniyeliUyariBaslik:@"Başarılı" mesaj:@"İşlem Onaylandı" saniye:2.0];
+        } iptalEt:^{
+            // İptal
+        }];
     }
 }
 
@@ -41,7 +49,11 @@ static void Button1Clicked(void) {
 }
 
 static void Button2Clicked(void) {
-  
+  [GuiAlert SonUyariYapi:@"Test Butonu 2" devamEt:^{
+        [GuiAlert SaniyeliUyariBaslik:@"Başarılı" mesaj:@"İşlem Onaylandı" saniye:2.0];
+    } iptalEt:^{
+        // İptal
+    }];
 }
 
 #pragma mark - Menüyü Dışarıya Açan Başlatıcı Fonksiyon
