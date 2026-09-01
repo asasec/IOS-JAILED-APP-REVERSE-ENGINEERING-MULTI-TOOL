@@ -170,8 +170,13 @@ static UIWindow *activeWindow = nil;
         if (targetScene) {
             window = [[UIWindow alloc] initWithWindowScene:targetScene];
         } else {
-            // Fallback for safety across compiler versions without using deprecated mainScreen/initWithFrame directly where possible
-            window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+            // Fallback for edge cases: use the first available connected scene's screen bounds if possible
+            UIScene *firstScene = [UIApplication sharedApplication].connectedScenes.anyObject;
+            if ([firstScene isKindOfClass:[UIWindowScene class]]) {
+                window = [[UIWindow alloc] initWithWindowScene:(UIWindowScene *)firstScene];
+            } else {
+                window = [[UIWindow alloc] init];
+            }
         }
         
         window.windowLevel = UIWindowLevelAlert + 1;
