@@ -565,7 +565,7 @@ static bool ASASECModernSwitch(const char *label,
 
     const float switchWidth = 48.0f;
     const float switchHeight = 26.0f;
-    const float rowHeight = 54.0f;
+    const float rowHeight = 64.0f;
 
     float available =
         ImGui::GetContentRegionAvail().x;
@@ -850,7 +850,7 @@ static bool ASASECModernSwitch(const char *label,
     ImGui::SetCursorScreenPos(
         ImVec2(
             itemMin.x + 15.0f,
-            itemMin.y + 8.0f
+            itemMin.y + 13.0f
         )
     );
 
@@ -868,7 +868,7 @@ static bool ASASECModernSwitch(const char *label,
     ImGui::SetCursorScreenPos(
         ImVec2(
             itemMin.x + 15.0f,
-            itemMin.y + 31.0f
+            itemMin.y + 35.0f
         )
     );
 
@@ -905,7 +905,7 @@ static bool ASASECModernButton(const char *label)
     if (available < 150.0f)
         available = 150.0f;
 
-    const float height = 46.0f;
+    const float height = 64.0f;
 
     bool pressed =
         ImGui::InvisibleButton(
@@ -1102,10 +1102,7 @@ static bool ASASECModernSlider(const char *label, float *value, float minVal, fl
     ImVec2 itemMax = ImGui::GetItemRectMax();
     ImDrawList *draw = ImGui::GetWindowDrawList();
 
-    // Animasyon durumu takibi için Statik Yapı
     static float sliderAnimValues[128] = {0};
-    static int sliderIndexCounter = 0;
-    // Basit index eşleme bulucu
     int currentSliderIdx = 0;
     static const char *sliderLabels[128] = {NULL};
     bool foundSlider = false;
@@ -1152,7 +1149,6 @@ static bool ASASECModernSlider(const char *label, float *value, float minVal, fl
     }
 
     if (draw) {
-        // Modern kart arkaplanı ve border
         draw->AddRectFilled(itemMin, itemMax, ASASECColor(0.045f, 0.060f, 0.088f, 0.98f), 14.0f);
         draw->AddRect(ImVec2(itemMin.x + 0.5f, itemMin.y + 0.5f), ImVec2(itemMax.x - 0.5f, itemMax.y - 0.5f), ASASECColor(0.10f, 0.15f, 0.22f, 0.80f), 14.0f, 0, 1.0f);
 
@@ -1162,24 +1158,22 @@ static bool ASASECModernSlider(const char *label, float *value, float minVal, fl
         float barWidth = barEndX - barStartX;
         float fillWidth = barWidth * animatedNormalized;
 
-        // Arka plan rayı ve animasyonlu dolgu rayı
         draw->AddRectFilled(ImVec2(barStartX, barY - 3.5f), ImVec2(barEndX, barY + 3.5f), ASASECColor(0.08f, 0.12f, 0.18f, 1.0f), 3.5f);
         draw->AddRectFilled(ImVec2(barStartX, barY - 3.5f), ImVec2(barStartX + fillWidth, barY + 3.5f), ASASECColor(0.22f, 0.56f, 1.0f, 1.0f), 3.5f);
 
-        // Hareketli Yumuşak Tutamaç (Knob)
         float knobX = barStartX + fillWidth;
         draw->AddCircleFilled(ImVec2(knobX, barY), 9.0f, ASASECColor(0.96f, 0.98f, 1.0f, 1.0f), 24);
         draw->AddCircle(ImVec2(knobX, barY), 9.0f, ASASECColor(0.30f, 0.68f, 1.0f, 0.9f), 24, 1.5f);
     }
 
-    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 15.0f, itemMin.y + 9.0f));
+    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 15.0f, itemMin.y + 13.0f));
     ImGui::TextColored(ImVec4(0.92f, 0.95f, 1.0f, 1.0f), "%s", label);
 
     char valStr[32];
     snprintf(valStr, sizeof(valStr), "%.1f", *value);
     ImVec2 valSize = ImGui::CalcTextSize(valStr);
 
-    ImGui::SetCursorScreenPos(ImVec2(itemMax.x - 15.0f - valSize.x, itemMin.y + 9.0f));
+    ImGui::SetCursorScreenPos(ImVec2(itemMax.x - 15.0f - valSize.x, itemMin.y + 13.0f));
     ImGui::TextColored(ImVec4(0.30f, 0.68f, 1.0f, 1.0f), "%s", valStr);
 
     ImGui::PopID();
@@ -1195,7 +1189,7 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
     float available = ImGui::GetContentRegionAvail().x;
     if (available < 150.0f) available = 150.0f;
 
-    const float rowHeight = 54.0f;
+    const float rowHeight = 64.0f;
 
     bool clicked = ImGui::InvisibleButton("##checkbox", ImVec2(available, rowHeight));
     
@@ -1213,7 +1207,6 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
     float dtCheck = ImGui::GetIO().DeltaTime;
     if (dtCheck <= 0.0f || dtCheck > 0.1f) dtCheck = 1.0f / 60.0f;
 
-    // Checkbox animasyon takibi için güvenli dizi mekanizması
     static float checkAnimProgress[128] = {0};
     static const char *checkLabels[128] = {NULL};
     int currentCheckIdx = 0;
@@ -1241,14 +1234,13 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
         draw->AddRectFilled(itemMin, itemMax, isItemHovered ? ASASECColor(0.075f, 0.100f, 0.145f, 0.99f) : ASASECColor(0.045f, 0.060f, 0.088f, 0.98f), 14.0f);
         draw->AddRect(ImVec2(itemMin.x + 0.5f, itemMin.y + 0.5f), ImVec2(itemMax.x - 0.5f, itemMax.y - 0.5f), ASASECColor(0.10f, 0.15f, 0.22f, 0.80f), 14.0f, 0, 1.0f);
 
-        float boxSize = 22.0f;
+        float boxSize = 24.0f;
         float boxX = itemMax.x - boxSize - 20.0f;
         float boxY = itemMin.y + (rowHeight - boxSize) * 0.5f;
 
         ImVec2 boxMin(boxX, boxY);
         ImVec2 boxMax(boxX + boxSize, boxY + boxSize);
 
-        // Yumuşak renk geçişli animasyonlu arkaplan
         float cR = 0.08f + (0.22f - 0.08f) * animProgressVal;
         float cG = 0.12f + (0.56f - 0.12f) * animProgressVal;
         float cB = 0.18f + (1.00f - 0.18f) * animProgressVal;
@@ -1257,14 +1249,13 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
         draw->AddRect(boxMin, boxMax, ASASECColor(0.30f, 0.68f, 1.0f, 0.9f), 6.0f, 0, 1.0f);
 
         if (animProgressVal > 0.05f) {
-            // Checkmark Alfa (Opaklık) animasyonlu çizimi
             ImU32 markColor = ASASECColor(1.0f, 1.0f, 1.0f, animProgressVal);
-            draw->AddLine(ImVec2(boxMin.x + 5.0f, boxMin.y + 11.0f), ImVec2(boxMin.x + 9.0f, boxMin.y + 15.0f), markColor, 2.0f);
-            draw->AddLine(ImVec2(boxMin.x + 9.0f, boxMin.y + 15.0f), ImVec2(boxMin.x + 17.0f, boxMin.y + 7.0f), markColor, 2.0f);
+            draw->AddLine(ImVec2(boxMin.x + 6.0f, boxMin.y + 12.0f), ImVec2(boxMin.x + 10.0f, boxMin.y + 16.0f), markColor, 2.0f);
+            draw->AddLine(ImVec2(boxMin.x + 10.0f, boxMin.y + 16.0f), ImVec2(boxMin.x + 18.0f, boxMin.y + 8.0f), markColor, 2.0f);
         }
     }
 
-    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 15.0f, itemMin.y + 16.0f));
+    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 15.0f, itemMin.y + 20.0f));
     ImGui::TextColored(ImVec4(0.92f, 0.95f, 1.0f, 1.0f), "%s", label);
 
     ImGui::PopID();
