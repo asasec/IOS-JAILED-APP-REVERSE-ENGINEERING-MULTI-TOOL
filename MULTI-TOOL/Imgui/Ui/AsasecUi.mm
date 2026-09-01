@@ -17,19 +17,28 @@
 
 typedef enum {
     ASASECFeatureTypeSwitch = 0,
-    ASASECFeatureTypeButton = 1
+    ASASECFeatureTypeButton = 1,
+    ASASECFeatureTypeSlider = 2,
+    ASASECFeatureTypeCheckbox = 3
 } ASASECFeatureType;
 
 typedef void (*ASASECSwitchCallback)(bool isOn);
 typedef void (*ASASECButtonCallback)(void);
+typedef void (*ASASECSliderCallback)(float value);
+typedef void (*ASASECCheckboxCallback)(bool isChecked);
 
 typedef struct {
     ASASECFeatureType type;
     const char *category;
     const char *title;
     bool *valuePointer;
+    float *floatValuePointer;
+    float sliderMin;
+    float sliderMax;
     ASASECSwitchCallback switchCallback;
     ASASECButtonCallback buttonCallback;
+    ASASECSliderCallback sliderCallback;
+    ASASECCheckboxCallback checkboxCallback;
 } ASASECCustomFeature;
 
 #define MAX_CUSTOM_FEATURES 128
@@ -37,10 +46,10 @@ typedef struct {
 static ASASECCustomFeature gRegisteredFeatures[MAX_CUSTOM_FEATURES];
 static int gRegisteredFeatureCount = 0;
 
-void ASASECGuiSwitch(const char *category,
-                     const char *title,
-                     bool *valuePointer,
-                     ASASECSwitchCallback callback)
+void ASASECUiSwitch(const char *category,
+                    const char *title,
+                    bool *valuePointer,
+                    ASASECSwitchCallback callback)
 {
     if (!category || !title || !valuePointer)
         return;
@@ -59,9 +68,9 @@ void ASASECGuiSwitch(const char *category,
     feature->buttonCallback = NULL;
 }
 
-void ASASECGuiButton(const char *category,
-                     const char *title,
-                     ASASECButtonCallback callback)
+void ASASECUiButton(const char *category,
+                    const char *title,
+                    ASASECButtonCallback callback)
 {
     if (!category || !title)
         return;
@@ -78,6 +87,52 @@ void ASASECGuiButton(const char *category,
     feature->valuePointer = NULL;
     feature->switchCallback = NULL;
     feature->buttonCallback = callback;
+}
+
+void ASASECUiSlider(const char *category,
+                    const char *title,
+                    float *valuePointer,
+                    float minVal,
+                    float maxVal,
+                    ASASECSliderCallback callback)
+{
+    if (!category || !title || !valuePointer)
+        return;
+
+    if (gRegisteredFeatureCount >= MAX_CUSTOM_FEATURES)
+        return;
+
+    ASASECCustomFeature *feature =
+        &gRegisteredFeatures[gRegisteredFeatureCount++];
+
+    feature->type = ASASECFeatureTypeSlider;
+    feature->category = category;
+    feature->title = title;
+    feature->floatValuePointer = valuePointer;
+    feature->sliderMin = minVal;
+    feature->sliderMax = maxVal;
+    feature->sliderCallback = callback;
+}
+
+void ASASECUiCheckbox(const char *category,
+                      const char *title,
+                      bool *valuePointer,
+                      ASASECCheckboxCallback callback)
+{
+    if (!category || !title || !valuePointer)
+        return;
+
+    if (gRegisteredFeatureCount >= MAX_CUSTOM_FEATURES)
+        return;
+
+    ASASECCustomFeature *feature =
+        &gRegisteredFeatures[gRegisteredFeatureCount++];
+
+    feature->type = ASASECFeatureTypeCheckbox;
+    feature->category = category;
+    feature->title = title;
+    feature->valuePointer = valuePointer;
+    feature->checkboxCallback = callback;
 }
 
 static int ASASECGetUniqueCategories(const char *categoriesOut[],
@@ -157,19 +212,6 @@ static const float kSidebarWidth = 145.0f;
 
 static const float kSidebarAnimationSpeed = 15.0f;
 
-/*
- * Kategori paneli kapalıyken ContentRoot içinde kullanılan layout.
- *
- * Ok artık ContentRoot'un dışında ayrı bir alan kullanmaz.
- *
- * ContentRoot:
- *
- *   [ > ]  Kategori / ASASEC
- *          ----------------
- *          Content...
- *
- * Ok ve başlık aynı Content alanının içinde tutulur.
- */
 static const float kClosedCategoryArrowY = 7.0f;
 static const float kClosedCategoryArrowWidth = 34.0f;
 static const float kClosedCategoryArrowHeight = 32.0f;
@@ -185,12 +227,6 @@ static BOOL gDraggingMenu = NO;
 static BOOL gResizingMenu = NO;
 static BOOL gContentDragging = NO;
 
-/*
- * Kategori açma oku için native touch candidate.
- *
- * Ok artık ContentRoot içerisinde olduğundan native touch
- * alanı da ContentRoot'un yeni konumuyla aynı hizadadır.
- */
 static BOOL gOpenCategoriesTouchCandidate = NO;
 
 static CGPoint gDragStartPoint = CGPointZero;
@@ -214,7 +250,7 @@ static CGPoint gContentLastPoint = CGPointZero;
 static float gPageAnimation = 1.0f;
 static float gPageSlide = 0.0f;
 
-#pragma mark - Button Pulse
+#pragma mark - Animations Structures
 
 typedef struct {
     const char *label;
@@ -258,8 +294,6 @@ ASASECGetButtonAnimation(const char *label)
 
     return &gButtonAnimations[index];
 }
-
-#pragma mark - Switch Animation
 
 typedef struct {
     const char *label;
@@ -519,7 +553,7 @@ static void ASASECClampMenuToScreen(UIWindow *window)
         );
 }
 
-#pragma mark - Modern Switch
+#pragma mark - Modern Switch (Yüksek Dokunma Eşiği ile)
 
 static bool ASASECModernSwitch(const char *label,
                                bool *value)
@@ -539,6 +573,7 @@ static bool ASASECModernSwitch(const char *label,
     if (available < 150.0f)
         available = 150.0f;
 
+    // Hafif dokunmaları filtrelemek ve yanlışlıkla basmayı zorlaştırmak için özel eşik kontrolü ekledik
     bool clicked =
         ImGui::InvisibleButton(
             "##switch",
@@ -547,6 +582,13 @@ static bool ASASECModernSwitch(const char *label,
                 rowHeight
             )
         );
+
+    // Eşik kontrolü: Sadece tıklama süresi/basılı tutma kriteri netleştiğinde tetiklenir
+    if (clicked && !ImGui::IsMouseDragging(0, 8.0f)) {
+        *value = !(*value);
+    } else {
+        clicked = false;
+    }
 
     ImVec2 itemMin =
         ImGui::GetItemRectMin();
@@ -560,12 +602,8 @@ static bool ASASECModernSwitch(const char *label,
     ASASECSwitchAnimation *animation =
         ASASECGetSwitchAnimationData(label);
 
-    if (clicked) {
-
-        *value = !(*value);
-
-        if (animation)
-            animation->pulse = 1.0f;
+    if (clicked && animation) {
+        animation->pulse = 1.0f;
     }
 
     bool hovered =
@@ -880,6 +918,11 @@ static bool ASASECModernButton(const char *label)
             )
         );
 
+    // Yanlışlıkla tetiklenmeyi zorlaştırmak için sürükleme kontrolü ekledik
+    if (pressed && ImGui::IsMouseDragging(0, 10.0f)) {
+        pressed = false;
+    }
+
     ImVec2 min =
         ImGui::GetItemRectMin();
 
@@ -1041,6 +1084,145 @@ static bool ASASECModernButton(const char *label)
     return pressed;
 }
 
+#pragma mark - Yeni Modern Bileşenler (Slider, Checkbox, Input, Segment)
+
+static bool ASASECModernSlider(const char *label, float *value, float minVal, float maxVal)
+{
+    if (!label || !value) return false;
+
+    ImGui::PushID(label);
+
+    float available = ImGui::GetContentRegionAvail().x;
+    if (available < 150.0f) available = 150.0f;
+
+    const float rowHeight = 64.0f;
+    bool modified = false;
+
+    // Alanın tamamını dokunulabilir yapıyoruz ancak yanlışlıkla kaydırmayı zorlaştırmak için eşik uygulandı
+    ImGui::InvisibleButton("##slider_area", ImVec2(available, rowHeight));
+    bool hovered = ImGui::IsItemHovered();
+    bool active = ImGui::IsItemActive();
+
+    ImVec2 itemMin = ImGui::GetItemRectMin();
+    ImVec2 itemMax = ImGui::GetItemRectMax();
+    ImDrawList *draw = ImGui::GetWindowDrawList();
+
+    // Dokunma kaydırma eşiği (Hafifçe dokunup kaydırmada hemen oynamaz, güçlü hareket ister)
+    if (active) {
+        ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
+        if (fabsf(mouseDelta.x) > 0.5f || ImGui::IsMouseDragging(0, 4.0f)) {
+            float sliderWidth = available - 30.0f;
+            float currentMouseX = ImGui::GetIO().MousePos.x;
+            float barStartX = itemMin.x + 15.0f;
+            
+            float ratio = (currentMouseX - barStartX) / sliderWidth;
+            ratio = ASASECClampFloat(ratio, 0.0f, 1.0f);
+            
+            float newValue = minVal + ratio * (maxVal - minVal);
+            if (*value != newValue) {
+                *value = newValue;
+                modified = true;
+            }
+        }
+    }
+
+    float normalizedValue = (*value - minVal) / (maxVal - minVal);
+    normalizedValue = ASASECClampFloat(normalizedValue, 0.0f, 1.0f);
+
+    if (draw) {
+        // Arka plan kartı
+        draw->AddRectFilled(itemMin, itemMax, ASASECColor(0.045f, 0.060f, 0.088f, 0.98f), 14.0f);
+        draw->AddRect(ImVec2(itemMin.x + 0.5f, itemMin.y + 0.5f), ImVec2(itemMax.x - 0.5f, itemMax.y - 0.5f), ASASECColor(0.10f, 0.15f, 0.22f, 0.80f), 14.0f, 0, 1.0f);
+
+        // Slider Çubuğu Konumu
+        float barY = itemMin.y + 44.0f;
+        float barStartX = itemMin.x + 15.0f;
+        float barEndX = itemMax.x - 15.0f;
+        float barWidth = barEndX - barStartX;
+        float fillWidth = barWidth * normalizedValue;
+
+        // Arka plan rayı
+        draw->AddRectFilled(ImVec2(barStartX, barY - 3.0f), ImVec2(barEndX, barY + 3.0f), ASASECColor(0.08f, 0.12f, 0.18f, 1.0f), 3.0f);
+        // Dolgu rayı
+        draw->AddRectFilled(ImVec2(barStartX, barY - 3.0f), ImVec2(barStartX + fillWidth, barY + 3.0f), ASASECColor(0.22f, 0.56f, 1.0f, 1.0f), 3.0f);
+
+        // Tutamaç (Knob)
+        float knobX = barStartX + fillWidth;
+        draw->AddCircleFilled(ImVec2(knobX, barY), 8.0f, ASASECColor(0.96f, 0.98f, 1.0f, 1.0f), 24);
+    }
+
+    // Başlık ve Değer Metni
+    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 15.0f, itemMin.y + 9.0f));
+    ImGui::TextColored(ImVec4(0.92f, 0.95f, 1.0f, 1.0f), "%s", label);
+
+    char valStr[32];
+    snprintf(valStr, sizeof(valStr), "%.1f", *value);
+    ImVec2 valSize = ImGui::CalcTextSize(valStr);
+
+    ImGui::SetCursorScreenPos(ImVec2(itemMax.x - 15.0f - valSize.x, itemMin.y + 9.0f));
+    ImGui::TextColored(ImVec4(0.30f, 0.68f, 1.0f, 1.0f), "%s", valStr);
+
+    ImGui::PopID();
+    return modified;
+}
+
+static bool ASASECModernCheckbox(const char *label, bool *value)
+{
+    if (!label || !value) return false;
+
+    ImGui::PushID(label);
+
+    float available = ImGui::GetContentRegionAvail().x;
+    if (available < 150.0f) available = 150.0f;
+
+    const float rowHeight = 54.0f;
+
+    bool clicked = ImGui::InvisibleButton("##checkbox", ImVec2(available, rowHeight));
+    
+    // Yüksek dokunma eşiği (yanlışlıkla temasta tetiklenmez)
+    if (clicked && !ImGui::IsMouseDragging(0, 8.0f)) {
+        *value = !(*value);
+    } else {
+        clicked = false;
+    }
+
+    ImVec2 itemMin = ImGui::GetItemRectMin();
+    ImVec2 itemMax = ImGui::GetItemRectMax();
+    ImDrawList *draw = ImGui::GetWindowDrawList();
+    bool hovered = ImGui::IsItemHovered();
+
+    float dt = ImGui::GetIO().DeltaTime;
+    static float animProgress[128] = {0}; // Basit animasyon takibi
+    
+    if (draw) {
+        draw->AddRectFilled(itemMin, itemMax, hovered ? ASASECColor(0.075f, 0.100f, 0.145f, 0.99f) : ASASECColor(0.045f, 0.060f, 0.088f, 0.98f), 14.0f);
+        draw->AddRect(ImVec2(itemMin.x + 0.5f, itemMin.y + 0.5f), ImVec2(itemMax.x - 0.5f, itemMax.y - 0.5f), ASASECColor(0.10f, 0.15f, 0.22f, 0.80f), 14.0f, 0, 1.0f);
+
+        // Checkbox kutusu sağ tarafta
+        float boxSize = 22.0f;
+        float boxX = itemMax.x - boxSize - 20.0f;
+        float boxY = itemMin.y + (rowHeight - boxSize) * 0.5f;
+
+        ImVec2 boxMin(boxX, boxY);
+        ImVec2 boxMax(boxX + boxSize, boxY + boxSize);
+
+        draw->AddRectFilled(boxMin, boxMax, *value ? ASASECColor(0.22f, 0.56f, 1.0f, 1.0f) : ASASECColor(0.08f, 0.12f, 0.18f, 1.0f), 6.0f);
+        draw->AddRect(boxMin, boxMax, ASASECColor(0.30f, 0.68f, 1.0f, 0.9f), 6.0f, 0, 1.0f);
+
+        if (*value) {
+            // Onay işareti (Checkmark) çizgileri
+            draw->AddLine(ImVec2(boxMin.x + 5.0f, boxMin.y + 11.0f), ImVec2(boxMin.x + 9.0f, boxMin.y + 15.0f), ASASECColor(1.0f, 1.0f, 1.0f, 1.0f), 2.0f);
+            draw->AddLine(ImVec2(boxMin.x + 9.0f, boxMin.y + 15.0f), ImVec2(boxMin.x + 17.0f, boxMin.y + 7.0f), ASASECColor(1.0f, 1.0f, 1.0f, 1.0f), 2.0f);
+        }
+    }
+
+    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 15.0f, itemMin.y + 16.0f));
+    ImGui::TextColored(ImVec4(0.92f, 0.95f, 1.0f, 1.0f), "%s", label);
+
+    ImGui::PopID();
+    return clicked;
+}
+
 #pragma mark - ImGui View
 
 @interface ASASECImGuiView : MTKView
@@ -1076,20 +1258,6 @@ static bool ASASECModernButton(const char *label)
         gCategoriesVisible)
         return NO;
 
-    /*
-     * Ok artık ContentRoot'un içinde.
-     *
-     * ContentRoot global başlangıcı:
-     *
-     *     gMenuPosition.y + kHeaderHeight
-     *
-     * Ok local konumu:
-     *
-     *     kClosedCategoryArrowY
-     *
-     * Böylece native touch alanı görsel ok ile
-     * birebir aynı bölgede tutuluyor.
-     */
     float contentRootY =
         gMenuPosition.y +
         kHeaderHeight;
@@ -1204,14 +1372,6 @@ static bool ASASECModernButton(const char *label)
     if (!gMenuVisible)
         return;
 
-    /*
-     * =========================================================
-     * KATEGORİLERİ GERİ AÇMA NATIVE TOUCH
-     * =========================================================
-     *
-     * Ok artık ContentRoot içerisinde olsa da Content
-     * scroll kontrolünden ÖNCE yakalanır.
-     */
     if ([self pointInsideOpenCategoriesButton:point]) {
 
         gOpenCategoriesTouchCandidate =
@@ -1370,10 +1530,6 @@ static bool ASASECModernButton(const char *label)
     CGPoint point =
         [touch locationInView:self];
 
-    /*
-     * Açma oku için hareket başladıysa normal Content
-     * scrolling'e kesinlikle aktarılmaz.
-     */
     if (gOpenCategoriesTouchCandidate) {
 
         ImGui::GetIO().MouseDown[0] =
@@ -1491,9 +1647,10 @@ static bool ASASECModernButton(const char *label)
             point.y -
             gContentStartPoint.y;
 
+        // Content kaydırma hassasiyeti ve eşiği zorlaştırıldı (12 piksel hareket gerek)
         if (!gContentDragging &&
-            (fabsf(moveX) > 7.0f ||
-             fabsf(moveY) > 7.0f)) {
+            (fabsf(moveX) > 12.0f ||
+             fabsf(moveY) > 12.0f)) {
 
             gContentDragging =
                 YES;
@@ -1531,9 +1688,6 @@ static bool ASASECModernButton(const char *label)
 
     [self updateIOWithTouchEvent:event];
 
-    /*
-     * Native kategori açma işlemi.
-     */
     if (gOpenCategoriesTouchCandidate) {
 
         gOpenCategoriesTouchCandidate =
@@ -2243,11 +2397,6 @@ drawableSizeWillChange:(CGSize)size
                 ]
                 : "General";
 
-            /*
-             * =========================================================
-             * SIDEBAR
-             * =========================================================
-             */
             if (!gMenuCollapsed &&
                 gMenuVisible) {
 
@@ -2582,27 +2731,12 @@ drawableSizeWillChange:(CGSize)size
                 }
             }
 
-            /*
-             * =========================================================
-             * CONTENT ROOT
-             * =========================================================
-             */
             if (!gMenuCollapsed &&
                 gMenuVisible) {
 
-                /*
-                 * Sidebar tamamen kapalıyken Content tam genişlikte.
-                 */
                 float contentStartX =
                     animatedSidebarWidth + 1.0f;
 
-                /*
-                 * Kategori paneli kapalıysa artık ContentRoot
-                 * içerisinde özel bir üst alan oluşturulmuyor.
-                 *
-                 * Ok, başlık ve içerik aynı Content alanının
-                 * birbirine çok yakın parçalarıdır.
-                 */
                 BOOL categoriesFullyClosed =
                     (!gCategoriesVisible &&
                      gCategoriesAnimation <= 0.001f);
@@ -2659,20 +2793,6 @@ drawableSizeWillChange:(CGSize)size
 
                 if (contentRootOpened) {
 
-                    /*
-                     * -------------------------------------------------
-                     * KATEGORİLERİ GERİ AÇMA OKU
-                     *
-                     * ÖNEMLİ:
-                     * Ok artık ContentRoot'un DIŞINDA değil.
-                     *
-                     * Ayrı bir alan / ayrı bir bölüm / büyük boşluk
-                     * oluşturulmuyor.
-                     *
-                     * Ok ve kategori başlığı aynı satır bölgesinde
-                     * tutuluyor.
-                     * -------------------------------------------------
-                     */
                     if (categoriesFullyClosed) {
 
                         ImGui::SetCursorPos(
@@ -2779,9 +2899,6 @@ drawableSizeWillChange:(CGSize)size
                                     0.96f
                                 );
 
-                            /*
-                             * Sağa bakan ok.
-                             */
                             openDraw->AddLine(
                                 ImVec2(
                                     centerX -
@@ -2842,14 +2959,6 @@ drawableSizeWillChange:(CGSize)size
                         ImGui::PopID();
                     }
 
-                    /*
-                     * -------------------------------------------------
-                     * Content başlığı
-                     * -------------------------------------------------
-                     *
-                     * Kapalı durumda ok ile başlık arasında sadece
-                     * küçük bir yatay boşluk bulunuyor.
-                     */
                     ImGui::SetCursorPos(
                         ImVec2(
                             categoriesFullyClosed
@@ -2885,11 +2994,6 @@ drawableSizeWillChange:(CGSize)size
                         "/ ASASEC"
                     );
 
-                    /*
-                     * Content header çizgisi.
-                     *
-                     * Önceki büyük boşluk kaldırıldı.
-                     */
                     ImDrawList *contentDraw =
                         ImGui::GetWindowDrawList();
 
@@ -2921,11 +3025,6 @@ drawableSizeWillChange:(CGSize)size
                         );
                     }
 
-                    /*
-                     * -------------------------------------------------
-                     * Scrollable content
-                     * -------------------------------------------------
-                     */
                     ImGui::SetCursorPos(
                         ImVec2(
                             0.0f,
@@ -3006,8 +3105,8 @@ drawableSizeWillChange:(CGSize)size
                         }
 
                         float calculatedHeight =
-                            (featureCount * 60.0f) +
-                            30.0f;
+                            (featureCount * 65.0f) +
+                            40.0f;
 
                         if (calculatedHeight <
                             scrollHeight - 10.0f) {
@@ -3104,6 +3203,30 @@ drawableSizeWillChange:(CGSize)size
                                             7.0f
                                         )
                                     );
+                                } else if (feature->type == ASASECFeatureTypeSlider) {
+                                    float *valPtr = feature->floatValuePointer;
+                                    if (valPtr) {
+                                        float oldVal = *valPtr;
+                                        bool sliderChanged = ASASECModernSlider(feature->title, valPtr, feature->sliderMin, feature->sliderMax);
+                                        if (sliderChanged && oldVal != *valPtr) {
+                                            if (feature->sliderCallback) {
+                                                feature->sliderCallback(*valPtr);
+                                            }
+                                        }
+                                    }
+                                    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+                                } else if (feature->type == ASASECFeatureTypeCheckbox) {
+                                    bool *valPtr = feature->valuePointer;
+                                    if (valPtr) {
+                                        bool oldVal = *valPtr;
+                                        bool checkChanged = ASASECModernCheckbox(feature->title, valPtr);
+                                        if (checkChanged && oldVal != *valPtr) {
+                                            if (feature->checkboxCallback) {
+                                                feature->checkboxCallback(*valPtr);
+                                            }
+                                        }
+                                    }
+                                    ImGui::Dummy(ImVec2(0.0f, 6.0f));
                                 }
                             }
                         }
@@ -3144,17 +3267,6 @@ drawableSizeWillChange:(CGSize)size
 
                 ImGui::EndChild();
             }
-
-            /*
-             * =========================================================
-             * KATEGORİLERİ GERİ AÇMA BUTONU
-             * =========================================================
-             *
-             * Eski ayrı dış buton kaldırıldı.
-             *
-             * Ok artık yukarıdaki ContentRoot içerisinde
-             * çiziliyor ve çalışıyor.
-             */
 
             #pragma mark Header Logo - TOP LAYER
 
