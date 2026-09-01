@@ -10,7 +10,7 @@ AsasecMultiTool_FILES := \
     Asasec.xm \
     ASASECUI/guialert/GuiAlert.m \
     manager/UiManager.mm \
-    ASASECUI/imgui/Ui/AsasecUi.mm \
+    ASASECUI/ui/AsasecUi.mm \
     ASASECUI/imgui/imgui.cpp \
     ASASECUI/imgui/imgui_draw.cpp \
     ASASECUI/imgui/imgui_tables.cpp \
