@@ -1,9 +1,9 @@
 #import <UIKit/UIKit.h>
 #import <dispatch/dispatch.h>
 
-#import "../ui/AsasecUi.h"
-#import "../guialert/GuiAlert.h"
-#include "../imgui/imgui.h"
+#import "../ASASECUI/ui/AsasecUi.h"
+#import "../ASASECUI/guialert/GuiAlert.h"
+#include "../ASASECUI/imgui/imgui.h"
 
 #pragma mark - ASASEC GUI Registration API (Extern Declarations)
 
