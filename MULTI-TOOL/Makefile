@@ -9,7 +9,7 @@ TWEAK_NAME := AsasecMultiTool
 AsasecMultiTool_FILES := \
     Asasec/Tweak.xm \
     GuiAlert/GuiAlert.m \
-    Asasec/Manager/AsasecMenuManager.mm \
+    Asasec/Manager/AsasecManager.mm \
     Imgui/Ui/AsasecUi.mm \
     Imgui/imgui.cpp \
     Imgui/imgui_draw.cpp \
