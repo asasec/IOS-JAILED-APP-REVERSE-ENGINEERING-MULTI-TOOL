@@ -573,7 +573,6 @@ static bool ASASECModernSwitch(const char *label,
     if (available < 150.0f)
         available = 150.0f;
 
-    // Hafif dokunmaları filtrelemek ve yanlışlıkla basmayı zorlaştırmak için özel eşik kontrolü ekledik
     bool clicked =
         ImGui::InvisibleButton(
             "##switch",
@@ -583,7 +582,6 @@ static bool ASASECModernSwitch(const char *label,
             )
         );
 
-    // Eşik kontrolü: Sadece tıklama süresi/basılı tutma kriteri netleştiğinde tetiklenir
     if (clicked && !ImGui::IsMouseDragging(0, 8.0f)) {
         *value = !(*value);
     } else {
@@ -918,7 +916,6 @@ static bool ASASECModernButton(const char *label)
             )
         );
 
-    // Yanlışlıkla tetiklenmeyi zorlaştırmak için sürükleme kontrolü ekledik
     if (pressed && ImGui::IsMouseDragging(0, 10.0f)) {
         pressed = false;
     }
@@ -1084,7 +1081,7 @@ static bool ASASECModernButton(const char *label)
     return pressed;
 }
 
-#pragma mark - Yeni Modern Bileşenler (Slider, Checkbox, Input, Segment)
+#pragma mark - Geliştirilmiş ve Animasyonlu Modern Bileşenler (Slider, Checkbox)
 
 static bool ASASECModernSlider(const char *label, float *value, float minVal, float maxVal)
 {
@@ -1098,16 +1095,44 @@ static bool ASASECModernSlider(const char *label, float *value, float minVal, fl
     const float rowHeight = 64.0f;
     bool modified = false;
 
-    // Alanın tamamını dokunulabilir yapıyoruz ancak yanlışlıkla kaydırmayı zorlaştırmak için eşik uygulandı
     ImGui::InvisibleButton("##slider_area", ImVec2(available, rowHeight));
-    bool hovered = ImGui::IsItemHovered();
     bool active = ImGui::IsItemActive();
 
     ImVec2 itemMin = ImGui::GetItemRectMin();
     ImVec2 itemMax = ImGui::GetItemRectMax();
     ImDrawList *draw = ImGui::GetWindowDrawList();
 
-    // Dokunma kaydırma eşiği (Hafifçe dokunup kaydırmada hemen oynamaz, güçlü hareket ister)
+    // Animasyon durumu takibi için Statik Yapı
+    static float sliderAnimValues[128] = {0};
+    static int sliderIndexCounter = 0;
+    // Basit index eşleme bulucu
+    int currentSliderIdx = 0;
+    static const char *sliderLabels[128] = {NULL};
+    bool foundSlider = false;
+    for (int i = 0; i < 128; i++) {
+        if (sliderLabels[i] == label) {
+            currentSliderIdx = i;
+            foundSlider = true;
+            break;
+        }
+        if (sliderLabels[i] == NULL) {
+            sliderLabels[i] = label;
+            currentSliderIdx = i;
+            foundSlider = true;
+            break;
+        }
+    }
+    if (!foundSlider) currentSliderIdx = 0;
+
+    float dtSlider = ImGui::GetIO().DeltaTime;
+    if (dtSlider <= 0.0f || dtSlider > 0.1f) dtSlider = 1.0f / 60.0f;
+
+    float targetNormalized = (*value - minVal) / (maxVal - minVal);
+    targetNormalized = ASASECClampFloat(targetNormalized, 0.0f, 1.0f);
+
+    sliderAnimValues[currentSliderIdx] = ASASECEase(sliderAnimValues[currentSliderIdx], targetNormalized, 18.0f, dtSlider);
+    float animatedNormalized = sliderAnimValues[currentSliderIdx];
+
     if (active) {
         ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
         if (fabsf(mouseDelta.x) > 0.5f || ImGui::IsMouseDragging(0, 4.0f)) {
@@ -1126,32 +1151,27 @@ static bool ASASECModernSlider(const char *label, float *value, float minVal, fl
         }
     }
 
-    float normalizedValue = (*value - minVal) / (maxVal - minVal);
-    normalizedValue = ASASECClampFloat(normalizedValue, 0.0f, 1.0f);
-
     if (draw) {
-        // Arka plan kartı
+        // Modern kart arkaplanı ve border
         draw->AddRectFilled(itemMin, itemMax, ASASECColor(0.045f, 0.060f, 0.088f, 0.98f), 14.0f);
         draw->AddRect(ImVec2(itemMin.x + 0.5f, itemMin.y + 0.5f), ImVec2(itemMax.x - 0.5f, itemMax.y - 0.5f), ASASECColor(0.10f, 0.15f, 0.22f, 0.80f), 14.0f, 0, 1.0f);
 
-        // Slider Çubuğu Konumu
         float barY = itemMin.y + 44.0f;
         float barStartX = itemMin.x + 15.0f;
         float barEndX = itemMax.x - 15.0f;
         float barWidth = barEndX - barStartX;
-        float fillWidth = barWidth * normalizedValue;
+        float fillWidth = barWidth * animatedNormalized;
 
-        // Arka plan rayı
-        draw->AddRectFilled(ImVec2(barStartX, barY - 3.0f), ImVec2(barEndX, barY + 3.0f), ASASECColor(0.08f, 0.12f, 0.18f, 1.0f), 3.0f);
-        // Dolgu rayı
-        draw->AddRectFilled(ImVec2(barStartX, barY - 3.0f), ImVec2(barStartX + fillWidth, barY + 3.0f), ASASECColor(0.22f, 0.56f, 1.0f, 1.0f), 3.0f);
+        // Arka plan rayı ve animasyonlu dolgu rayı
+        draw->AddRectFilled(ImVec2(barStartX, barY - 3.5f), ImVec2(barEndX, barY + 3.5f), ASASECColor(0.08f, 0.12f, 0.18f, 1.0f), 3.5f);
+        draw->AddRectFilled(ImVec2(barStartX, barY - 3.5f), ImVec2(barStartX + fillWidth, barY + 3.5f), ASASECColor(0.22f, 0.56f, 1.0f, 1.0f), 3.5f);
 
-        // Tutamaç (Knob)
+        // Hareketli Yumuşak Tutamaç (Knob)
         float knobX = barStartX + fillWidth;
-        draw->AddCircleFilled(ImVec2(knobX, barY), 8.0f, ASASECColor(0.96f, 0.98f, 1.0f, 1.0f), 24);
+        draw->AddCircleFilled(ImVec2(knobX, barY), 9.0f, ASASECColor(0.96f, 0.98f, 1.0f, 1.0f), 24);
+        draw->AddCircle(ImVec2(knobX, barY), 9.0f, ASASECColor(0.30f, 0.68f, 1.0f, 0.9f), 24, 1.5f);
     }
 
-    // Başlık ve Değer Metni
     ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 15.0f, itemMin.y + 9.0f));
     ImGui::TextColored(ImVec4(0.92f, 0.95f, 1.0f, 1.0f), "%s", label);
 
@@ -1179,7 +1199,6 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
 
     bool clicked = ImGui::InvisibleButton("##checkbox", ImVec2(available, rowHeight));
     
-    // Yüksek dokunma eşiği (yanlışlıkla temasta tetiklenmez)
     if (clicked && !ImGui::IsMouseDragging(0, 8.0f)) {
         *value = !(*value);
     } else {
@@ -1189,16 +1208,39 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
     ImVec2 itemMin = ImGui::GetItemRectMin();
     ImVec2 itemMax = ImGui::GetItemRectMax();
     ImDrawList *draw = ImGui::GetWindowDrawList();
-    bool hovered = ImGui::IsItemHovered();
+    bool isItemHovered = ImGui::IsItemHovered();
 
-    float dt = ImGui::GetIO().DeltaTime;
-    static float animProgress[128] = {0}; // Basit animasyon takibi
-    
+    float dtCheck = ImGui::GetIO().DeltaTime;
+    if (dtCheck <= 0.0f || dtCheck > 0.1f) dtCheck = 1.0f / 60.0f;
+
+    // Checkbox animasyon takibi için güvenli dizi mekanizması
+    static float checkAnimProgress[128] = {0};
+    static const char *checkLabels[128] = {NULL};
+    int currentCheckIdx = 0;
+    bool foundCheck = false;
+    for (int i = 0; i < 128; i++) {
+        if (checkLabels[i] == label) {
+            currentCheckIdx = i;
+            foundCheck = true;
+            break;
+        }
+        if (checkLabels[i] == NULL) {
+            checkLabels[i] = label;
+            currentCheckIdx = i;
+            foundCheck = true;
+            break;
+        }
+    }
+    if (!foundCheck) currentCheckIdx = 0;
+
+    float targetCheckAnim = *value ? 1.0f : 0.0f;
+    checkAnimProgress[currentCheckIdx] = ASASECEase(checkAnimProgress[currentCheckIdx], targetCheckAnim, 16.0f, dtCheck);
+    float animProgressVal = checkAnimProgress[currentCheckIdx];
+
     if (draw) {
-        draw->AddRectFilled(itemMin, itemMax, hovered ? ASASECColor(0.075f, 0.100f, 0.145f, 0.99f) : ASASECColor(0.045f, 0.060f, 0.088f, 0.98f), 14.0f);
+        draw->AddRectFilled(itemMin, itemMax, isItemHovered ? ASASECColor(0.075f, 0.100f, 0.145f, 0.99f) : ASASECColor(0.045f, 0.060f, 0.088f, 0.98f), 14.0f);
         draw->AddRect(ImVec2(itemMin.x + 0.5f, itemMin.y + 0.5f), ImVec2(itemMax.x - 0.5f, itemMax.y - 0.5f), ASASECColor(0.10f, 0.15f, 0.22f, 0.80f), 14.0f, 0, 1.0f);
 
-        // Checkbox kutusu sağ tarafta
         float boxSize = 22.0f;
         float boxX = itemMax.x - boxSize - 20.0f;
         float boxY = itemMin.y + (rowHeight - boxSize) * 0.5f;
@@ -1206,13 +1248,19 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
         ImVec2 boxMin(boxX, boxY);
         ImVec2 boxMax(boxX + boxSize, boxY + boxSize);
 
-        draw->AddRectFilled(boxMin, boxMax, *value ? ASASECColor(0.22f, 0.56f, 1.0f, 1.0f) : ASASECColor(0.08f, 0.12f, 0.18f, 1.0f), 6.0f);
+        // Yumuşak renk geçişli animasyonlu arkaplan
+        float cR = 0.08f + (0.22f - 0.08f) * animProgressVal;
+        float cG = 0.12f + (0.56f - 0.12f) * animProgressVal;
+        float cB = 0.18f + (1.00f - 0.18f) * animProgressVal;
+
+        draw->AddRectFilled(boxMin, boxMax, ASASECColor(cR, cG, cB, 1.0f), 6.0f);
         draw->AddRect(boxMin, boxMax, ASASECColor(0.30f, 0.68f, 1.0f, 0.9f), 6.0f, 0, 1.0f);
 
-        if (*value) {
-            // Onay işareti (Checkmark) çizgileri
-            draw->AddLine(ImVec2(boxMin.x + 5.0f, boxMin.y + 11.0f), ImVec2(boxMin.x + 9.0f, boxMin.y + 15.0f), ASASECColor(1.0f, 1.0f, 1.0f, 1.0f), 2.0f);
-            draw->AddLine(ImVec2(boxMin.x + 9.0f, boxMin.y + 15.0f), ImVec2(boxMin.x + 17.0f, boxMin.y + 7.0f), ASASECColor(1.0f, 1.0f, 1.0f, 1.0f), 2.0f);
+        if (animProgressVal > 0.05f) {
+            // Checkmark Alfa (Opaklık) animasyonlu çizimi
+            ImU32 markColor = ASASECColor(1.0f, 1.0f, 1.0f, animProgressVal);
+            draw->AddLine(ImVec2(boxMin.x + 5.0f, boxMin.y + 11.0f), ImVec2(boxMin.x + 9.0f, boxMin.y + 15.0f), markColor, 2.0f);
+            draw->AddLine(ImVec2(boxMin.x + 9.0f, boxMin.y + 15.0f), ImVec2(boxMin.x + 17.0f, boxMin.y + 7.0f), markColor, 2.0f);
         }
     }
 
@@ -1647,7 +1695,6 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
             point.y -
             gContentStartPoint.y;
 
-        // Content kaydırma hassasiyeti ve eşiği zorlaştırıldı (12 piksel hareket gerek)
         if (!gContentDragging &&
             (fabsf(moveX) > 12.0f ||
              fabsf(moveY) > 12.0f)) {
