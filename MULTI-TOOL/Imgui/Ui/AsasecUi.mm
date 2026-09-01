@@ -64,8 +64,13 @@ void ASASECUiSwitch(const char *category,
     feature->category = category;
     feature->title = title;
     feature->valuePointer = valuePointer;
+    feature->floatValuePointer = NULL;
+    feature->sliderMin = 0.0f;
+    feature->sliderMax = 1.0f;
     feature->switchCallback = callback;
     feature->buttonCallback = NULL;
+    feature->sliderCallback = NULL;
+    feature->checkboxCallback = NULL;
 }
 
 void ASASECUiButton(const char *category,
@@ -85,8 +90,13 @@ void ASASECUiButton(const char *category,
     feature->category = category;
     feature->title = title;
     feature->valuePointer = NULL;
+    feature->floatValuePointer = NULL;
+    feature->sliderMin = 0.0f;
+    feature->sliderMax = 1.0f;
     feature->switchCallback = NULL;
     feature->buttonCallback = callback;
+    feature->sliderCallback = NULL;
+    feature->checkboxCallback = NULL;
 }
 
 void ASASECUiSlider(const char *category,
@@ -108,10 +118,14 @@ void ASASECUiSlider(const char *category,
     feature->type = ASASECFeatureTypeSlider;
     feature->category = category;
     feature->title = title;
+    feature->valuePointer = NULL;
     feature->floatValuePointer = valuePointer;
     feature->sliderMin = minVal;
     feature->sliderMax = maxVal;
+    feature->switchCallback = NULL;
+    feature->buttonCallback = NULL;
     feature->sliderCallback = callback;
+    feature->checkboxCallback = NULL;
 }
 
 void ASASECUiCheckbox(const char *category,
@@ -132,6 +146,12 @@ void ASASECUiCheckbox(const char *category,
     feature->category = category;
     feature->title = title;
     feature->valuePointer = valuePointer;
+    feature->floatValuePointer = NULL;
+    feature->sliderMin = 0.0f;
+    feature->sliderMax = 1.0f;
+    feature->switchCallback = NULL;
+    feature->buttonCallback = NULL;
+    feature->sliderCallback = NULL;
     feature->checkboxCallback = callback;
 }
 
@@ -199,11 +219,22 @@ static ImVec2 gMenuPosition =
 static ImVec2 gMenuSize =
     ImVec2(560.0f, 390.0f);
 
-static const float kMenuMinWidth = 320.0f;
+/*
+ * Resize sınırları.
+ *
+ * Content'in sidebar tarafından sıkışmaması için
+ * minimum genişlik artırıldı.
+ */
+static const float kMenuMinWidth = 350.0f;
 static const float kMenuMaxWidth = 760.0f;
 
 static const float kMenuMinHeight = 260.0f;
 static const float kMenuMaxHeight = 620.0f;
+
+/*
+ * Sidebar + güvenli minimum Content alanı.
+ */
+static const float kMinimumContentWidth = 175.0f;
 
 static const float kHeaderHeight = 56.0f;
 static const float kResizeSize = 58.0f;
@@ -237,6 +268,40 @@ static ImVec2 gDragStartPosition =
 
 static ImVec2 gResizeStartSize =
     ImVec2(560.0f, 390.0f);
+
+/*
+ * Resize eksen kontrolü.
+ *
+ * NONE:
+ * Henüz hangi eksende resize yapılacağı belli değil.
+ *
+ * HORIZONTAL:
+ * Sadece genişlik değişir.
+ *
+ * VERTICAL:
+ * Sadece yükseklik değişir.
+ *
+ * BOTH:
+ * Belirgin iki eksenli resize.
+ */
+typedef enum {
+    ASASECResizeAxisNone = 0,
+    ASASECResizeAxisHorizontal = 1,
+    ASASECResizeAxisVertical = 2,
+    ASASECResizeAxisBoth = 3
+} ASASECResizeAxis;
+
+static ASASECResizeAxis gResizeAxis =
+    ASASECResizeAxisNone;
+
+static BOOL gResizeAxisLocked = NO;
+
+/*
+ * Bir eksen resize edilirken diğer eksenin
+ * değerini korumak için başlangıç boyutları.
+ */
+static float gResizeLockedWidth = 560.0f;
+static float gResizeLockedHeight = 390.0f;
 
 static float gPendingContentScrollY = 0.0f;
 static float gContentScrollVelocity = 0.0f;
@@ -342,12 +407,121 @@ ASASECGetSwitchAnimationData(const char *label)
     return &gSwitchAnimations[index];
 }
 
+typedef struct {
+    const char *label;
+    float progress;
+    float pulse;
+    float hover;
+} ASASECSliderAnimation;
+
+static ASASECSliderAnimation gSliderAnimations[128];
+static int gSliderAnimationCount = 0;
+
+static ASASECSliderAnimation *
+ASASECGetSliderAnimationData(const char *label)
+{
+    if (!label)
+        return NULL;
+
+    for (int i = 0;
+         i < gSliderAnimationCount;
+         i++) {
+
+        if (gSliderAnimations[i].label &&
+            strcmp(
+                gSliderAnimations[i].label,
+                label
+            ) == 0) {
+
+            return &gSliderAnimations[i];
+        }
+    }
+
+    if (gSliderAnimationCount >= 128)
+        return NULL;
+
+    int index =
+        gSliderAnimationCount++;
+
+    gSliderAnimations[index].label =
+        label;
+
+    gSliderAnimations[index].progress =
+        0.0f;
+
+    gSliderAnimations[index].pulse =
+        0.0f;
+
+    gSliderAnimations[index].hover =
+        0.0f;
+
+    return &gSliderAnimations[index];
+}
+
+typedef struct {
+    const char *label;
+    float progress;
+    float pulse;
+    float checkProgress;
+    float hover;
+} ASASECCheckboxAnimation;
+
+static ASASECCheckboxAnimation gCheckboxAnimations[128];
+static int gCheckboxAnimationCount = 0;
+
+static ASASECCheckboxAnimation *
+ASASECGetCheckboxAnimationData(const char *label)
+{
+    if (!label)
+        return NULL;
+
+    for (int i = 0;
+         i < gCheckboxAnimationCount;
+         i++) {
+
+        if (gCheckboxAnimations[i].label &&
+            strcmp(
+                gCheckboxAnimations[i].label,
+                label
+            ) == 0) {
+
+            return &gCheckboxAnimations[i];
+        }
+    }
+
+    if (gCheckboxAnimationCount >= 128)
+        return NULL;
+
+    int index =
+        gCheckboxAnimationCount++;
+
+    gCheckboxAnimations[index].label =
+        label;
+
+    gCheckboxAnimations[index].progress =
+        0.0f;
+
+    gCheckboxAnimations[index].pulse =
+        0.0f;
+
+    gCheckboxAnimations[index].checkProgress =
+        0.0f;
+
+    gCheckboxAnimations[index].hover =
+        0.0f;
+
+    return &gCheckboxAnimations[index];
+}
+
 #pragma mark - Helpers
 
 static float ASASECClampFloat(float value,
                               float minValue,
                               float maxValue)
 {
+    if (maxValue < minValue)
+        maxValue = minValue;
+
     if (value < minValue)
         return minValue;
 
@@ -376,6 +550,26 @@ static float ASASECEase(float current,
 
     return current +
            (target - current) * factor;
+}
+
+static float ASASECEaseOutBack(float t)
+{
+    t =
+        ASASECClampFloat(
+            t,
+            0.0f,
+            1.0f
+        );
+
+    const float c1 = 1.70158f;
+    const float c3 = c1 + 1.0f;
+
+    float x = t - 1.0f;
+
+    return
+        1.0f +
+        c3 * x * x * x +
+        c1 * x * x;
 }
 
 static float ASASECGetAnimatedSidebarWidth(void)
@@ -462,6 +656,23 @@ static UIWindow *ASASECFindActiveWindow(void)
     return nil;
 }
 
+/*
+ * Ekrana sığabilecek gerçek minimum genişliği hesaplar.
+ *
+ * Sidebar + Content için minimum alan korunur.
+ */
+static float ASASECGetSafeMinimumMenuWidth(void)
+{
+    float required =
+        kSidebarWidth +
+        kMinimumContentWidth;
+
+    if (required < kMenuMinWidth)
+        required = kMenuMinWidth;
+
+    return required;
+}
+
 static void ASASECClampMenuToScreen(UIWindow *window)
 {
     if (!window)
@@ -471,6 +682,9 @@ static void ASASECClampMenuToScreen(UIWindow *window)
         window.bounds.size;
 
     const float margin = 12.0f;
+
+    float safeMinWidth =
+        ASASECGetSafeMinimumMenuWidth();
 
     float maxAllowedWidth =
         (float)size.width -
@@ -482,12 +696,12 @@ static void ASASECClampMenuToScreen(UIWindow *window)
             maxAllowedWidth
         );
 
-    if (targetMaxWidth <
-        kMenuMinWidth) {
-
-        targetMaxWidth =
-            kMenuMinWidth;
-    }
+    /*
+     * Çok dar ekranlarda teorik minimum
+     * ekran genişliğini aşmamalı.
+     */
+    if (targetMaxWidth < safeMinWidth)
+        safeMinWidth = targetMaxWidth;
 
     float maxAllowedHeight =
         (float)size.height -
@@ -499,28 +713,41 @@ static void ASASECClampMenuToScreen(UIWindow *window)
             maxAllowedHeight
         );
 
-    if (targetMaxHeight <
-        kMenuMinHeight) {
+    float safeMinHeight =
+        kMenuMinHeight;
 
-        targetMaxHeight =
-            kMenuMinHeight;
-    }
+    if (targetMaxHeight < safeMinHeight)
+        safeMinHeight = targetMaxHeight;
 
     gMenuSize.x =
         ASASECClampFloat(
             gMenuSize.x,
-            kMenuMinWidth,
+            safeMinWidth,
             targetMaxWidth
         );
 
-    gMenuSize.y =
-        gMenuCollapsed
-        ? kHeaderHeight
-        : ASASECClampFloat(
-            gMenuSize.y,
-            kMenuMinHeight,
-            targetMaxHeight
-        );
+    if (gMenuCollapsed) {
+
+        /*
+         * Collapse sırasında gerçek Content yüksekliği
+         * değiştirilmez.
+         */
+        gMenuSize.y =
+            ASASECClampFloat(
+                gMenuSize.y,
+                safeMinHeight,
+                targetMaxHeight
+            );
+
+    } else {
+
+        gMenuSize.y =
+            ASASECClampFloat(
+                gMenuSize.y,
+                safeMinHeight,
+                targetMaxHeight
+            );
+    }
 
     float maxX =
         (float)size.width -
@@ -553,7 +780,7 @@ static void ASASECClampMenuToScreen(UIWindow *window)
         );
 }
 
-#pragma mark - Modern Switch (Yüksek Dokunma Eşiği ile)
+#pragma mark - Modern Switch
 
 static bool ASASECModernSwitch(const char *label,
                                bool *value)
@@ -563,9 +790,12 @@ static bool ASASECModernSwitch(const char *label,
 
     ImGui::PushID(label);
 
-    const float switchWidth = 48.0f;
-    const float switchHeight = 26.0f;
-    const float rowHeight = 54.0f;
+    /*
+     * Biraz büyütüldü.
+     */
+    const float switchWidth = 50.0f;
+    const float switchHeight = 28.0f;
+    const float rowHeight = 56.0f;
 
     float available =
         ImGui::GetContentRegionAvail().x;
@@ -628,7 +858,7 @@ static bool ASASECModernSwitch(const char *label,
         ASASECEase(
             progress,
             target,
-            16.0f,
+            17.0f,
             dt
         );
 
@@ -641,7 +871,7 @@ static bool ASASECModernSwitch(const char *label,
             ASASECEase(
                 animation->pulse,
                 0.0f,
-                12.0f,
+                11.0f,
                 dt
             );
     }
@@ -780,10 +1010,10 @@ static bool ASASECModernSwitch(const char *label,
         );
 
         float offX =
-            switchMin.x + 13.0f;
+            switchMin.x + 14.0f;
 
         float onX =
-            switchMax.x - 13.0f;
+            switchMax.x - 14.0f;
 
         float knobX =
             offX +
@@ -795,8 +1025,8 @@ static bool ASASECModernSwitch(const char *label,
             switchHeight * 0.5f;
 
         float knobRadius =
-            9.0f +
-            pulse * 1.2f;
+            10.0f +
+            pulse * 1.3f;
 
         if (pulse > 0.01f) {
 
@@ -805,7 +1035,7 @@ static bool ASASECModernSwitch(const char *label,
                     knobX,
                     knobY
                 ),
-                12.0f +
+                13.0f +
                 pulse * 3.0f,
                 ASASECColor(
                     0.30f,
@@ -813,7 +1043,7 @@ static bool ASASECModernSwitch(const char *label,
                     1.0f,
                     pulse * 0.30f
                 ),
-                24,
+                28,
                 1.6f
             );
         }
@@ -868,7 +1098,7 @@ static bool ASASECModernSwitch(const char *label,
     ImGui::SetCursorScreenPos(
         ImVec2(
             itemMin.x + 15.0f,
-            itemMin.y + 31.0f
+            itemMin.y + 32.0f
         )
     );
 
@@ -905,7 +1135,10 @@ static bool ASASECModernButton(const char *label)
     if (available < 150.0f)
         available = 150.0f;
 
-    const float height = 46.0f;
+    /*
+     * Biraz büyütüldü.
+     */
+    const float height = 48.0f;
 
     bool pressed =
         ImGui::InvisibleButton(
@@ -1081,188 +1314,1013 @@ static bool ASASECModernButton(const char *label)
     return pressed;
 }
 
-#pragma mark - Geliştirilmiş ve Animasyonlu Modern Bileşenler (Slider, Checkbox)
+#pragma mark - Modern Slider
 
-static bool ASASECModernSlider(const char *label, float *value, float minVal, float maxVal)
+static bool ASASECModernSlider(const char *label,
+                               float *value,
+                               float minVal,
+                               float maxVal)
 {
-    if (!label || !value) return false;
+    if (!label || !value)
+        return false;
 
     ImGui::PushID(label);
 
-    float available = ImGui::GetContentRegionAvail().x;
-    if (available < 150.0f) available = 150.0f;
+    float available =
+        ImGui::GetContentRegionAvail().x;
 
-    const float rowHeight = 54.0f; // Switch ve Button ile aynı boyuta getirildi
+    if (available < 150.0f)
+        available = 150.0f;
+
+    /*
+     * Switch ile aynı yükseklik ailesinde,
+     * biraz büyütülmüş slider.
+     */
+    const float rowHeight = 56.0f;
+
     bool modified = false;
 
-    ImGui::InvisibleButton("##slider_area", ImVec2(available, rowHeight));
-    bool active = ImGui::IsItemActive();
+    ImGui::InvisibleButton(
+        "##slider_area",
+        ImVec2(
+            available,
+            rowHeight
+        )
+    );
 
-    ImVec2 itemMin = ImGui::GetItemRectMin();
-    ImVec2 itemMax = ImGui::GetItemRectMax();
-    ImDrawList *draw = ImGui::GetWindowDrawList();
+    bool active =
+        ImGui::IsItemActive();
 
-    static float sliderAnimValues[128] = {0};
-    int currentSliderIdx = 0;
-    static const char *sliderLabels[128] = {NULL};
-    bool foundSlider = false;
-    for (int i = 0; i < 128; i++) {
-        if (sliderLabels[i] == label) {
-            currentSliderIdx = i;
-            foundSlider = true;
-            break;
-        }
-        if (sliderLabels[i] == NULL) {
-            sliderLabels[i] = label;
-            currentSliderIdx = i;
-            foundSlider = true;
-            break;
-        }
+    bool hovered =
+        ImGui::IsItemHovered();
+
+    ImVec2 itemMin =
+        ImGui::GetItemRectMin();
+
+    ImVec2 itemMax =
+        ImGui::GetItemRectMax();
+
+    ImDrawList *draw =
+        ImGui::GetWindowDrawList();
+
+    ASASECSliderAnimation *animation =
+        ASASECGetSliderAnimationData(label);
+
+    float dtSlider =
+        ImGui::GetIO().DeltaTime;
+
+    if (dtSlider <= 0.0f ||
+        dtSlider > 0.1f)
+        dtSlider =
+            1.0f / 60.0f;
+
+    float range =
+        maxVal - minVal;
+
+    if (fabsf(range) < 0.000001f)
+        range = 1.0f;
+
+    float targetNormalized =
+        (*value - minVal) /
+        range;
+
+    targetNormalized =
+        ASASECClampFloat(
+            targetNormalized,
+            0.0f,
+            1.0f
+        );
+
+    if (animation) {
+
+        animation->progress =
+            ASASECEase(
+                animation->progress,
+                targetNormalized,
+                20.0f,
+                dtSlider
+            );
+
+        animation->hover =
+            ASASECEase(
+                animation->hover,
+                hovered ? 1.0f : 0.0f,
+                14.0f,
+                dtSlider
+            );
     }
-    if (!foundSlider) currentSliderIdx = 0;
 
-    float dtSlider = ImGui::GetIO().DeltaTime;
-    if (dtSlider <= 0.0f || dtSlider > 0.1f) dtSlider = 1.0f / 60.0f;
-
-    float targetNormalized = (*value - minVal) / (maxVal - minVal);
-    targetNormalized = ASASECClampFloat(targetNormalized, 0.0f, 1.0f);
-
-    sliderAnimValues[currentSliderIdx] = ASASECEase(sliderAnimValues[currentSliderIdx], targetNormalized, 18.0f, dtSlider);
-    float animatedNormalized = sliderAnimValues[currentSliderIdx];
+    float animatedNormalized =
+        animation
+        ? animation->progress
+        : targetNormalized;
 
     if (active) {
-        ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
-        if (fabsf(mouseDelta.x) > 0.5f || ImGui::IsMouseDragging(0, 4.0f)) {
-            float sliderWidth = available - 30.0f;
-            float currentMouseX = ImGui::GetIO().MousePos.x;
-            float barStartX = itemMin.x + 15.0f;
-            
-            float ratio = (currentMouseX - barStartX) / sliderWidth;
-            ratio = ASASECClampFloat(ratio, 0.0f, 1.0f);
-            
-            float newValue = minVal + ratio * (maxVal - minVal);
-            if (*value != newValue) {
-                *value = newValue;
-                modified = true;
+
+        float currentMouseX =
+            ImGui::GetIO().MousePos.x;
+
+        float barStartX =
+            itemMin.x + 15.0f;
+
+        float barEndX =
+            itemMax.x - 15.0f;
+
+        float sliderWidth =
+            barEndX - barStartX;
+
+        if (sliderWidth < 1.0f)
+            sliderWidth = 1.0f;
+
+        float ratio =
+            (currentMouseX -
+             barStartX) /
+            sliderWidth;
+
+        ratio =
+            ASASECClampFloat(
+                ratio,
+                0.0f,
+                1.0f
+            );
+
+        float newValue =
+            minVal +
+            ratio * range;
+
+        newValue =
+            ASASECClampFloat(
+                newValue,
+                MIN(minVal, maxVal),
+                MAX(minVal, maxVal)
+            );
+
+        if (*value != newValue) {
+
+            *value =
+                newValue;
+
+            modified = true;
+
+            if (animation)
+                animation->pulse =
+                    1.0f;
+        }
+    }
+
+    float hoverValue =
+        animation
+        ? animation->hover
+        : (hovered ? 1.0f : 0.0f);
+
+    float pulse =
+        animation
+        ? animation->pulse
+        : 0.0f;
+
+    if (animation) {
+
+        animation->pulse =
+            ASASECEase(
+                animation->pulse,
+                0.0f,
+                10.0f,
+                dtSlider
+            );
+
+        pulse =
+            animation->pulse;
+    }
+
+    if (draw) {
+
+        draw->AddRectFilled(
+            itemMin,
+            itemMax,
+            hovered
+            ? ASASECColor(
+                0.075f,
+                0.100f,
+                0.145f,
+                0.99f
+            )
+            : ASASECColor(
+                0.045f,
+                0.060f,
+                0.088f,
+                0.98f
+            ),
+            14.0f
+        );
+
+        draw->AddRect(
+            ImVec2(
+                itemMin.x + 0.5f,
+                itemMin.y + 0.5f
+            ),
+            ImVec2(
+                itemMax.x - 0.5f,
+                itemMax.y - 0.5f
+            ),
+            hovered
+            ? ASASECColor(
+                0.18f,
+                0.30f,
+                0.46f,
+                0.90f
+            )
+            : ASASECColor(
+                0.10f,
+                0.15f,
+                0.22f,
+                0.80f
+            ),
+            14.0f,
+            0,
+            1.0f
+        );
+
+        float barY =
+            itemMin.y + 40.0f;
+
+        float barStartX =
+            itemMin.x + 15.0f;
+
+        float barEndX =
+            itemMax.x - 15.0f;
+
+        float barWidth =
+            barEndX - barStartX;
+
+        if (barWidth < 1.0f)
+            barWidth = 1.0f;
+
+        float fillWidth =
+            barWidth *
+            animatedNormalized;
+
+        /*
+         * Track shadow.
+         */
+        draw->AddRectFilled(
+            ImVec2(
+                barStartX,
+                barY - 4.0f
+            ),
+            ImVec2(
+                barEndX,
+                barY + 4.0f
+            ),
+            ASASECColor(
+                0.025f,
+                0.040f,
+                0.065f,
+                1.0f
+            ),
+            4.0f
+        );
+
+        /*
+         * Track inner line.
+         */
+        draw->AddRectFilled(
+            ImVec2(
+                barStartX,
+                barY - 2.5f
+            ),
+            ImVec2(
+                barEndX,
+                barY + 2.5f
+            ),
+            ASASECColor(
+                0.08f,
+                0.12f,
+                0.18f,
+                1.0f
+            ),
+            3.0f
+        );
+
+        if (fillWidth > 0.0f) {
+
+            /*
+             * Hafif glow.
+             */
+            draw->AddRectFilled(
+                ImVec2(
+                    barStartX,
+                    barY - 5.0f
+                ),
+                ImVec2(
+                    barStartX +
+                    fillWidth,
+                    barY + 5.0f
+                ),
+                ASASECColor(
+                    0.18f,
+                    0.52f,
+                    1.0f,
+                    0.18f +
+                    hoverValue * 0.12f
+                ),
+                5.0f
+            );
+
+            /*
+             * Asıl dolum.
+             */
+            draw->AddRectFilled(
+                ImVec2(
+                    barStartX,
+                    barY - 3.5f
+                ),
+                ImVec2(
+                    barStartX +
+                    fillWidth,
+                    barY + 3.5f
+                ),
+                ASASECColor(
+                    0.22f,
+                    0.56f,
+                    1.0f,
+                    1.0f
+                ),
+                3.5f
+            );
+        }
+
+        float knobX =
+            barStartX +
+            fillWidth;
+
+        float knobRadius =
+            9.5f +
+            hoverValue * 1.0f +
+            pulse * 2.0f;
+
+        if (hoverValue > 0.01f ||
+            pulse > 0.01f) {
+
+            draw->AddCircle(
+                ImVec2(
+                    knobX,
+                    barY
+                ),
+                knobRadius +
+                4.0f +
+                pulse * 2.0f,
+                ASASECColor(
+                    0.25f,
+                    0.65f,
+                    1.0f,
+                    0.10f +
+                    hoverValue * 0.10f +
+                    pulse * 0.20f
+                ),
+                28,
+                2.0f
+            );
+        }
+
+        /*
+         * Knob shadow.
+         */
+        draw->AddCircleFilled(
+            ImVec2(
+                knobX,
+                barY + 1.3f
+            ),
+            knobRadius + 1.0f,
+            ASASECColor(
+                0.0f,
+                0.0f,
+                0.0f,
+                0.28f
+            ),
+            28
+        );
+
+        /*
+         * Knob.
+         */
+        draw->AddCircleFilled(
+            ImVec2(
+                knobX,
+                barY
+            ),
+            knobRadius,
+            ASASECColor(
+                0.96f,
+                0.98f,
+                1.0f,
+                1.0f
+            ),
+            32
+        );
+
+        draw->AddCircle(
+            ImVec2(
+                knobX,
+                barY
+            ),
+            knobRadius,
+            ASASECColor(
+                0.30f,
+                0.68f,
+                1.0f,
+                0.95f
+            ),
+            32,
+            1.5f
+        );
+    }
+
+    ImGui::SetCursorScreenPos(
+        ImVec2(
+            itemMin.x + 15.0f,
+            itemMin.y + 8.0f
+        )
+    );
+
+    ImGui::TextColored(
+        ImVec4(
+            0.92f,
+            0.95f,
+            1.0f,
+            1.0f
+        ),
+        "%s",
+        label
+    );
+
+    char valStr[32];
+
+    snprintf(
+        valStr,
+        sizeof(valStr),
+        "%.1f",
+        *value
+    );
+
+    ImVec2 valSize =
+        ImGui::CalcTextSize(
+            valStr
+        );
+
+    ImGui::SetCursorScreenPos(
+        ImVec2(
+            itemMax.x -
+            15.0f -
+            valSize.x,
+            itemMin.y + 8.0f
+        )
+    );
+
+    ImGui::TextColored(
+        ImVec4(
+            0.30f,
+            0.68f,
+            1.0f,
+            1.0f
+        ),
+        "%s",
+        valStr
+    );
+
+    ImGui::PopID();
+
+    return modified;
+}
+
+#pragma mark - Modern Animated Checkbox
+
+static bool ASASECModernCheckbox(const char *label,
+                                  bool *value)
+{
+    if (!label || !value)
+        return false;
+
+    ImGui::PushID(label);
+
+    float available =
+        ImGui::GetContentRegionAvail().x;
+
+    if (available < 150.0f)
+        available = 150.0f;
+
+    /*
+     * Biraz büyütüldü.
+     */
+    const float rowHeight = 56.0f;
+
+    bool clicked =
+        ImGui::InvisibleButton(
+            "##checkbox",
+            ImVec2(
+                available,
+                rowHeight
+            )
+        );
+
+    if (clicked &&
+        !ImGui::IsMouseDragging(0, 8.0f)) {
+
+        *value =
+            !(*value);
+
+    } else {
+
+        clicked = false;
+    }
+
+    ImVec2 itemMin =
+        ImGui::GetItemRectMin();
+
+    ImVec2 itemMax =
+        ImGui::GetItemRectMax();
+
+    ImDrawList *draw =
+        ImGui::GetWindowDrawList();
+
+    bool hovered =
+        ImGui::IsItemHovered();
+
+    float dt =
+        ImGui::GetIO().DeltaTime;
+
+    if (dt <= 0.0f ||
+        dt > 0.1f)
+        dt =
+            1.0f / 60.0f;
+
+    ASASECCheckboxAnimation *animation =
+        ASASECGetCheckboxAnimationData(
+            label
+        );
+
+    if (clicked && animation) {
+
+        animation->pulse =
+            1.0f;
+    }
+
+    float target =
+        *value
+        ? 1.0f
+        : 0.0f;
+
+    if (animation) {
+
+        animation->progress =
+            ASASECEase(
+                animation->progress,
+                target,
+                18.0f,
+                dt
+            );
+
+        animation->hover =
+            ASASECEase(
+                animation->hover,
+                hovered ? 1.0f : 0.0f,
+                15.0f,
+                dt
+            );
+
+        /*
+         * Check çizgisinin kendisi biraz
+         * gecikmeli şekilde ortaya çıkıyor.
+         */
+        animation->checkProgress =
+            ASASECEase(
+                animation->checkProgress,
+                target,
+                20.0f,
+                dt
+            );
+
+        animation->pulse =
+            ASASECEase(
+                animation->pulse,
+                0.0f,
+                9.0f,
+                dt
+            );
+    }
+
+    float progress =
+        animation
+        ? animation->progress
+        : target;
+
+    float checkProgress =
+        animation
+        ? animation->checkProgress
+        : target;
+
+    float hoverProgress =
+        animation
+        ? animation->hover
+        : (hovered ? 1.0f : 0.0f);
+
+    float pulse =
+        animation
+        ? animation->pulse
+        : 0.0f;
+
+    if (draw) {
+
+        /*
+         * Ana kart.
+         */
+        draw->AddRectFilled(
+            itemMin,
+            itemMax,
+            hovered
+            ? ASASECColor(
+                0.075f,
+                0.100f,
+                0.145f,
+                0.99f
+            )
+            : ASASECColor(
+                0.045f,
+                0.060f,
+                0.088f,
+                0.98f
+            ),
+            14.0f
+        );
+
+        /*
+         * Kart border.
+         */
+        draw->AddRect(
+            ImVec2(
+                itemMin.x + 0.5f,
+                itemMin.y + 0.5f
+            ),
+            ImVec2(
+                itemMax.x - 0.5f,
+                itemMax.y - 0.5f
+            ),
+            hovered
+            ? ASASECColor(
+                0.18f,
+                0.30f,
+                0.46f,
+                0.90f
+            )
+            : ASASECColor(
+                0.10f,
+                0.15f,
+                0.22f,
+                0.80f
+            ),
+            14.0f,
+            0,
+            1.0f
+        );
+
+        /*
+         * Checkbox boyutu.
+         */
+        const float boxSize =
+            24.0f;
+
+        float boxX =
+            itemMax.x -
+            boxSize -
+            19.0f;
+
+        float boxY =
+            itemMin.y +
+            (rowHeight -
+             boxSize) *
+            0.5f;
+
+        ImVec2 boxMin(
+            boxX,
+            boxY
+        );
+
+        ImVec2 boxMax(
+            boxX + boxSize,
+            boxY + boxSize
+        );
+
+        /*
+         * Checked olduğunda küçük bir
+         * bounce efekti.
+         */
+        float bounce =
+            ASASECEaseOutBack(
+                progress
+            );
+
+        float scale =
+            0.94f +
+            0.06f *
+            bounce;
+
+        float centerX =
+            (boxMin.x +
+             boxMax.x) *
+            0.5f;
+
+        float centerY =
+            (boxMin.y +
+             boxMax.y) *
+            0.5f;
+
+        float scaledSize =
+            boxSize *
+            scale;
+
+        ImVec2 animatedMin(
+            centerX -
+            scaledSize * 0.5f,
+            centerY -
+            scaledSize * 0.5f
+        );
+
+        ImVec2 animatedMax(
+            centerX +
+            scaledSize * 0.5f,
+            centerY +
+            scaledSize * 0.5f
+        );
+
+        /*
+         * Hover / checked renkleri.
+         */
+        float cR =
+            0.055f +
+            0.19f *
+            progress;
+
+        float cG =
+            0.075f +
+            0.49f *
+            progress;
+
+        float cB =
+            0.115f +
+            0.88f *
+            progress;
+
+        /*
+         * Hover ile kutuyu hafif aydınlat.
+         */
+        cR +=
+            hoverProgress *
+            0.018f;
+
+        cG +=
+            hoverProgress *
+            0.025f;
+
+        cB +=
+            hoverProgress *
+            0.035f;
+
+        /*
+         * Checked glow.
+         */
+        if (progress > 0.01f) {
+
+            draw->AddRect(
+                ImVec2(
+                    animatedMin.x - 2.0f,
+                    animatedMin.y - 2.0f
+                ),
+                ImVec2(
+                    animatedMax.x + 2.0f,
+                    animatedMax.y + 2.0f
+                ),
+                ASASECColor(
+                    0.24f,
+                    0.65f,
+                    1.0f,
+                    0.10f +
+                    progress * 0.12f +
+                    pulse * 0.18f
+                ),
+                8.0f,
+                0,
+                2.0f
+            );
+        }
+
+        /*
+         * Tıklama pulse halkası.
+         */
+        if (pulse > 0.01f) {
+
+            float pulseRadius =
+                15.0f +
+                (1.0f - pulse) *
+                7.0f;
+
+            draw->AddCircle(
+                ImVec2(
+                    centerX,
+                    centerY
+                ),
+                pulseRadius,
+                ASASECColor(
+                    0.28f,
+                    0.68f,
+                    1.0f,
+                    pulse * 0.30f
+                ),
+                32,
+                2.0f
+            );
+        }
+
+        /*
+         * Checkbox ana yüzeyi.
+         */
+        draw->AddRectFilled(
+            animatedMin,
+            animatedMax,
+            ASASECColor(
+                cR,
+                cG,
+                cB,
+                1.0f
+            ),
+            7.0f
+        );
+
+        /*
+         * Border checked durumuna göre
+         * daha canlı hale gelir.
+         */
+        draw->AddRect(
+            ImVec2(
+                animatedMin.x + 0.5f,
+                animatedMin.y + 0.5f
+            ),
+            ImVec2(
+                animatedMax.x - 0.5f,
+                animatedMax.y - 0.5f
+            ),
+            ASASECColor(
+                0.16f +
+                0.18f *
+                progress,
+                0.24f +
+                0.44f *
+                progress,
+                0.36f +
+                0.60f *
+                progress,
+                0.90f
+            ),
+            7.0f,
+            0,
+            1.2f
+        );
+
+        /*
+         * Check işareti.
+         *
+         * Tamamen bir anda çıkmak yerine
+         * önce kısa çizgi sonra uzun çizgi
+         * gibi görünür.
+         */
+        if (checkProgress > 0.01f) {
+
+            float check =
+                ASASECClampFloat(
+                    checkProgress,
+                    0.0f,
+                    1.0f
+                );
+
+            /*
+             * Biraz daha doğal bir easing.
+             */
+            float checkEase =
+                check *
+                check *
+                (3.0f -
+                 2.0f * check);
+
+            ImVec2 p1(
+                animatedMin.x +
+                scaledSize * 0.22f,
+                animatedMin.y +
+                scaledSize * 0.52f
+            );
+
+            ImVec2 p2(
+                animatedMin.x +
+                scaledSize * 0.43f,
+                animatedMin.y +
+                scaledSize * 0.72f
+            );
+
+            ImVec2 p3(
+                animatedMin.x +
+                scaledSize * 0.78f,
+                animatedMin.y +
+                scaledSize * 0.30f
+            );
+
+            float firstPart =
+                ASASECClampFloat(
+                    checkEase * 2.0f,
+                    0.0f,
+                    1.0f
+                );
+
+            float secondPart =
+                ASASECClampFloat(
+                    (checkEase - 0.35f) /
+                    0.65f,
+                    0.0f,
+                    1.0f
+                );
+
+            ImVec2 firstEnd(
+                p1.x +
+                (p2.x - p1.x) *
+                firstPart,
+                p1.y +
+                (p2.y - p1.y) *
+                firstPart
+            );
+
+            ImVec2 secondEnd(
+                p2.x +
+                (p3.x - p2.x) *
+                secondPart,
+                p2.y +
+                (p3.y - p2.y) *
+                secondPart
+            );
+
+            ImU32 markColor =
+                ASASECColor(
+                    1.0f,
+                    1.0f,
+                    1.0f,
+                    checkEase
+                );
+
+            if (firstPart > 0.0f) {
+
+                draw->AddLine(
+                    p1,
+                    firstEnd,
+                    markColor,
+                    2.4f
+                );
+            }
+
+            if (secondPart > 0.0f) {
+
+                draw->AddLine(
+                    p2,
+                    secondEnd,
+                    markColor,
+                    2.4f
+                );
             }
         }
     }
 
-    if (draw) {
-        draw->AddRectFilled(itemMin, itemMax, ASASECColor(0.045f, 0.060f, 0.088f, 0.98f), 14.0f);
-        draw->AddRect(ImVec2(itemMin.x + 0.5f, itemMin.y + 0.5f), ImVec2(itemMax.x - 0.5f, itemMax.y - 0.5f), ASASECColor(0.10f, 0.15f, 0.22f, 0.80f), 14.0f, 0, 1.0f);
-
-        float barY = itemMin.y + 39.0f; // Genişletilmiş yüksekliğe tam ortalandı
-        float barStartX = itemMin.x + 15.0f;
-        float barEndX = itemMax.x - 15.0f;
-        float barWidth = barEndX - barStartX;
-        float fillWidth = barWidth * animatedNormalized;
-
-        draw->AddRectFilled(ImVec2(barStartX, barY - 3.5f), ImVec2(barEndX, barY + 3.5f), ASASECColor(0.08f, 0.12f, 0.18f, 1.0f), 3.5f);
-        draw->AddRectFilled(ImVec2(barStartX, barY - 3.5f), ImVec2(barStartX + fillWidth, barY + 3.5f), ASASECColor(0.22f, 0.56f, 1.0f, 1.0f), 3.5f);
-
-        float knobX = barStartX + fillWidth;
-        draw->AddCircleFilled(ImVec2(knobX, barY), 9.0f, ASASECColor(0.96f, 0.98f, 1.0f, 1.0f), 24);
-        draw->AddCircle(ImVec2(knobX, barY), 9.0f, ASASECColor(0.30f, 0.68f, 1.0f, 0.9f), 24, 1.5f);
-    }
-
-    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 15.0f, itemMin.y + 8.0f));
-    ImGui::TextColored(ImVec4(0.92f, 0.95f, 1.0f, 1.0f), "%s", label);
-
-    char valStr[32];
-    snprintf(valStr, sizeof(valStr), "%.1f", *value);
-    ImVec2 valSize = ImGui::CalcTextSize(valStr);
-
-    ImGui::SetCursorScreenPos(ImVec2(itemMax.x - 15.0f - valSize.x, itemMin.y + 8.0f));
-    ImGui::TextColored(ImVec4(0.30f, 0.68f, 1.0f, 1.0f), "%s", valStr);
-
-    ImGui::PopID();
-    return modified;
-}
-
-static bool ASASECModernCheckbox(const char *label, bool *value)
-{
-    if (!label || !value) return false;
-
-    ImGui::PushID(label);
-
-    float available = ImGui::GetContentRegionAvail().x;
-    if (available < 150.0f) available = 150.0f;
-
-    const float rowHeight = 54.0f; // Switch ve Button ile aynı boyuta getirildi
-
-    bool clicked = ImGui::InvisibleButton("##checkbox", ImVec2(available, rowHeight));
-    
-    if (clicked && !ImGui::IsMouseDragging(0, 8.0f)) {
-        *value = !(*value);
-    } else {
-        clicked = false;
-    }
-
-    ImVec2 itemMin = ImGui::GetItemRectMin();
-    ImVec2 itemMax = ImGui::GetItemRectMax();
-    ImDrawList *draw = ImGui::GetWindowDrawList();
-    bool isItemHovered = ImGui::IsItemHovered();
-
-    float dtCheck = ImGui::GetIO().DeltaTime;
-    if (dtCheck <= 0.0f || dtCheck > 0.1f) dtCheck = 1.0f / 60.0f;
-
-    static float checkAnimProgress[128] = {0};
-    static const char *checkLabels[128] = {NULL};
-    int currentCheckIdx = 0;
-    bool foundCheck = false;
-    for (int i = 0; i < 128; i++) {
-        if (checkLabels[i] == label) {
-            currentCheckIdx = i;
-            foundCheck = true;
-            break;
-        }
-        if (checkLabels[i] == NULL) {
-            checkLabels[i] = label;
-            currentCheckIdx = i;
-            foundCheck = true;
-            break;
-        }
-    }
-    if (!foundCheck) currentCheckIdx = 0;
-
-    float targetCheckAnim = *value ? 1.0f : 0.0f;
-    checkAnimProgress[currentCheckIdx] = ASASECEase(checkAnimProgress[currentCheckIdx], targetCheckAnim, 16.0f, dtCheck);
-    float animProgressVal = checkAnimProgress[currentCheckIdx];
-
-    if (draw) {
-        draw->AddRectFilled(itemMin, itemMax, isItemHovered ? ASASECColor(0.075f, 0.100f, 0.145f, 0.99f) : ASASECColor(0.045f, 0.060f, 0.088f, 0.98f), 14.0f);
-        draw->AddRect(ImVec2(itemMin.x + 0.5f, itemMin.y + 0.5f), ImVec2(itemMax.x - 0.5f, itemMax.y - 0.5f), ASASECColor(0.10f, 0.15f, 0.22f, 0.80f), 14.0f, 0, 1.0f);
-
-        float boxSize = 22.0f;
-        float boxX = itemMax.x - boxSize - 20.0f;
-        float boxY = itemMin.y + (rowHeight - boxSize) * 0.5f;
-
-        ImVec2 boxMin(boxX, boxY);
-        ImVec2 boxMax(boxX + boxSize, boxY + boxSize);
-
-        float cR = 0.08f + (0.22f - 0.08f) * animProgressVal;
-        float cG = 0.12f + (0.56f - 0.12f) * animProgressVal;
-        float cB = 0.18f + (1.00f - 0.18f) * animProgressVal;
-
-        draw->AddRectFilled(boxMin, boxMax, ASASECColor(cR, cG, cB, 1.0f), 6.0f);
-        draw->AddRect(boxMin, boxMax, ASASECColor(0.30f, 0.68f, 1.0f, 0.9f), 6.0f, 0, 1.0f);
-
-        if (animProgressVal > 0.05f) {
-            ImU32 markColor = ASASECColor(1.0f, 1.0f, 1.0f, animProgressVal);
-            draw->AddLine(ImVec2(boxMin.x + 5.0f, boxMin.y + 11.0f), ImVec2(boxMin.x + 9.0f, boxMin.y + 15.0f), markColor, 2.0f);
-            draw->AddLine(ImVec2(boxMin.x + 9.0f, boxMin.y + 15.0f), ImVec2(boxMin.x + 17.0f, boxMin.y + 7.0f), markColor, 2.0f);
-        }
-    }
-
-    ImGui::SetCursorScreenPos(ImVec2(itemMin.x + 15.0f, itemMin.y + 8.0f)); // Switch ile aynı hizaya getirildi
-    ImGui::TextColored(ImVec4(0.92f, 0.95f, 1.0f, 1.0f), "%s", label);
-
-    // Alt durum yazısı Switch ile tamamen eşitlenmesi için eklendi
+    /*
+     * Başlık.
+     */
     ImGui::SetCursorScreenPos(
         ImVec2(
             itemMin.x + 15.0f,
-            itemMin.y + 31.0f
+            itemMin.y + 8.0f
+        )
+    );
+
+    ImGui::TextColored(
+        ImVec4(
+            0.92f,
+            0.95f,
+            1.0f,
+            1.0f
+        ),
+        "%s",
+        label
+    );
+
+    /*
+     * Alt durum.
+     */
+    ImGui::SetCursorScreenPos(
+        ImVec2(
+            itemMin.x + 15.0f,
+            itemMin.y + 32.0f
         )
     );
 
@@ -1280,6 +2338,7 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
     );
 
     ImGui::PopID();
+
     return clicked;
 }
 
@@ -1493,6 +2552,22 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
             gResizeStartSize =
                 gMenuSize;
 
+            /*
+             * Her resize işleminin başlangıcında
+             * iki eksenin mevcut değeri kaydedilir.
+             */
+            gResizeLockedWidth =
+                gMenuSize.x;
+
+            gResizeLockedHeight =
+                gMenuSize.y;
+
+            gResizeAxis =
+                ASASECResizeAxisNone;
+
+            gResizeAxisLocked =
+                NO;
+
             ImGui::GetIO().MouseDown[0] =
                 false;
 
@@ -1608,13 +2683,74 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
             point.y -
             gResizeStartPoint.y;
 
+        /*
+         * Önce baskın ekseni tespit ediyoruz.
+         *
+         * Böylece kullanıcı yatay küçültürken
+         * yükseklik istemeden değişmiyor.
+         *
+         * Aynı şekilde dikey resize sırasında
+         * genişlik korunuyor.
+         */
+        if (!gResizeAxisLocked) {
+
+            float absX =
+                fabsf(deltaX);
+
+            float absY =
+                fabsf(deltaY);
+
+            /*
+             * Küçük hareketlerde eksen kilitleme
+             * yapılmaz. Böylece touch jitter
+             * doğrudan resize yönünü belirlemez.
+             */
+            if (absX > 8.0f ||
+                absY > 8.0f) {
+
+                if (absX > absY * 1.25f) {
+
+                    gResizeAxis =
+                        ASASECResizeAxisHorizontal;
+
+                    gResizeAxisLocked =
+                        YES;
+
+                } else if (
+                    absY > absX * 1.25f) {
+
+                    gResizeAxis =
+                        ASASECResizeAxisVertical;
+
+                    gResizeAxisLocked =
+                        YES;
+
+                } else {
+
+                    /*
+                     * Kullanıcı iki eksende de
+                     * belirgin hareket ediyorsa
+                     * BOTH korunur.
+                     */
+                    gResizeAxis =
+                        ASASECResizeAxisBoth;
+
+                    gResizeAxisLocked =
+                        YES;
+                }
+            }
+        }
+
         UIWindow *window =
             self.window;
 
         CGSize screenSize =
             window
             ? window.bounds.size
-            : CGSizeMake(800, 600);
+            : CGSizeMake(
+                800,
+                600
+            );
 
         float maxAllowedWidth =
             screenSize.width -
@@ -1638,26 +2774,128 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
                 maxAllowedHeight
             );
 
-        gMenuSize.x =
-            ASASECClampFloat(
-                gResizeStartSize.x +
-                deltaX,
-                kMenuMinWidth,
-                maxWidth
-            );
+        float safeMinWidth =
+            ASASECGetSafeMinimumMenuWidth();
 
-        gMenuSize.y =
-            ASASECClampFloat(
-                gResizeStartSize.y +
-                deltaY,
-                kMenuMinHeight,
-                maxHeight
-            );
+        /*
+         * Çok küçük ekranlarda güvenli minimum,
+         * fiziksel ekranı aşmamalı.
+         */
+        if (maxWidth < safeMinWidth)
+            safeMinWidth = maxWidth;
+
+        float safeMinHeight =
+            kMenuMinHeight;
+
+        if (maxHeight < safeMinHeight)
+            safeMinHeight = maxHeight;
+
+        /*
+         * Başlangıç değerlerini koruyarak
+         * eksen bağımsız resize.
+         */
+        if (gResizeAxis ==
+            ASASECResizeAxisHorizontal) {
+
+            gMenuSize.x =
+                ASASECClampFloat(
+                    gResizeStartSize.x +
+                    deltaX,
+                    safeMinWidth,
+                    maxWidth
+                );
+
+            /*
+             * DİKEY BOYUT KORUNUR.
+             */
+            gMenuSize.y =
+                gResizeLockedHeight;
+
+        } else if (
+            gResizeAxis ==
+            ASASECResizeAxisVertical) {
+
+            /*
+             * YATAY BOYUT KORUNUR.
+             */
+            gMenuSize.x =
+                gResizeLockedWidth;
+
+            gMenuSize.y =
+                ASASECClampFloat(
+                    gResizeStartSize.y +
+                    deltaY,
+                    safeMinHeight,
+                    maxHeight
+                );
+
+        } else if (
+            gResizeAxis ==
+            ASASECResizeAxisBoth) {
+
+            /*
+             * İki eksen de gerçekten hareket
+             * ettiriliyorsa ikisi birlikte değişir.
+             */
+            gMenuSize.x =
+                ASASECClampFloat(
+                    gResizeStartSize.x +
+                    deltaX,
+                    safeMinWidth,
+                    maxWidth
+                );
+
+            gMenuSize.y =
+                ASASECClampFloat(
+                    gResizeStartSize.y +
+                    deltaY,
+                    safeMinHeight,
+                    maxHeight
+                );
+
+        } else {
+
+            /*
+             * Henüz yön belirlenmediyse başlangıç
+             * boyutlarını koru.
+             */
+            gMenuSize.x =
+                gResizeLockedWidth;
+
+            gMenuSize.y =
+                gResizeLockedHeight;
+        }
 
         if (window)
             ASASECClampMenuToScreen(
                 window
             );
+
+        /*
+         * Clamp sonrası diğer eksenin yanlışlıkla
+         * değişmesini engelle.
+         */
+        if (gResizeAxis ==
+            ASASECResizeAxisHorizontal) {
+
+            gMenuSize.y =
+                ASASECClampFloat(
+                    gResizeLockedHeight,
+                    safeMinHeight,
+                    maxHeight
+                );
+
+        } else if (
+            gResizeAxis ==
+            ASASECResizeAxisVertical) {
+
+            gMenuSize.x =
+                ASASECClampFloat(
+                    gResizeLockedWidth,
+                    safeMinWidth,
+                    maxWidth
+                );
+        }
 
         ImGui::GetIO().MouseDown[0] =
             false;
@@ -1790,7 +3028,19 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
             false;
 
     gDraggingMenu = NO;
+
     gResizingMenu = NO;
+
+    /*
+     * Bir sonraki resize'da yeniden
+     * eksen algılansın.
+     */
+    gResizeAxis =
+        ASASECResizeAxisNone;
+
+    gResizeAxisLocked =
+        NO;
+
     gContentDragging = NO;
     gContentTouchCandidate = NO;
 }
@@ -1815,6 +3065,13 @@ static bool ASASECModernCheckbox(const char *label, bool *value)
 
     gDraggingMenu = NO;
     gResizingMenu = NO;
+
+    gResizeAxis =
+        ASASECResizeAxisNone;
+
+    gResizeAxisLocked =
+        NO;
+
     gContentDragging = NO;
     gContentTouchCandidate = NO;
 }
@@ -2832,8 +4089,16 @@ drawableSizeWillChange:(CGSize)size
                     kHeaderHeight +
                     2.0f;
 
-                if (contentWidth < 100.0f)
-                    contentWidth = 100.0f;
+                /*
+                 * Content'in hiçbir zaman aşırı
+                 * küçülmemesi için güvenlik.
+                 */
+                if (contentWidth <
+                    kMinimumContentWidth) {
+
+                    contentWidth =
+                        kMinimumContentWidth;
+                }
 
                 if (contentHeight < 100.0f)
                     contentHeight = 100.0f;
@@ -3163,8 +4428,12 @@ drawableSizeWillChange:(CGSize)size
                             }
                         }
 
+                        /*
+                         * Biraz büyüyen bileşenler için
+                         * kart yüksekliği de artırıldı.
+                         */
                         float calculatedHeight =
-                            (featureCount * 65.0f) +
+                            (featureCount * 67.0f) +
                             40.0f;
 
                         if (calculatedHeight <
@@ -3262,30 +4531,82 @@ drawableSizeWillChange:(CGSize)size
                                             7.0f
                                         )
                                     );
-                                } else if (feature->type == ASASECFeatureTypeSlider) {
-                                    float *valPtr = feature->floatValuePointer;
+
+                                } else if (
+                                    feature->type ==
+                                    ASASECFeatureTypeSlider) {
+
+                                    float *valPtr =
+                                        feature->floatValuePointer;
+
                                     if (valPtr) {
-                                        float oldVal = *valPtr;
-                                        bool sliderChanged = ASASECModernSlider(feature->title, valPtr, feature->sliderMin, feature->sliderMax);
-                                        if (sliderChanged && oldVal != *valPtr) {
+
+                                        float oldVal =
+                                            *valPtr;
+
+                                        bool sliderChanged =
+                                            ASASECModernSlider(
+                                                feature->title,
+                                                valPtr,
+                                                feature->sliderMin,
+                                                feature->sliderMax
+                                            );
+
+                                        if (sliderChanged &&
+                                            oldVal != *valPtr) {
+
                                             if (feature->sliderCallback) {
-                                                feature->sliderCallback(*valPtr);
+
+                                                feature->sliderCallback(
+                                                    *valPtr
+                                                );
                                             }
                                         }
                                     }
-                                    ImGui::Dummy(ImVec2(0.0f, 6.0f));
-                                } else if (feature->type == ASASECFeatureTypeCheckbox) {
-                                    bool *valPtr = feature->valuePointer;
+
+                                    ImGui::Dummy(
+                                        ImVec2(
+                                            0.0f,
+                                            6.0f
+                                        )
+                                    );
+
+                                } else if (
+                                    feature->type ==
+                                    ASASECFeatureTypeCheckbox) {
+
+                                    bool *valPtr =
+                                        feature->valuePointer;
+
                                     if (valPtr) {
-                                        bool oldVal = *valPtr;
-                                        bool checkChanged = ASASECModernCheckbox(feature->title, valPtr);
-                                        if (checkChanged && oldVal != *valPtr) {
+
+                                        bool oldVal =
+                                            *valPtr;
+
+                                        bool checkChanged =
+                                            ASASECModernCheckbox(
+                                                feature->title,
+                                                valPtr
+                                            );
+
+                                        if (checkChanged &&
+                                            oldVal != *valPtr) {
+
                                             if (feature->checkboxCallback) {
-                                                feature->checkboxCallback(*valPtr);
+
+                                                feature->checkboxCallback(
+                                                    *valPtr
+                                                );
                                             }
                                         }
                                     }
-                                    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+
+                                    ImGui::Dummy(
+                                        ImVec2(
+                                            0.0f,
+                                            6.0f
+                                        )
+                                    );
                                 }
                             }
                         }
@@ -3721,6 +5042,12 @@ drawableSizeWillChange:(CGSize)size
                 gContentTouchCandidate = NO;
                 gOpenCategoriesTouchCandidate = NO;
 
+                gResizeAxis =
+                    ASASECResizeAxisNone;
+
+                gResizeAxisLocked =
+                    NO;
+
                 gPendingContentScrollY =
                     0.0f;
 
@@ -3887,6 +5214,12 @@ drawableSizeWillChange:(CGSize)size
                 gContentDragging = NO;
                 gContentTouchCandidate = NO;
                 gOpenCategoriesTouchCandidate = NO;
+
+                gResizeAxis =
+                    ASASECResizeAxisNone;
+
+                gResizeAxisLocked =
+                    NO;
             }
 
             ImGui::PopStyleColor(3);
@@ -4218,6 +5551,18 @@ void ASASECImGuiStart(void)
             gResizingMenu = NO;
             gContentDragging = NO;
 
+            gResizeAxis =
+                ASASECResizeAxisNone;
+
+            gResizeAxisLocked =
+                NO;
+
+            gResizeLockedWidth =
+                gMenuSize.x;
+
+            gResizeLockedHeight =
+                gMenuSize.y;
+
             gOpenCategoriesTouchCandidate =
                 NO;
 
@@ -4403,6 +5748,12 @@ void ASASECImGuiStop(void)
             gButtonAnimationCount =
                 0;
 
+            gSliderAnimationCount =
+                0;
+
+            gCheckboxAnimationCount =
+                0;
+
             gPendingContentScrollY =
                 0.0f;
 
@@ -4414,6 +5765,12 @@ void ASASECImGuiStop(void)
             gContentDragging = NO;
             gContentTouchCandidate = NO;
             gContentHasMoved = NO;
+
+            gResizeAxis =
+                ASASECResizeAxisNone;
+
+            gResizeAxisLocked =
+                NO;
 
             gOpenCategoriesTouchCandidate =
                 NO;
