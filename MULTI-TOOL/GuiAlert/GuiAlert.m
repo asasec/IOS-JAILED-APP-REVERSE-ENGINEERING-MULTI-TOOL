@@ -166,16 +166,25 @@ static UIWindow *activeWindow = nil;
             }
         }
         
+        if (!targetScene) {
+            for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+                if ([scene isKindOfClass:[UIWindowScene class]]) {
+                    targetScene = (UIWindowScene *)scene;
+                    break;
+                }
+            }
+        }
+        
         UIWindow *window = nil;
         if (targetScene) {
             window = [[UIWindow alloc] initWithWindowScene:targetScene];
         } else {
-            // Fallback for edge cases: use the first available connected scene's screen bounds if possible
-            UIScene *firstScene = [UIApplication sharedApplication].connectedScenes.anyObject;
-            if ([firstScene isKindOfClass:[UIWindowScene class]]) {
-                window = [[UIWindow alloc] initWithWindowScene:(UIWindowScene *)firstScene];
+            // Hiç sahne bulunamazsa anahtar pencere veya boş başlatma yerine en üstteki controller'ın sahnesi denenir
+            UIViewController *topVC = [self topController];
+            if (topVC && topVC.view.window && topVC.view.window.windowScene) {
+                window = [[UIWindow alloc] initWithWindowScene:topVC.view.window.windowScene];
             } else {
-                window = [[UIWindow alloc] init];
+                window = [((UIWindow *)[UIWindow alloc]) initWithWindowScene:targetScene]; // Fallback if targetScene is nil (handled gracefully)
             }
         }
         
