@@ -19,7 +19,14 @@ static UIWindow *activeWindow = nil;
         }
     }
     if (!window) {
-        window = [UIApplication sharedApplication].keyWindow ?: [UIApplication sharedApplication].windows.firstObject;
+        if (@available(iOS 13.0, *)) {
+            for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
+                if (scene.activationState == UISceneActivationStateForegroundActive) {
+                    window = scene.windows.firstObject;
+                    break;
+                }
+            }
+        }
     }
     
     UIViewController *topController = window.rootViewController;
@@ -152,19 +159,18 @@ static UIWindow *activeWindow = nil;
         [self dismiss];
         
         UIWindowScene *targetScene = nil;
-        if (@available(iOS 13.0, *)) {
-            for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
-                if ([scene isKindOfClass:[UIWindowScene class]] && scene.activationState == UISceneActivationStateForegroundActive) {
-                    targetScene = scene;
-                    break;
-                }
+        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if ([scene isKindOfClass:[UIWindowScene class]] && scene.activationState == UISceneActivationStateForegroundActive) {
+                targetScene = (UIWindowScene *)scene;
+                break;
             }
         }
         
         UIWindow *window = nil;
-        if (@available(iOS 13.0, *) && targetScene) {
+        if (targetScene) {
             window = [[UIWindow alloc] initWithWindowScene:targetScene];
         } else {
+            // Fallback for safety across compiler versions without using deprecated mainScreen/initWithFrame directly where possible
             window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
         }
         
