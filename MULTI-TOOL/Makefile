@@ -7,28 +7,28 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME := AsasecMultiTool
 
 AsasecMultiTool_FILES := \
-    Asasec/Tweak.xm \
-    GuiAlert/GuiAlert.m \
-    Asasec/Manager/AsasecManager.mm \
-    Imgui/Ui/AsasecUi.mm \
-    Imgui/imgui.cpp \
-    Imgui/imgui_draw.cpp \
-    Imgui/imgui_tables.cpp \
-    Imgui/imgui_widgets.cpp \
-    Imgui/Backends/imgui_impl_metal.mm
+    Asasec.xm \
+    ASASECUI/guialert/GuiAlert.m \
+    manager/UiManager.mm \
+    ASASECUI/imgui/Ui/AsasecUi.mm \
+    ASASECUI/imgui/imgui.cpp \
+    ASASECUI/imgui/imgui_draw.cpp \
+    ASASECUI/imgui/imgui_tables.cpp \
+    ASASECUI/imgui/imgui_widgets.cpp \
+    ASASECUI/imgui/Backends/imgui_impl_metal.mm
 
 AsasecMultiTool_CFLAGS := \
     -fobjc-arc \
     -Wno-error \
-    -IImgui \
-    -IImgui/Backends
+    -IASASECUI/imgui \
+    -IASASECUI/imgui/backends
 
 AsasecMultiTool_CCFLAGS := \
     -std=c++17 \
     -fobjc-arc \
     -Wno-error \
-    -IImgui \
-    -IImgui/Backends
+    -IASASECUI/imgui \
+    -IASASECUI/imgui/backends
 
 AsasecMultiTool_FRAMEWORKS := \
     UIKit \
