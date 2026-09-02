@@ -12,6 +12,7 @@
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_internal.h"
 #include "../imgui/backends/imgui_impl_metal.h"
+#import "../../tool/sandbox/SandboxBrowser.h"
 
 #pragma mark - External Feature Registration
 
