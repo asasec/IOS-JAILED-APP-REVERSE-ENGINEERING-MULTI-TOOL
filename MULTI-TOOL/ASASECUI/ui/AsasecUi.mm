@@ -3835,7 +3835,14 @@ drawableSizeWillChange:(CGSize)size
         }
     }
 
+    if ([SandboxBrowser isBrowserOpen]) {
 
+    [[SandboxBrowser sharedInstance]
+
+        renderImGuiWindow];
+
+    } else {
+    
     if (gMenuVisible) {
 
         UIWindow *win =
