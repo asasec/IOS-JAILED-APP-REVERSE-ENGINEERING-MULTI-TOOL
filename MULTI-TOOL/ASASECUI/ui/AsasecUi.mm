@@ -6005,7 +6005,7 @@ drawableSizeWillChange:(CGSize)size
 
         ImGui::PopStyleVar(2);
     }
-
+    }
 
     ImGui::Render();
 
