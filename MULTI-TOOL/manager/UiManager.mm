@@ -29,18 +29,22 @@ extern void ASASECUiCheckbox(const char *category,
                               bool *valuePointer,
                               void (*callback)(bool));
 
-#pragma mark - İşlemler
+#pragma mark - Browser
 
 static void ButonBas(void) {
-    SandboxBrowser *browser = [SandboxBrowser sharedInstance];
-    browser.isWindowOpen = YES;
+
+    [SandboxBrowser openBrowser];
 }
 
-#pragma mark - Menüyü Dışarıya Açan Başlatıcı Fonksiyon
+#pragma mark - Start
 
 void StartAsasecMenu(void) {
 
-    ASASECUiButton("SANDBOX", "Browser", ButonBas);
+    ASASECUiButton(
+        "SANDBOX",
+        "Browser",
+        ButonBas
+    );
 
     ASASECUiStart();
 }
