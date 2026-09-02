@@ -16,7 +16,8 @@ static BOOL gSandboxBrowserScreen = NO;
 
 #pragma mark - Singleton
 
-+ (instancetype)sharedInstance {
++ (instancetype)sharedInstance
+{
     static SandboxBrowser *sharedInstance = nil;
     static dispatch_once_t onceToken;
 
@@ -29,15 +30,21 @@ static BOOL gSandboxBrowserScreen = NO;
 
 #pragma mark - Open / Close
 
-+ (void)openBrowser {
-    SandboxBrowser *browser = [SandboxBrowser sharedInstance];
++ (void)openBrowser
+{
+    SandboxBrowser *browser =
+        [SandboxBrowser sharedInstance];
 
     browser.isWindowOpen = YES;
+    browser.isEditorOpen = NO;
+
     gSandboxBrowserScreen = YES;
 }
 
-+ (void)closeBrowser {
-    SandboxBrowser *browser = [SandboxBrowser sharedInstance];
++ (void)closeBrowser
+{
+    SandboxBrowser *browser =
+        [SandboxBrowser sharedInstance];
 
     browser.isWindowOpen = NO;
     browser.isEditorOpen = NO;
@@ -45,16 +52,19 @@ static BOOL gSandboxBrowserScreen = NO;
     gSandboxBrowserScreen = NO;
 }
 
-+ (BOOL)isBrowserOpen {
++ (BOOL)isBrowserOpen
+{
     return gSandboxBrowserScreen;
 }
 
 #pragma mark - Init
 
-- (instancetype)init {
+- (instancetype)init
+{
     self = [super init];
 
     if (self) {
+
         [self loadDirectoryAtPath:NSHomeDirectory()];
 
         _isWindowOpen = NO;
@@ -66,8 +76,8 @@ static BOOL gSandboxBrowserScreen = NO;
 
 #pragma mark - Directory
 
-- (void)loadDirectoryAtPath:(NSString *)path {
-
+- (void)loadDirectoryAtPath:(NSString *)path
+{
     if (!path || path.length == 0)
         return;
 
@@ -83,12 +93,15 @@ static BOOL gSandboxBrowserScreen = NO;
     if (!error) {
 
         self.currentFiles =
-            [contents sortedArrayUsingSelector:@selector(compare:)];
+            [contents sortedArrayUsingSelector:
+                @selector(compare:)];
 
     } else {
 
-        NSLog(@"SandboxBrowser Error: %@",
-              error.localizedDescription);
+        NSLog(
+            @"SandboxBrowser Error: %@",
+            error.localizedDescription
+        );
 
         self.currentFiles = @[];
     }
@@ -96,33 +109,48 @@ static BOOL gSandboxBrowserScreen = NO;
 
 #pragma mark - ImGui Browser
 
-- (void)renderImGuiWindow {
-
+- (void)renderImGuiWindow
+{
     if (!gSandboxBrowserScreen)
         return;
 
     if (!_isWindowOpen) {
+
         gSandboxBrowserScreen = NO;
+
         return;
     }
 
-    ImGuiIO &io = ImGui::GetIO();
+    ImGuiIO &io =
+        ImGui::GetIO();
 
-    ImGuiViewport *viewport =
-        ImGui::GetMainViewport();
+    ImVec2 displaySize =
+        io.DisplaySize;
+
+    if (displaySize.x <= 0.0f ||
+        displaySize.y <= 0.0f) {
+
+        return;
+    }
+
+    /*
+     Full-screen Browser Window
+
+     SetNextWindowViewport()
+     kullanılmıyor.
+
+     Böylece eski / farklı ImGui
+     sürümleriyle uyumlu kalır.
+    */
 
     ImGui::SetNextWindowPos(
-        viewport->WorkPos,
+        ImVec2(0.0f, 0.0f),
         ImGuiCond_Always
     );
 
     ImGui::SetNextWindowSize(
-        viewport->WorkSize,
+        displaySize,
         ImGuiCond_Always
-    );
-
-    ImGui::SetNextWindowViewport(
-        viewport->ID
     );
 
     ImGuiWindowFlags flags =
@@ -131,20 +159,30 @@ static BOOL gSandboxBrowserScreen = NO;
         ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoSavedSettings;
 
-    if (ImGui::Begin(
+    bool windowVisible =
+        ImGui::Begin(
             "Advanced Sandbox Browser",
             &_isWindowOpen,
-            flags)) {
+            flags
+        );
+
+    if (windowVisible) {
 
         #pragma mark - Header
 
-        ImGui::TextUnformatted("SANDBOX BROWSER");
+        ImGui::TextUnformatted(
+            "SANDBOX BROWSER"
+        );
+
+        float windowWidth =
+            ImGui::GetWindowWidth();
 
         ImGui::SameLine(
-            ImGui::GetWindowWidth() - 95.0f
+            windowWidth - 95.0f
         );
 
         if (ImGui::Button("Geri")) {
+
             [SandboxBrowser closeBrowser];
         }
 
@@ -152,7 +190,9 @@ static BOOL gSandboxBrowserScreen = NO;
 
         #pragma mark - Current Path
 
-        ImGui::TextUnformatted("Aktif Konum:");
+        ImGui::TextUnformatted(
+            "Aktif Konum:"
+        );
 
         ImGui::BeginChild(
             "PathChild",
@@ -162,10 +202,17 @@ static BOOL gSandboxBrowserScreen = NO;
         );
 
         if (self.currentPath) {
-            ImGui::Text(
-                "%s",
-                [self.currentPath UTF8String]
-            );
+
+            const char *pathString =
+                [self.currentPath UTF8String];
+
+            if (pathString) {
+
+                ImGui::Text(
+                    "%s",
+                    pathString
+                );
+            }
         }
 
         ImGui::EndChild();
@@ -175,33 +222,42 @@ static BOOL gSandboxBrowserScreen = NO;
         if (![self.currentPath
               isEqualToString:NSHomeDirectory()]) {
 
-            if (ImGui::Button("<- Bir Üst Dizin")) {
+            if (ImGui::Button(
+                    "<- Bir Üst Dizin")) {
 
                 NSString *parentPath =
                     [self.currentPath
                         stringByDeletingLastPathComponent];
 
-                [self loadDirectoryAtPath:parentPath];
+                [self loadDirectoryAtPath:
+                    parentPath];
             }
 
             ImGui::SameLine();
         }
 
-        if (ImGui::Button("Ev Dizini")) {
-            [self loadDirectoryAtPath:NSHomeDirectory()];
+        if (ImGui::Button(
+                "Ev Dizini")) {
+
+            [self loadDirectoryAtPath:
+                NSHomeDirectory()];
         }
 
         ImGui::SameLine();
 
-        if (ImGui::Button("Yenile")) {
-            [self loadDirectoryAtPath:self.currentPath];
+        if (ImGui::Button(
+                "Yenile")) {
+
+            [self loadDirectoryAtPath:
+                self.currentPath];
         }
 
         ImGui::Separator();
 
         #pragma mark - File Table
 
-        float footerHeight = 32.0f;
+        float footerHeight =
+            32.0f;
 
         if (ImGui::BeginTable(
                 "SandboxTable",
@@ -240,11 +296,13 @@ static BOOL gSandboxBrowserScreen = NO;
             NSFileManager *fileManager =
                 [NSFileManager defaultManager];
 
-            for (NSString *fileName in self.currentFiles) {
+            for (NSString *fileName
+                 in self.currentFiles) {
 
                 NSString *fullPath =
                     [self.currentPath
-                        stringByAppendingPathComponent:fileName];
+                        stringByAppendingPathComponent:
+                            fileName];
 
                 BOOL isDirectory = NO;
 
@@ -254,7 +312,8 @@ static BOOL gSandboxBrowserScreen = NO;
 
                 NSDictionary *attrs =
                     [fileManager
-                        attributesOfItemAtPath:fullPath
+                        attributesOfItemAtPath:
+                            fullPath
                         error:nil];
 
                 unsigned long long fileSize =
@@ -270,8 +329,14 @@ static BOOL gSandboxBrowserScreen = NO;
                     [fileName UTF8String];
 
                 std::string displayName =
-                    (isDirectory ? "[D] " : "[F] ") +
-                    std::string(utfName ? utfName : "");
+                    (isDirectory
+                        ? "[D] "
+                        : "[F] ") +
+                    std::string(
+                        utfName
+                            ? utfName
+                            : ""
+                    );
 
                 if (ImGui::Selectable(
                         displayName.c_str(),
@@ -280,7 +345,8 @@ static BOOL gSandboxBrowserScreen = NO;
 
                     if (isDirectory) {
 
-                        [self loadDirectoryAtPath:fullPath];
+                        [self loadDirectoryAtPath:
+                            fullPath];
 
                         break;
                     }
@@ -292,7 +358,9 @@ static BOOL gSandboxBrowserScreen = NO;
 
                 ImGui::Text(
                     "%s",
-                    isDirectory ? "Dir" : "File"
+                    isDirectory
+                        ? "Dir"
+                        : "File"
                 );
 
                 #pragma mark - Size
@@ -309,11 +377,13 @@ static BOOL gSandboxBrowserScreen = NO;
                         );
 
                     } else if (
-                        fileSize < 1024 * 1024) {
+                        fileSize <
+                        1024ULL * 1024ULL) {
 
                         ImGui::Text(
                             "%.1f KB",
-                            (float)fileSize / 1024.0f
+                            (float)fileSize /
+                            1024.0f
                         );
 
                     } else {
@@ -327,7 +397,9 @@ static BOOL gSandboxBrowserScreen = NO;
 
                 } else {
 
-                    ImGui::TextUnformatted("--");
+                    ImGui::TextUnformatted(
+                        "--"
+                    );
                 }
 
                 #pragma mark - Actions
@@ -338,12 +410,15 @@ static BOOL gSandboxBrowserScreen = NO;
                     [fileName UTF8String];
 
                 std::string baseID =
-                    baseName ? baseName : "";
+                    baseName
+                        ? baseName
+                        : "";
 
                 if (!isDirectory) {
 
                     std::string viewBtnID =
-                        "Oku##" + baseID;
+                        "Oku##" +
+                        baseID;
 
                     if (ImGui::Button(
                             viewBtnID.c_str())) {
@@ -351,13 +426,17 @@ static BOOL gSandboxBrowserScreen = NO;
                         self.selectedFilePath =
                             fullPath;
 
-                        NSError *readError = nil;
+                        NSError *readError =
+                            nil;
 
                         NSString *content =
                             [NSString
-                                stringWithContentsOfFile:fullPath
-                                encoding:NSUTF8StringEncoding
-                                error:&readError];
+                                stringWithContentsOfFile:
+                                    fullPath
+                                encoding:
+                                    NSUTF8StringEncoding
+                                error:
+                                    &readError];
 
                         if (content) {
 
@@ -366,10 +445,15 @@ static BOOL gSandboxBrowserScreen = NO;
 
                         } else {
 
+                            NSString *errorMessage =
+                                readError
+                                    ? readError.localizedDescription
+                                    : @"Bilinmeyen okuma hatası";
+
                             self.fileContentString =
                                 [NSString stringWithFormat:
                                     @"[Okunamadı]: %@",
-                                    readError.localizedDescription];
+                                    errorMessage];
                         }
 
                         _isEditorOpen = YES;
@@ -379,16 +463,20 @@ static BOOL gSandboxBrowserScreen = NO;
                 }
 
                 std::string delBtnID =
-                    "Sil##" + baseID;
+                    "Sil##" +
+                    baseID;
 
                 if (ImGui::Button(
                         delBtnID.c_str())) {
 
-                    NSError *delError = nil;
+                    NSError *delError =
+                        nil;
 
                     [fileManager
-                        removeItemAtPath:fullPath
-                        error:&delError];
+                        removeItemAtPath:
+                            fullPath
+                        error:
+                            &delError];
 
                     if (!delError) {
 
@@ -405,7 +493,8 @@ static BOOL gSandboxBrowserScreen = NO;
 
         ImGui::Text(
             "Toplam Öğe: %lu",
-            (unsigned long)self.currentFiles.count
+            (unsigned long)
+                self.currentFiles.count
         );
     }
 
@@ -416,7 +505,7 @@ static BOOL gSandboxBrowserScreen = NO;
     if (_isEditorOpen) {
 
         ImGui::SetNextWindowSize(
-            ImVec2(600, 450),
+            ImVec2(600.0f, 450.0f),
             ImGuiCond_FirstUseEver
         );
 
@@ -427,15 +516,22 @@ static BOOL gSandboxBrowserScreen = NO;
 
             if (self.selectedFilePath) {
 
+                const char *selectedName =
+                    [[self.selectedFilePath
+                        lastPathComponent]
+                            UTF8String];
+
                 ImGui::Text(
                     "Dosya: %s",
-                    [[self.selectedFilePath
-                        lastPathComponent] UTF8String]
+                    selectedName
+                        ? selectedName
+                        : ""
                 );
 
                 static char textBuffer[16384];
 
-                static NSString *lastLoadedPath = nil;
+                static NSString *
+                    lastLoadedPath = nil;
 
                 if (lastLoadedPath !=
                     self.selectedFilePath) {
@@ -446,20 +542,26 @@ static BOOL gSandboxBrowserScreen = NO;
                         sizeof(textBuffer)
                     );
 
-                    [self.fileContentString
-                        getCString:textBuffer
-                        maxLength:sizeof(textBuffer)
-                        encoding:NSUTF8StringEncoding];
+                    if (self.fileContentString) {
+
+                        [self.fileContentString
+                            getCString:
+                                textBuffer
+                            maxLength:
+                                sizeof(textBuffer)
+                            encoding:
+                                NSUTF8StringEncoding];
+                    }
 
                     lastLoadedPath =
-                        self.selectedFilePath;
+                        [self.selectedFilePath copy];
                 }
 
                 ImGui::InputTextMultiline(
                     "##source",
                     textBuffer,
                     sizeof(textBuffer),
-                    ImVec2(-1, -45),
+                    ImVec2(-1.0f, -45.0f),
                     ImGuiInputTextFlags_AllowTabInput
                 );
 
@@ -467,16 +569,27 @@ static BOOL gSandboxBrowserScreen = NO;
                         "Değişiklikleri Kaydet")) {
 
                     NSString *updatedString =
-                        [NSString stringWithUTF8String:
-                            textBuffer];
+                        [NSString
+                            stringWithUTF8String:
+                                textBuffer];
 
-                    NSError *writeError = nil;
+                    if (!updatedString) {
+
+                        updatedString = @"";
+                    }
+
+                    NSError *writeError =
+                        nil;
 
                     [updatedString
-                        writeToFile:self.selectedFilePath
-                        atomically:YES
-                        encoding:NSUTF8StringEncoding
-                        error:&writeError];
+                        writeToFile:
+                            self.selectedFilePath
+                        atomically:
+                            YES
+                        encoding:
+                            NSUTF8StringEncoding
+                        error:
+                            &writeError];
 
                     if (writeError) {
 
@@ -489,12 +602,17 @@ static BOOL gSandboxBrowserScreen = NO;
 
                         self.fileContentString =
                             updatedString;
+
+                        lastLoadedPath =
+                            [self.selectedFilePath copy];
                     }
                 }
 
                 ImGui::SameLine();
 
-                if (ImGui::Button("Kapat")) {
+                if (ImGui::Button(
+                        "Kapat")) {
+
                     _isEditorOpen = NO;
                 }
             }
