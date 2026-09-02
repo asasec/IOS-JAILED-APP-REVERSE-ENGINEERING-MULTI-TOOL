@@ -4,8 +4,7 @@
 #import "../ASASECUI/ui/AsasecUi.h"
 #import "../ASASECUI/guialert/GuiAlert.h"
 #include "../ASASECUI/imgui/imgui.h"
-
-#import "../tool/sandbox/SandboxBrowser.mm"
+#import "../tool/sandbox/SandboxBrowser.h"
 
 #pragma mark - API
 
