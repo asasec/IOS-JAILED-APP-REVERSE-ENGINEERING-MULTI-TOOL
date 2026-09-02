@@ -15,6 +15,11 @@
 @property (nonatomic, assign) BOOL isEditorOpen;
 
 + (instancetype)sharedInstance;
+
++ (void)openBrowser;
++ (void)closeBrowser;
++ (BOOL)isBrowserOpen;
+
 - (void)loadDirectoryAtPath:(NSString *)path;
 - (void)renderImGuiWindow;
 
