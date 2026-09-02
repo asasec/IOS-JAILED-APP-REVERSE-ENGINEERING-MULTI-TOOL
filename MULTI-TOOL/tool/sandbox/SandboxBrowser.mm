@@ -1,15 +1,17 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
-#include <string>
-#include <vector>
 
-@interface SandboxBrowser : NSObject
+#include "../../ASASECUI/imgui/imgui.h"
+
+@interface SandboxBrowser : NSObject {
+    BOOL _isWindowOpen;
+    BOOL _isEditorOpen;
+}
 
 @property (nonatomic, strong) NSString *currentPath;
 @property (nonatomic, strong) NSArray *currentFiles;
 @property (nonatomic, assign) BOOL isWindowOpen;
 
-// Dosya içerik görüntüleme/düzenleme için state değişkenleri
 @property (nonatomic, strong) NSString *selectedFilePath;
 @property (nonatomic, strong) NSString *fileContentString;
 @property (nonatomic, assign) BOOL isEditorOpen;
@@ -21,6 +23,9 @@
 @end
 
 @implementation SandboxBrowser
+
+@synthesize isWindowOpen = _isWindowOpen;
+@synthesize isEditorOpen = _isEditorOpen;
 
 + (instancetype)sharedInstance {
     static SandboxBrowser *sharedInstance = nil;
@@ -34,10 +39,9 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        // Varsayılan olarak uygulamanın ev (sandbox) dizini ile başla
         [self loadDirectoryAtPath:NSHomeDirectory()];
-        self.isWindowOpen = YES;
-        self.isEditorOpen = NO;
+        _isWindowOpen = YES;
+        _isEditorOpen = NO;
     }
     return self;
 }
@@ -47,8 +51,8 @@
     NSError *error = nil;
     NSArray *contents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:&error];
     if (!error) {
-        // Alfabetik sıralama (Klasörler üstte, dosyalar altta olacak şekilde optimize edilebilir)
-        self.currentFiles = [contents sortedArrayUsingSelector:@compare:];
+        // Düzeltildi: @compare: yerine @selector(compare:)
+        self.currentFiles = [contents sortedArrayUsingSelector:@selector(compare:)];
     } else {
         NSLog(@"SandboxBrowser Error: %@", error.localizedDescription);
         self.currentFiles = @[];
@@ -56,13 +60,13 @@
 }
 
 - (void)renderImGuiWindow {
-    if (!self.isWindowOpen) return;
+    if (!_isWindowOpen) return;
 
-    // Ana Dosya Yöneticisi Penceresi
     ImGui::SetNextWindowSize(ImVec2(600, 450), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Advanced Sandbox Browser", &self.isWindowOpen, ImGuiWindowFlags_None)) {
+    
+    // Pointer hatasını önlemek için _isWindowOpen ivar'ını kullanıyoruz
+    if (ImGui::Begin("Advanced Sandbox Browser", &_isWindowOpen, ImGuiWindowFlags_None)) {
         
-        // Üst Kısım: Yol Bilgisi ve Navigasyon Butonları
         ImGui::Text("Aktif Konum:");
         ImGui::BeginChild("PathChild", ImVec2(0, 30), false, ImGuiWindowFlags_HorizontalScrollbar);
         ImGui::Text("%s", [self.currentPath UTF8String]);
@@ -87,7 +91,6 @@
 
         ImGui::Separator();
 
-        // Dosya Tablosu
         float footerHeight = 40.0f;
         if (ImGui::BeginTable("SandboxTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit, ImVec2(0, -footerHeight))) {
             
@@ -105,28 +108,24 @@
                 BOOL isDirectory = NO;
                 [fileManager fileExistsAtPath:fullPath isDirectory:&isDirectory];
 
-                // Dosya özniteliklerini al (Boyut için)
                 NSDictionary *attrs = [fileManager attributesOfItemAtPath:fullPath error:nil];
                 unsigned long long fileSize = [attrs fileSize];
 
                 ImGui::TableNextRow();
                 
-                // Sütun 0: İsim
                 ImGui::TableSetColumnIndex(0);
                 std::string displayName = (isDirectory ? "[D] " : "[F] ") + std::string([fileName UTF8String]);
                 
                 if (ImGui::Selectable(displayName.c_str(), false, ImGuiSelectableFlags_SpanAllColumns)) {
                     if (isDirectory) {
                         [self loadDirectoryAtPath:fullPath];
-                        break; // Döngü güvenliği
+                        break;
                     }
                 }
 
-                // Sütun 1: Tür
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Text(isDirectory ? "Dir" : "File");
 
-                // Sütun 2: Boyut
                 ImGui::TableSetColumnIndex(2);
                 if (!isDirectory) {
                     if (fileSize < 1024) {
@@ -140,7 +139,6 @@
                     ImGui::Text("--");
                 }
 
-                // Sütun 3: İşlemler (Görüntüle / Sil)
                 ImGui::TableSetColumnIndex(3);
                 std::string baseID = std::string([fileName UTF8String]);
                 
@@ -153,9 +151,9 @@
                         if (content) {
                             self.fileContentString = content;
                         } else {
-                            self.fileContentString = [NSString stringWithFormat:@"[Okunamadı veya Binary Dosya]: %@", readError.localizedDescription];
+                            self.fileContentString = [NSString stringWithFormat:@"[Okunamadı]: %@", readError.localizedDescription];
                         }
-                        self.isEditorOpen = YES;
+                        _isEditorOpen = YES;
                     }
                     ImGui::SameLine();
                 }
@@ -173,20 +171,17 @@
             ImGui::EndTable();
         }
 
-        // Alt Bilgi
         ImGui::Text("Toplam Öğe: %lu", (unsigned long)self.currentFiles.count);
     }
     ImGui::End();
 
-    // İkinci Pencere: Dosya İçerik / Düzenleme Görüntüleyicisi
-    if (self.isEditorOpen) {
+    if (_isEditorOpen) {
         ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("File Inspector / Editor", &self.isEditorOpen, ImGuiWindowFlags_None)) {
+        if (ImGui::Begin("File Inspector / Editor", &_isEditorOpen, ImGuiWindowFlags_None)) {
             
             if (self.selectedFilePath) {
                 ImGui::Text("Dosya: %s", [[self.selectedFilePath lastPathComponent] UTF8String]);
                 
-                // İçeriği göstermek için statik buffer yönetimi
                 static char textBuffer[16384];
                 static NSString *lastLoadedPath = nil;
                 
