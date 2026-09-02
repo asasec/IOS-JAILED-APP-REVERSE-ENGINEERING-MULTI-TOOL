@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
+#include <string>
 
 #include "../../ASASECUI/imgui/imgui.h"
 
@@ -51,7 +52,6 @@
     NSError *error = nil;
     NSArray *contents = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:&error];
     if (!error) {
-        // Düzeltildi: @compare: yerine @selector(compare:)
         self.currentFiles = [contents sortedArrayUsingSelector:@selector(compare:)];
     } else {
         NSLog(@"SandboxBrowser Error: %@", error.localizedDescription);
@@ -64,7 +64,6 @@
 
     ImGui::SetNextWindowSize(ImVec2(600, 450), ImGuiCond_FirstUseEver);
     
-    // Pointer hatasını önlemek için _isWindowOpen ivar'ını kullanıyoruz
     if (ImGui::Begin("Advanced Sandbox Browser", &_isWindowOpen, ImGuiWindowFlags_None)) {
         
         ImGui::Text("Aktif Konum:");
