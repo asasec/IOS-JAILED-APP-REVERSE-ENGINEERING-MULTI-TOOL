@@ -8,6 +8,7 @@ TWEAK_NAME := AsasecMultiTool
 
 AsasecMultiTool_FILES := \
     Asasec.xm \
+    tool/sandbox/SandboxBrowser.mm \
     ASASECUI/guialert/GuiAlert.m \
     manager/UiManager.mm \
     ASASECUI/ui/AsasecUi.mm \
