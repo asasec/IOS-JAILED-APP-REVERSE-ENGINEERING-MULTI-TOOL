@@ -5,6 +5,8 @@
 #import "../ASASECUI/guialert/GuiAlert.h"
 #include "../ASASECUI/imgui/imgui.h"
 
+#import "../tool/sandbox/SandboxBrowser.mm"
+
 #pragma mark - API
 
 extern void ASASECUiSwitch(const char *category,
@@ -30,9 +32,9 @@ extern void ASASECUiCheckbox(const char *category,
 
 #pragma mark - İşlemler
 
-
 static void ButonBas(void) {
-    // Çağır
+    SandboxBrowser *browser = [SandboxBrowser sharedInstance];
+    browser.isWindowOpen = YES;
 }
 
 #pragma mark - Menüyü Dışarıya Açan Başlatıcı Fonksiyon
