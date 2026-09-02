@@ -1,27 +1,6 @@
-#import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
+#import "SandboxBrowser.h"
 #include <string>
-
 #include "../../ASASECUI/imgui/imgui.h"
-
-@interface SandboxBrowser : NSObject {
-    BOOL _isWindowOpen;
-    BOOL _isEditorOpen;
-}
-
-@property (nonatomic, strong) NSString *currentPath;
-@property (nonatomic, strong) NSArray *currentFiles;
-@property (nonatomic, assign) BOOL isWindowOpen;
-
-@property (nonatomic, strong) NSString *selectedFilePath;
-@property (nonatomic, strong) NSString *fileContentString;
-@property (nonatomic, assign) BOOL isEditorOpen;
-
-+ (instancetype)sharedInstance;
-- (void)loadDirectoryAtPath:(NSString *)path;
-- (void)renderImGuiWindow;
-
-@end
 
 @implementation SandboxBrowser
 
@@ -178,6 +157,7 @@
         ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("File Inspector / Editor", &_isEditorOpen, ImGuiWindowFlags_None)) {
             
+            IdCard:
             if (self.selectedFilePath) {
                 ImGui::Text("Dosya: %s", [[self.selectedFilePath lastPathComponent] UTF8String]);
                 
